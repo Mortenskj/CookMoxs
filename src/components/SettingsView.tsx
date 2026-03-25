@@ -30,6 +30,7 @@ interface SettingsViewProps {
   cloudSyncStatus?: 'idle' | 'syncing' | 'saved' | 'error';
   cloudSyncMessage?: string | null;
   cloudLastSyncAt?: string | null;
+  authErrorMessage?: string | null;
   appVersion?: string;
   isOnline?: boolean;
   aiDisabledReason?: string | null;
@@ -56,6 +57,7 @@ export function SettingsView({
   cloudSyncStatus = 'idle',
   cloudSyncMessage,
   cloudLastSyncAt,
+  authErrorMessage,
   appVersion,
   isOnline = true,
   aiDisabledReason,
@@ -104,6 +106,12 @@ export function SettingsView({
               )}
             </div>
           </div>
+
+          {authErrorMessage ? (
+            <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-800">
+              {authErrorMessage}
+            </p>
+          ) : null}
         </section>
 
         <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">

@@ -15,6 +15,7 @@ import {
   importRecipe as aiImportRecipe,
 } from './services/aiService';
 import { trackEvent } from './services/analyticsService';
+import { normalizeAuthError } from './services/authErrorMessageService';
 import { normalizeImportError, normalizeSyncError } from './services/errorMessageService';
 import { removeFolderShare, setFolderPermissionState, upsertFolderShare } from './services/folderPermissionService';
 import {
@@ -171,6 +172,7 @@ export default function App() {
   const [cloudSyncMessage, setCloudSyncMessage] = useState<string | null>('Kun lokal lagring aktiv');
   const [cloudLastSyncAt, setCloudLastSyncAt] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.lastCloudSyncAt));
   const [aiUnavailableMessage, setAiUnavailableMessage] = useState<string | null>(null);
+  const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
   const [undoDeleteRecipe, setUndoDeleteRecipe] = useState<{ recipe: Recipe; index: number; timeoutId: any } | null>(null);
   const [undoDeleteFolder, setUndoDeleteFolder] = useState<{ folder: Folder; prevFolders: Folder[]; prevRecipes: Recipe[]; movedRecipes: Recipe[]; timeoutId: any } | null>(null);
   const backupImportRef = useRef<HTMLInputElement | null>(null);
@@ -327,6 +329,9 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        setAuthErrorMessage(null);
+      }
       setIsAuthReady(true);
     });
     return () => unsubscribe();
@@ -1199,15 +1204,24 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      setAuthErrorMessage(null);
+      markCloudSyncing('Logger ind...');
+      const credential = await signInWithPopup(auth, googleProvider);
+      setUser(credential.user);
+      markCloudSaved('Cloud tilsluttet');
     } catch (error) {
       console.error("Login failed", error);
+      const message = normalizeAuthError(error);
+      setAuthErrorMessage(message);
+      markCloudError(message);
+      setError(message);
     }
   };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      setAuthErrorMessage(null);
       setSavedRecipes([]);
       setFolders([]);
       setActiveRecipe(null);
@@ -1572,6 +1586,7 @@ export default function App() {
           cloudSyncStatus={cloudSyncStatus}
           cloudSyncMessage={cloudSyncMessage}
           cloudLastSyncAt={cloudLastSyncAt}
+          authErrorMessage={authErrorMessage}
           appVersion={appVersion}
           isOnline={isOnline}
           aiDisabledReason={aiDisabledReason}
