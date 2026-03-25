@@ -1,14 +1,36 @@
 import { initializeApp } from 'firebase/app';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot, query, where, deleteDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+interface FirebaseAppletConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+  measurementId?: string;
+  firestoreDatabaseId?: string;
+}
+
+const typedFirebaseConfig = firebaseConfig as FirebaseAppletConfig;
+
+export const app = initializeApp(typedFirebaseConfig);
 
 // Initialize Firestore with the specific database ID
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = typedFirebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, typedFirebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const analyticsPromise: Promise<Analytics | null> =
+  typeof window !== 'undefined' && typeof document !== 'undefined' && Boolean(typedFirebaseConfig.measurementId)
+    ? isSupported()
+        .then((supported) => (supported ? getAnalytics(app) : null))
+        .catch(() => null)
+    : Promise.resolve(null);
 
 export { signInWithPopup, signOut, onAuthStateChanged };
 
