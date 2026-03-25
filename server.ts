@@ -107,7 +107,31 @@ async function generateAIContent(model: string, prompt: string, responseSchema: 
       responseSchema,
     },
   });
-  return JSON.parse(result.text);
+  return parseAiJsonResponse(result.text, `model ${model}`);
+}
+
+function parseAiJsonResponse(rawText: string, context: string) {
+  const candidates = [
+    rawText,
+    rawText.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1] || '',
+  ].filter(Boolean);
+
+  const firstBrace = rawText.indexOf('{');
+  const lastBrace = rawText.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(rawText.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  console.error(`[AI Parse Error] ${context}:`, rawText.slice(0, 200));
+  throw new Error('AI returnerede ugyldig JSON. Prøv igen.');
 }
 
 function getLevelStyleInstruction(level: string | undefined, mode: 'steps' | 'fill' | 'import') {
@@ -309,6 +333,7 @@ async function startServer() {
   const PORT = Number(process.env.PORT || 3000);
 
   app.disable('x-powered-by');
+  app.set('trust proxy', 1);
   app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
@@ -552,7 +577,7 @@ async function startServer() {
             responseSchema: RECIPE_SCHEMA,
           },
         });
-        const parsedData = JSON.parse(result.text);
+        const parsedData = parseAiJsonResponse(result.text, `import ${sourceType}`);
         return res.json({ parsedData });
       }
 
