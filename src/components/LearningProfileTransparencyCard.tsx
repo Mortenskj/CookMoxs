@@ -62,7 +62,7 @@ export function LearningProfileTransparencyCard() {
       <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
         <p className="font-serif text-lg text-forest-dark italic">Forklarligt og gennemsigtigt</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
-          Denne visning viser kun den eksplicitte feedback, du selv har valgt at gemme i denne browser. Der er ingen skjult score og ingen automatiske anbefalinger i dette step.
+          Denne visning viser kun den eksplicitte feedback, du selv har valgt at gemme i denne browser. Der er ingen skjult score, ingen automatiske anbefalinger i dette step, og intet her bliver lagt ind i dine opskrifter eller backups.
         </p>
       </div>
 
@@ -91,7 +91,7 @@ export function LearningProfileTransparencyCard() {
           Graenser i dette step
         </div>
         <p className="mt-2">
-          Modulet ser kun din eksplicitte feedback og eventuelle separate learning-signaler. Det skriver ikke ind i opskrifter, backup eller cloud-data.
+          Modulet ser kun din eksplicitte feedback og eventuelle separate learning-signaler. Det skriver ikke ind i opskrifter, backup eller cloud-data i den nuvaerende beta.
         </p>
       </div>
 

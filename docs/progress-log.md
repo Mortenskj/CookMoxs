@@ -104,3 +104,31 @@
 - Status: Completed
 - Summary: Expanded the broad rollout placeholder into a conservative execution sequence focused on supportability, diagnostics boundaries, privacy/help alignment, and controlled beta readiness.
 - Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-6-rollout-prep.md`
+
+#### Step 6.1 completed
+- Phase: `Phase 6 - Rollout preparation`
+- Step: `6.1 - Version and support surface`
+- Status: Completed
+- Summary: Added one contained support/version surface in settings that shows app version and lets beta users copy a short support summary for reporting, without adding diagnostics infrastructure or broader support systems.
+- Evidence: `src/components/SupportInfoCard.tsx`, `src/config/supportInfo.ts`, `src/components/SettingsView.tsx`
+
+#### Step 6.2 completed
+- Phase: `Phase 6 - Rollout preparation`
+- Step: `6.2 - Error reporting boundary and minimal diagnostics`
+- Status: Completed
+- Summary: Added a small support diagnostics helper and expanded the settings support card with a privacy-conscious status summary for network, cloud, and AI, plus a copyable support report that avoids raw technical dumps.
+- Evidence: `src/services/supportDiagnosticsService.ts`, `src/components/SupportInfoCard.tsx`, `src/config/supportInfo.ts`, `src/components/SettingsView.tsx`
+
+#### Step 6.3 completed
+- Phase: `Phase 6 - Rollout preparation`
+- Step: `6.3 - Privacy and support docs alignment`
+- Status: Completed
+- Summary: Added a controlled-beta help/privacy note and aligned settings wording so sync, backup, AI, and learning feedback are described more precisely and without claims beyond current product behavior.
+- Evidence: `docs/beta-help-and-privacy.md`, `src/config/supportInfo.ts`, `src/components/SupportInfoCard.tsx`, `src/components/LearningFeedbackCard.tsx`, `src/components/LearningProfileTransparencyCard.tsx`
+
+#### Step 6.4 completed
+- Phase: `Phase 6 - Rollout preparation`
+- Step: `6.4 - Controlled beta checklist and release readiness`
+- Status: Completed
+- Summary: Added a concrete controlled-beta checklist with verification gates, support ownership, stop conditions, and rollback readiness, and linked the broader release checklist to it for Phase 6 rollout work.
+- Evidence: `docs/controlled-beta-checklist.md`, `docs/release-checklist.md`

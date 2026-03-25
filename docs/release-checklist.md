@@ -5,6 +5,7 @@
 - Confirm out-of-scope areas were not changed.
 - Confirm risky files only received minimal deltas when touched.
 - Confirm any new env var is documented with purpose, location, and required/optional status.
+- If the step is part of Phase 6 rollout prep, review `docs/controlled-beta-checklist.md` before calling the build beta-ready.
 
 ## Verification
 - Run the required health checks for the current step.
@@ -28,3 +29,4 @@
 - Verify the primary flow affected by the step.
 - Check logs or health output for obvious regressions.
 - Record what shipped and what the next planned step is.
+- Confirm who owns beta support response and rollback for the current build.

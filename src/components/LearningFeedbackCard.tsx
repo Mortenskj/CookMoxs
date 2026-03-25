@@ -39,7 +39,7 @@ export function LearningFeedbackCard() {
     setLearningProfileFeedbackEnabled(nextEnabled);
     setEnabled(nextEnabled);
     setMessage(nextEnabled
-      ? 'Eksplicit feedback er nu aktiv i denne browser. Det bruges kun som frivillig learning-feedback.'
+      ? 'Eksplicit feedback er nu aktiv i denne browser. Det bruges kun som frivillig learning-feedback og bliver ikke sendt til cloud i dette step.'
       : 'Eksplicit feedback er slaaet fra, og lokal feedbackhistorik er ryddet.');
 
     if (!nextEnabled) {
@@ -60,7 +60,7 @@ export function LearningFeedbackCard() {
         note: note.trim() || undefined,
       });
       setNote('');
-      setMessage('Tak. Din feedback er gemt lokalt som frivillig learning-feedback i denne browser.');
+      setMessage('Tak. Din feedback er gemt lokalt som frivillig learning-feedback i denne browser og er ikke lagt ind i dine opskrifter eller cloud-data.');
     } finally {
       setSaving(false);
     }
@@ -75,7 +75,7 @@ export function LearningFeedbackCard() {
       <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
         <p className="font-serif text-lg text-forest-dark italic">Hjaelp kun hvis du vil</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
-          Denne feedback er frivillig, tydelig og lokal for denne browser. Den bruges ikke til skjult scoring og aendrer ikke automatisk dine opskrifter.
+          Denne feedback er frivillig, tydelig og lokal for denne browser. Den bruges ikke til skjult scoring, ligger ikke i dine opskrifter eller backups, og aendrer ikke automatisk dine opskrifter.
         </p>
       </div>
 

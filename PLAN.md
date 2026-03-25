@@ -533,6 +533,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - app version is clearly visible in a support-friendly way
 - users can find a simple support/report path
 - wording is clear and non-technical for end users
+**Progress note (2026-03-25):** Completed.
 
 #### Step 6.2 — Error reporting boundary and minimal diagnostics
 **Goal:** add a narrow, privacy-conscious error reporting/diagnostic boundary for rollout support.
@@ -543,6 +544,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - diagnostics stay minimal and privacy-conscious
 - no raw technical dump is shown to normal users
 - supportability improves without broad new UX
+**Progress note (2026-03-25):** Completed.
 
 #### Step 6.3 — Privacy and support docs alignment
 **Goal:** make visible help/privacy/support wording match the actual current product behavior.
@@ -552,6 +554,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - no policy claims exceed current product behavior
 - support/help wording matches current sync, backup, AI, and learning behavior
 - docs are understandable for a controlled beta audience
+**Progress note (2026-03-25):** Completed.
 
 #### Step 6.4 — Controlled beta checklist and release readiness
 **Goal:** create an operational checklist for controlled rollout, verification, and support response.
@@ -562,3 +565,4 @@ Codex must keep progress and decision tracking up to date if the current step re
 - verification steps are concrete
 - rollout/support ownership is clear
 - no launch-wide automation or growth logic is introduced
+**Progress note (2026-03-25):** Completed.

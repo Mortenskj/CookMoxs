@@ -71,3 +71,27 @@
 - Scope: post-Phase-5 planning
 - Decision: Phase 6 should begin with a conservative operational sequence covering support surfaces, diagnostics boundaries, privacy/help alignment, and controlled beta readiness rather than broad launch logic or new product work.
 - Rationale: `PLAN.md` defines Phase 6 as rollout preparation. Converting that into narrow operational steps improves supportability and transparency while avoiding unrelated feature expansion.
+
+### 2026-03-25 - Use copyable support info as the first beta report path
+- Status: Accepted
+- Scope: Phase 6.1 rollout support
+- Decision: The first support/report path should be a simple settings-based version and support surface with copyable support info, rather than a larger reporting system or technical diagnostics UI.
+- Rationale: This satisfies Step 6.1 with a low-risk, support-friendly flow that helps beta users self-report clearly without introducing infrastructure that belongs to later rollout steps.
+
+### 2026-03-25 - Keep early diagnostics to a redacted support summary
+- Status: Accepted
+- Scope: Phase 6.2 rollout support
+- Decision: The first diagnostics boundary should stay inside the settings support surface and expose only coarse app-health signals such as network, cloud, and AI availability, with copyable support text but no raw dumps, stack traces, user IDs, recipe content, or broader reporting infrastructure.
+- Rationale: This satisfies Step 6.2 with the smallest privacy-conscious change that improves beta supportability while leaving heavier diagnostics and reporting concerns for later rollout work.
+
+### 2026-03-25 - Align beta wording to actual behavior before broader rollout docs
+- Status: Accepted
+- Scope: Phase 6.3 rollout support
+- Decision: Help, support, and privacy wording should stay narrowly tied to the current product behavior: cloud sync is not backup, AI is optional, learning feedback is local-only in this step, and copied support info is only short status text.
+- Rationale: This satisfies Step 6.3 with precise wording instead of legal-sounding promises, reduces beta confusion, and avoids claiming support or privacy behavior the current app does not actually implement.
+
+### 2026-03-25 - Use a human-run beta gate instead of rollout automation
+- Status: Accepted
+- Scope: Phase 6.4 rollout readiness
+- Decision: Controlled beta readiness should be documented as a human-executed checklist with explicit verification, ownership, stop conditions, and rollback readiness rather than launch automation or growth logic.
+- Rationale: This satisfies Step 6.4 with a conservative, supportable rollout process that matches the current maturity of the product and avoids introducing public-launch assumptions.

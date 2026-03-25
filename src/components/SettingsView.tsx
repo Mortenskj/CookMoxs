@@ -6,6 +6,7 @@ import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 import { LearningFeedbackCard } from './LearningFeedbackCard';
 import { LearningProfileTransparencyCard } from './LearningProfileTransparencyCard';
+import { SupportInfoCard } from './SupportInfoCard';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -289,6 +290,16 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
             </div>
           </div>
         </section>
+
+        <SupportInfoCard
+          appVersion={appVersion}
+          isOnline={isOnline}
+          hasCloudAccount={Boolean(user)}
+          cloudSyncStatus={cloudSyncStatus}
+          cloudSyncMessage={cloudSyncMessage}
+          cloudLastSyncAt={cloudLastSyncAt}
+          aiDisabledReason={aiDisabledReason}
+        />
 
         <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
