@@ -172,7 +172,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
   const handleSaveEdit = () => {
     if (editRequiresPermissionConfirmation && !editPermissionConfirmed) {
-      setFolderConfirmationError('Bekraeft at opskriften maa arve synligheden fra den valgte mappe.');
+      setFolderConfirmationError('Bekræft at opskriften maa arve synligheden fra den valgte mappe.');
       return;
     }
 
@@ -370,7 +370,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         }}
                         className="mt-0.5 h-4 w-4 rounded border-forest-mid/30"
                       />
-                      <span>Jeg forstaar at opskriften arver adgang og synlighed fra den valgte mappe.</span>
+                      <span>Jeg forstår at opskriften arver adgang og synlighed fra den valgte mappe.</span>
                     </label>
                     {folderConfirmationError && (
                       <p className="text-xs text-red-700">{folderConfirmationError}</p>
@@ -922,7 +922,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           </div>
           {aiDisabledReason && (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-              AI-hjaelp er midlertidigt slaaet fra. {aiDisabledReason}
+              AI-hjælp er midlertidigt slået fra. {aiDisabledReason}
             </div>
           )}
 
@@ -1458,7 +1458,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     onClick={() => commitFolderSave(pendingFolderSave)}
                     className="flex-1 rounded-2xl bg-forest-dark py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg"
                   >
-                    Fortsaet og gem
+                    Fortsæt og gem
                   </button>
                   <button
                     onClick={() => setPendingFolderSaveId(null)}

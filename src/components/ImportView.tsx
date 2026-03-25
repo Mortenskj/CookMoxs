@@ -35,13 +35,13 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
     : aiDisabledReason || null;
 
   const urlDisabledReason = !isOnline && !isQueueSupported
-    ? 'Denne browser understotter ikke offline-koeen til links.'
+    ? 'Denne browser understøtter ikke offline-køen til links.'
     : null;
 
   const imageDisabledReason = importPreference === 'basic_only'
-    ? 'Du har valgt grundimport uden AI. Billedimport er derfor slaaet fra.'
+    ? 'Du har valgt grundimport uden AI. Billedimport er derfor slået fra.'
     : (!isOnline && !isQueueSupported)
-      ? 'Denne browser understotter ikke offline-koeen til billeder.'
+      ? 'Denne browser understøtter ikke offline-køen til billeder.'
       : (isOnline ? aiDisabledReason || null : null);
 
   const queueOfflineUrl = async (value: string) => {
@@ -51,7 +51,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
       sourceLabel: value,
     });
     await refreshPendingCount();
-    setQueueMessage('Linket er gemt offline og venter nu i koeen til senere behandling.');
+    setQueueMessage('Linket er gemt offline og venter nu i køen til senere behandling.');
     setUrl('');
   };
 
@@ -67,7 +67,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         try {
           await queueOfflineUrl(url);
         } catch {
-          setQueueMessage('Linket kunne ikke gemmes offline. Proev igen i denne browser.');
+          setQueueMessage('Linket kunne ikke gemmes offline. Prøv igen i denne browser.');
         }
         return;
       }
@@ -87,7 +87,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
       sourceLabel: file.name || 'Offline billede',
     });
     await refreshPendingCount();
-    setQueueMessage('Billedet er gemt offline og venter nu i koeen til senere behandling.');
+    setQueueMessage('Billedet er gemt offline og venter nu i køen til senere behandling.');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'file' | 'image') => {
@@ -102,7 +102,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
       }
 
       void queueOfflineImage(file).catch(() => {
-        setQueueMessage('Billedet kunne ikke gemmes offline. Proev igen i denne browser.');
+        setQueueMessage('Billedet kunne ikke gemmes offline. Prøv igen i denne browser.');
       });
       return;
     }
@@ -133,10 +133,10 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   };
 
   const categories = [
-    { id: 'url' as const, icon: <Link size={24} />, label: 'Link', description: isOnline ? 'Fra hjemmeside' : 'Gem offline i koe' },
+    { id: 'url' as const, icon: <Link size={24} />, label: 'Link', description: isOnline ? 'Fra hjemmeside' : 'Gem offline i kø' },
     { id: 'text' as const, icon: <FileText size={24} />, label: 'Tekst', description: 'Kopier og indsæt' },
     { id: 'file' as const, icon: <FileUp size={24} />, label: 'Fil', description: 'PDF eller dok.' },
-    { id: 'image' as const, icon: <Camera size={24} />, label: 'Billede', description: isOnline ? 'Scan kogebog' : 'Gem offline i koe' },
+    { id: 'image' as const, icon: <Camera size={24} />, label: 'Billede', description: isOnline ? 'Scan kogebog' : 'Gem offline i kø' },
     { id: 'manual' as const, icon: <PenTool size={24} />, label: 'Manuelt', description: 'Skriv selv' },
   ];
 
@@ -167,7 +167,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         <div className="glass-brushed p-8 rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-black/5 dark:border-white/10">
           {pendingCount > 0 && (
             <div className="mb-6 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-sm text-amber-900">
-              {pendingCount} ventende offline-import{pendingCount === 1 ? '' : 's'} i koeen.
+              {pendingCount} ventende offline-import{pendingCount === 1 ? '' : 's'} i køen.
             </div>
           )}
 
@@ -180,7 +180,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               )}
               {!isOnline && !urlDisabledReason && (
                 <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 text-sm text-emerald-900">
-                  Du er offline. Linket bliver gemt lokalt i koeen og kan behandles senere.
+                  Du er offline. Linket bliver gemt lokalt i køen og kan behandles senere.
                 </div>
               )}
               <label className="block text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] opacity-60 ml-1 text-engraved">Indsæt link</label>
@@ -196,7 +196,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 autoFocus
               />
               <p className="text-xs text-forest-mid dark:text-white/60 italic opacity-70">
-                {isOnline ? 'Vi prøver grundimport først og bruger kun AI, hvis siden kræver det.' : 'Offline links gemmes nu i koeen til senere behandling.'}
+                {isOnline ? 'Vi prøver grundimport først og bruger kun AI, hvis siden kræver det.' : 'Offline links gemmes nu i køen til senere behandling.'}
               </p>
             </div>
           )}
@@ -256,7 +256,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               )}
               {!isOnline && !imageDisabledReason && (
                 <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 text-sm text-emerald-900 text-left">
-                  Du er offline. Billeder gemmes lokalt i koeen og kan behandles senere.
+                  Du er offline. Billeder gemmes lokalt i køen og kan behandles senere.
                 </div>
               )}
               <input
@@ -307,7 +307,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
               <p className="text-forest-dark dark:text-white font-serif text-xl italic">Scan en opskrift</p>
               <p className="text-sm text-forest-mid dark:text-white/60 italic opacity-60">
-                {isOnline ? 'Billedimport kræver AI.' : 'Offline billeder gemmes nu i koen.'}
+                {isOnline ? 'Billedimport kræver AI.' : 'Offline billeder gemmes nu i køen.'}
               </p>
             </div>
           )}

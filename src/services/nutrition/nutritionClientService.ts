@@ -17,7 +17,7 @@ interface NutritionStatusResponse {
 
 async function request<T>(url: string): Promise<T> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    throw new Error('Du er offline. Nutritionsoegning kraever internetforbindelse.');
+    throw new Error('Du er offline. Nutritionssøgning kræver internetforbindelse.');
   }
 
   let response: Response;
@@ -33,7 +33,7 @@ async function request<T>(url: string): Promise<T> {
     if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
       throw new Error(data.error);
     }
-    throw new Error('Der opstod en fejl under nutritionsoegningen.');
+    throw new Error('Der opstod en fejl under nutritionssøgningen.');
   }
 
   if (data === '__MALFORMED_RESPONSE__') {

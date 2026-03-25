@@ -1,8 +1,9 @@
-import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type } from 'lucide-react';
+import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type, Sparkles } from 'lucide-react';
 import { COOKING_LEVELS, LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/cookDisplay';
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
 import { SEASONAL_THEME_OPTIONS } from '../config/seasonalThemes';
+import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
 import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 import { LearningFeedbackCard } from './LearningFeedbackCard';
@@ -62,6 +63,8 @@ export function SettingsView({
   isOnline = true,
   aiDisabledReason,
 }: SettingsViewProps) {
+  const { enabled: nutritionToolsEnabled, setEnabled: setNutritionToolsEnabled } = useNutritionToolsEnabled();
+
   return (
     <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
       <div className="flex items-center gap-4 mb-10 pt-4">
@@ -256,7 +259,7 @@ export function SettingsView({
               <ChefHat size={14} className="text-forest-mid mt-1" />
               <div>
                 <p className="font-serif text-lg text-forest-dark italic">Import med eller uden AI</p>
-                <p className="text-xs text-forest-mid italic opacity-70">Vaelg om opskriftimport skal forbedres automatisk eller holde sig til grundimport.</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Vælg om opskriftimport skal forbedres automatisk eller holde sig til grundimport.</p>
               </div>
             </div>
             <div className="grid gap-3 mb-8">
@@ -283,6 +286,38 @@ export function SettingsView({
                 <p className="mt-2 text-xs text-amber-900/80">Linkimport med struktureret data, manuel oprettelse og cook mode virker stadig.</p>
               </div>
             )}
+
+            <div className="mb-8">
+              <div className="flex items-start gap-3 mb-4">
+                <Sparkles size={14} className="text-forest-mid mt-1" />
+                <div>
+                  <p className="font-serif text-lg text-forest-dark italic">Ernæring og stregkode</p>
+                  <p className="text-xs text-forest-mid italic opacity-70">Slå produktopslag og opskriftsnær nutrition til eller fra i denne browser.</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/50 p-4">
+                <div>
+                  <p className="font-serif text-lg text-forest-dark italic">{nutritionToolsEnabled ? 'Modul aktivt' : 'Modul skjult'}</p>
+                  <p className="text-xs text-forest-mid opacity-75">
+                    Når modulet er slået fra, skjules nutrition-opslag i Indstillinger og på opskriftssiden.
+                  </p>
+                </div>
+                <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
+                  <button
+                    onClick={() => setNutritionToolsEnabled(false)}
+                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${!nutritionToolsEnabled ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+                  >
+                    Fra
+                  </button>
+                  <button
+                    onClick={() => setNutritionToolsEnabled(true)}
+                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${nutritionToolsEnabled ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+                  >
+                    Til
+                  </button>
+                </div>
+              </div>
+            </div>
 
             <div className="flex items-start gap-3 mb-4">
               <Type size={14} className="text-forest-mid mt-1" />
@@ -354,7 +389,7 @@ export function SettingsView({
         <HouseholdSettingsCard user={user} isOnline={isOnline} />
         <LearningFeedbackCard />
         <LearningProfileTransparencyCard />
-        <NutritionLookupCard isOnline={isOnline} />
+        {nutritionToolsEnabled ? <NutritionLookupCard isOnline={isOnline} /> : null}
       </div>
     </div>
   );

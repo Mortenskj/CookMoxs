@@ -10,12 +10,12 @@ export const IMPORT_PREFERENCE_OPTIONS: Array<{
   {
     value: 'ai_auto',
     label: 'Improve automatically with AI',
-    description: 'Proev grundimport foerst og brug automatisk AI-fallback, naar siden kraever det.',
+    description: 'Prøv grundimport først og brug automatisk AI-fallback, når siden kræver det.',
   },
   {
     value: 'ask_first',
     label: 'Ask me first',
-    description: 'Brug grundimport foerst og spoerg, hvis AI bliver noedvendigt.',
+    description: 'Brug grundimport først og spørg, hvis AI bliver nødvendigt.',
   },
   {
     value: 'basic_only',

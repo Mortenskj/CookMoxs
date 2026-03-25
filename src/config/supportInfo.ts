@@ -7,8 +7,8 @@ export const SUPPORT_INFO = {
   privacyHelpTitle: 'Hvad betyder det i praksis?',
   privacyHelpItems: [
     'Cloud-sync holder den aktuelle version af dine data opdateret, men er ikke det samme som en rigtig backup.',
-    'Backup eksporteres separat, hvis du vil have et selvstaendigt gendannelsespunkt.',
-    'AI er ekstra hjaelp og er ikke paakraevet for, at kerneappen virker.',
+    'Backup eksporteres separat, hvis du vil have et selvstændigt gendannelsespunkt.',
+    'AI er ekstra hjælp og er ikke påkrævet for, at kerneappen virker.',
     'Frivillig learning-feedback bliver kun gemt lokalt i denne browser.',
   ],
 } as const;

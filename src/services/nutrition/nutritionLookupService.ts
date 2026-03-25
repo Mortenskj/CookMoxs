@@ -53,7 +53,7 @@ const assertNutritionEnabled = () => {
 const normalizeBarcode = (barcode: string) => {
   const normalized = barcode.replace(/\s+/g, '').trim();
   if (!/^\d{8,14}$/.test(normalized)) {
-    throw new NutritionLookupError(400, 'invalid_barcode', 'Stregkoden skal vaere 8 til 14 cifre.');
+    throw new NutritionLookupError(400, 'invalid_barcode', 'Stregkoden skal være 8 til 14 cifre.');
   }
   return normalized;
 };
@@ -61,7 +61,7 @@ const normalizeBarcode = (barcode: string) => {
 const normalizeQuery = (query: string) => {
   const normalized = query.trim();
   if (normalized.length < 2) {
-    throw new NutritionLookupError(400, 'invalid_query', 'Soegningen skal vaere mindst 2 tegn.');
+    throw new NutritionLookupError(400, 'invalid_query', 'Søgningen skal være mindst 2 tegn.');
   }
   return normalized;
 };
@@ -104,6 +104,6 @@ export async function searchNutritionProducts(query: string, limit = 10): Promis
       provenance: providerResponse.provenance,
     };
   } catch (error) {
-    normalizeLookupFailure(error, 'Kunne ikke soege efter produktdata lige nu.');
+    normalizeLookupFailure(error, 'Kunne ikke søge efter produktdata lige nu.');
   }
 }

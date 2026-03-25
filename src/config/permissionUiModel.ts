@@ -18,7 +18,7 @@ export const PERMISSION_UI_COPY: Record<PermissionUiState, PermissionUiCopy> = {
     shortLabel: 'Delt visning',
     ownerDetail: 'Andre kan se dette indhold, men ikke redigere det.',
     memberDetail: 'Du kan se dette indhold, men ikke redigere det.',
-    neutralDetail: 'Dette indhold deles som laeseadgang.',
+    neutralDetail: 'Dette indhold deles som læseadgang.',
   },
   shared_edit: {
     shortLabel: 'Delt redigering',
@@ -28,8 +28,8 @@ export const PERMISSION_UI_COPY: Record<PermissionUiState, PermissionUiCopy> = {
   },
   household: {
     shortLabel: 'Husstand',
-    ownerDetail: 'Dette indhold tilhoerer en husstand.',
-    memberDetail: 'Dette indhold tilhoerer en husstand.',
-    neutralDetail: 'Dette indhold tilhoerer en husstand.',
+    ownerDetail: 'Dette indhold tilhører en husstand.',
+    memberDetail: 'Dette indhold tilhører en husstand.',
+    neutralDetail: 'Dette indhold tilhører en husstand.',
   },
 };

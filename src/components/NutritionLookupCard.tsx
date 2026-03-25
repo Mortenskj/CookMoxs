@@ -1,5 +1,6 @@
 import { Barcode, Search, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
 import {
   getNutritionStatus,
   lookupNutritionBarcode,
@@ -14,6 +15,7 @@ interface NutritionLookupCardProps {
 type LookupMode = 'barcode' | 'text_search';
 
 export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProps) {
+  const { enabled: nutritionToolsEnabled } = useNutritionToolsEnabled();
   const [status, setStatus] = useState<Awaited<ReturnType<typeof getNutritionStatus>> | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [mode, setMode] = useState<LookupMode>('barcode');
@@ -47,7 +49,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
     };
   }, []);
 
-  if (loadingStatus || !status?.enabled) {
+  if (loadingStatus || !status?.enabled || !nutritionToolsEnabled) {
     return null;
   }
 
@@ -64,7 +66,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
       setResult(nextResult);
     } catch (lookupError) {
       setResult(null);
-      setError(lookupError instanceof Error ? lookupError.message : 'Nutritionsoegning fejlede.');
+      setError(lookupError instanceof Error ? lookupError.message : 'Nutritionssøgning fejlede.');
     } finally {
       setLoading(false);
     }
@@ -80,7 +82,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
         <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
           <p className="font-serif text-lg text-forest-dark italic">Tidlig nutrition-beta</p>
           <p className="mt-2 text-xs text-forest-mid opacity-80">
-            Soeg efter et produkt manuelt med stregkode eller tekst. Dette er kun lookup-visning endnu og aendrer ikke dine opskrifter.
+            Søg efter et produkt manuelt med stregkode eller tekst. Dette er kun lookup-visning endnu og ændrer ikke dine opskrifter.
           </p>
           <p className="mt-2 text-xs text-forest-mid opacity-70">
             Primær kilde: {status.providers.find((provider) => provider.id === status.primaryProviderId)?.label || status.primaryProviderId}
@@ -105,7 +107,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
         {!isOnline && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-amber-900">Offline</p>
-            <p className="mt-2 text-sm text-amber-900">Nutritionsoegning kraever internetforbindelse.</p>
+            <p className="mt-2 text-sm text-amber-900">Nutritionssøgning kræver internetforbindelse.</p>
           </div>
         )}
 

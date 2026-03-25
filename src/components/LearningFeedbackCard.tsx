@@ -12,9 +12,9 @@ import {
 
 const FEEDBACK_AREAS: Array<{ value: LearningFeedbackArea; label: string; eventName: LearningSignalEventName; description: string }> = [
   { value: 'general', label: 'Generel oplevelse', eventName: 'module_enabled', description: 'Brug dette til overordnet feedback om appens nytte.' },
-  { value: 'import', label: 'Import', eventName: 'recipe_import_succeeded', description: 'Fortael om importflowet foeles brugbart eller frustrerende.' },
-  { value: 'cook_mode', label: 'Cook mode', eventName: 'cook_mode_completed', description: 'Fortael om cook mode hjælper dig i praksis.' },
-  { value: 'library', label: 'Bibliotek', eventName: 'recipe_saved', description: 'Fortael om gemme- og biblioteksoverblikket foeles godt.' },
+  { value: 'import', label: 'Import', eventName: 'recipe_import_succeeded', description: 'Fortæl om importflowet føles brugbart eller frustrerende.' },
+  { value: 'cook_mode', label: 'Cook mode', eventName: 'cook_mode_completed', description: 'Fortæl om cook mode hjælper dig i praksis.' },
+  { value: 'library', label: 'Bibliotek', eventName: 'recipe_saved', description: 'Fortæl om gemme- og biblioteksoverblikket føles godt.' },
 ];
 
 export function LearningFeedbackCard() {
@@ -40,7 +40,7 @@ export function LearningFeedbackCard() {
     setEnabled(nextEnabled);
     setMessage(nextEnabled
       ? 'Eksplicit feedback er nu aktiv i denne browser. Det bruges kun som frivillig learning-feedback og bliver ikke sendt til cloud i dette step.'
-      : 'Eksplicit feedback er slaaet fra, og lokal feedbackhistorik er ryddet.');
+      : 'Eksplicit feedback er slået fra, og lokal feedbackhistorik er ryddet.');
 
     if (!nextEnabled) {
       void clearLearningProfileRecord();
@@ -73,16 +73,16 @@ export function LearningFeedbackCard() {
       </h2>
 
       <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
-        <p className="font-serif text-lg text-forest-dark italic">Hjaelp kun hvis du vil</p>
+        <p className="font-serif text-lg text-forest-dark italic">Hjælp kun hvis du vil</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
-          Denne feedback er frivillig, tydelig og lokal for denne browser. Den bruges ikke til skjult scoring, ligger ikke i dine opskrifter eller backups, og aendrer ikke automatisk dine opskrifter.
+          Denne feedback er frivillig, tydelig og lokal for denne browser. Den bruges ikke til skjult scoring, ligger ikke i dine opskrifter eller backups, og ændrer ikke automatisk dine opskrifter.
         </p>
       </div>
 
       <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white/50 p-4">
         <div>
           <p className="font-serif text-lg text-forest-dark italic">Aktiver eksplicit feedback</p>
-          <p className="text-xs text-forest-mid opacity-75">Du kan slaa det til eller fra uden at paavirke resten af appen.</p>
+          <p className="text-xs text-forest-mid opacity-75">Du kan slaa det til eller fra uden at påvirke resten af appen.</p>
         </div>
         <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
           <button
@@ -123,7 +123,7 @@ export function LearningFeedbackCard() {
               onClick={() => setValue('positive')}
               className={`flex-1 px-4 py-3 rounded-2xl border text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${value === 'positive' ? 'border-emerald-700 bg-emerald-50 text-emerald-800' : 'border-black/5 bg-white/40 text-forest-mid'}`}
             >
-              <ThumbsUp size={14} /> Hjaelpsomt
+              <ThumbsUp size={14} /> Hjælpsomt
             </button>
             <button
               onClick={() => setValue('neutral')}

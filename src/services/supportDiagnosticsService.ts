@@ -52,16 +52,16 @@ export function buildSupportDiagnosticsSnapshot(input: SupportDiagnosticsInput):
     input.isOnline
       ? {
           id: 'network',
-          label: 'Netvaerk',
+          label: 'Netværk',
           state: 'ok',
           summary: 'Appen har forbindelse lige nu.',
         }
       : {
           id: 'network',
-          label: 'Netvaerk',
+          label: 'Netværk',
           state: 'problem',
           summary: 'Appen er offline lige nu.',
-          detail: 'Nogle handlinger virker stadig, men cloud og AI kan vaere utilgaengelige.',
+          detail: 'Nogle handlinger virker stadig, men cloud og AI kan vaere utilgængelige.',
         },
     input.cloudSyncStatus === 'error'
       ? {
@@ -84,7 +84,7 @@ export function buildSupportDiagnosticsSnapshot(input: SupportDiagnosticsInput):
               id: 'cloud',
               label: 'Cloud',
               state: 'ok',
-              summary: 'Cloud er tilgaengelig for denne konto.',
+              summary: 'Cloud er tilgængelig for denne konto.',
               detail: input.cloudLastSyncAt ? `Seneste sync: ${new Date(input.cloudLastSyncAt).toLocaleString('da-DK')}` : undefined,
             }
           : {
@@ -97,25 +97,25 @@ export function buildSupportDiagnosticsSnapshot(input: SupportDiagnosticsInput):
     input.aiDisabledReason
       ? {
           id: 'ai',
-          label: 'AI-hjaelp',
+          label: 'AI-hjælp',
           state: input.isOnline ? 'attention' : 'problem',
-          summary: 'AI-hjaelp er ikke tilgaengelig lige nu.',
+          summary: 'AI-hjælp er ikke tilgængelig lige nu.',
           detail: sanitizeDetail(input.aiDisabledReason),
         }
       : {
           id: 'ai',
-          label: 'AI-hjaelp',
+          label: 'AI-hjælp',
           state: 'ok',
-          summary: 'AI-hjaelp er tilgaengelig, naar du vil bruge den.',
+          summary: 'AI-hjælp er tilgængelig, naar du vil bruge den.',
         },
   ];
 
   const overallState = getOverallState(items);
   const overallSummary =
     overallState === 'problem'
-      ? 'Der er et problem, som support boer kende.'
+      ? 'Der er et problem, som support bør kende.'
       : overallState === 'attention'
-        ? 'Der er noget at vaere opmaerksom paa.'
+        ? 'Der er noget at være opmærksom på.'
         : 'Alt ser normalt ud lige nu.';
 
   return { overallState, overallSummary, items };
@@ -127,10 +127,10 @@ export function buildSupportReportText(input: SupportDiagnosticsInput & { appVer
   const lines = [
     `CookMoxs version: ${input.appVersion || 'dev'}`,
     `Supportstatus: ${snapshot.overallSummary}`,
-    `Netvaerk: ${input.isOnline ? 'Online' : 'Offline'}`,
+    `Netværk: ${input.isOnline ? 'Online' : 'Offline'}`,
     `Cloud-status: ${formatCloudStatus(input.cloudSyncStatus)}`,
     `Cloud-konto: ${input.hasCloudAccount ? 'Logget ind' : 'Kun lokal brug'}`,
-    `AI-status: ${input.aiDisabledReason ? 'Midlertidigt utilgaengelig' : 'Tilgaengelig'}`,
+    `AI-status: ${input.aiDisabledReason ? 'Midlertidigt utilgængelig' : 'Tilgaengelig'}`,
     `Seneste cloud-sync: ${input.cloudLastSyncAt ? new Date(input.cloudLastSyncAt).toLocaleString('da-DK') : 'Ukendt'}`,
   ];
 

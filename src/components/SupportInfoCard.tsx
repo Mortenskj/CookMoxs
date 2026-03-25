@@ -67,7 +67,7 @@ export function SupportInfoCard({
         <div className="flex items-start gap-3">
           <Info size={16} className="text-forest-mid mt-0.5" />
           <div>
-            <p className="font-serif text-lg text-forest-dark italic">Lettere beta-hjaelp</p>
+            <p className="font-serif text-lg text-forest-dark italic">Lettere beta-hjælp</p>
             <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
               {SUPPORT_INFO.reportHelpText}
             </p>
@@ -86,7 +86,7 @@ export function SupportInfoCard({
           <p className="mt-2 text-sm text-forest-dark">CookMoxs {appVersion || 'dev'}</p>
         </div>
         <div className="rounded-2xl bg-white/55 px-4 py-3">
-          <p className="font-bold uppercase tracking-widest opacity-60">Netvaerk</p>
+          <p className="font-bold uppercase tracking-widest opacity-60">Netværk</p>
           <p className="mt-2 text-sm text-forest-dark">{isOnline ? 'Online' : 'Offline'}</p>
         </div>
         <div className="rounded-2xl bg-white/55 px-4 py-3">

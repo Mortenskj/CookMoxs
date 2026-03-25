@@ -55,7 +55,7 @@ function transactionDone(transaction: IDBTransaction) {
 
 function openQueueDb() {
   if (!isIndexedDbAvailable()) {
-    return Promise.reject(new Error('IndexedDB er ikke tilgaengelig i denne browser.'));
+    return Promise.reject(new Error('IndexedDB er ikke tilgængelig i denne browser.'));
   }
 
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -74,7 +74,7 @@ function openQueueDb() {
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('Kunne ikke aabne offline-koeen.'));
+    request.onerror = () => reject(request.error ?? new Error('Kunne ikke åbne offline-køen.'));
   });
 }
 
@@ -121,7 +121,7 @@ export function isOfflineQueueSupported() {
 
 export async function enqueueOfflineQueueItem(input: OfflineQueueInput) {
   if (input.type === 'image' && !(input.blob instanceof Blob)) {
-    throw new Error('Billeditems skal gemmes som Blob i offline-koeen.');
+    throw new Error('Billeditems skal gemmes som Blob i offline-køen.');
   }
 
   const item = buildQueueItem(input);

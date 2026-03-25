@@ -41,7 +41,7 @@ export function getRecipeNutritionSummaryLine(attachment: RecipeNutritionAttachm
 
 export function getRecipeNutritionExplanation(attachment?: RecipeNutritionAttachment | null) {
   if (!attachment) {
-    return 'Knyt evt. produktdata som vejledende reference. Det aendrer ikke ingredienser, trin eller portionsberegning.';
+    return 'Knyt evt. produktdata som vejledende reference. Det ændrer ikke ingredienser, trin eller portionsberegning.';
   }
 
   return attachment.provenance.isFallback

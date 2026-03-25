@@ -22,11 +22,11 @@ export function RecipeImportedNotice({ isAdjusting, onSimplify, onTighten, onChe
             så gem opskriften i den mappe du vil bruge fremover.
           </p>
           <p className="text-sm leading-relaxed opacity-75 mt-2">
-            Naar grundimporten ser fornuftig ud, kan du bruge AI-knapperne herunder til at stramme opskriften op bagefter.
+            Når grundimporten ser fornuftig ud, kan du bruge AI-knapperne herunder til at stramme opskriften op bagefter.
           </p>
           {aiDisabled && (
             <p className="text-sm leading-relaxed mt-2 rounded-2xl border border-amber-300/70 bg-white/60 px-3 py-2">
-              AI-hjaelp er ikke tilgaengelig lige nu. {aiDisabledReason}
+              AI-hjælp er ikke tilgængelig lige nu. {aiDisabledReason}
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-2">

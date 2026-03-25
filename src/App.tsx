@@ -99,14 +99,14 @@ const parseAIError = (err: any, defaultMsg: string) => {
   if (msg.includes("API_KEY_INVALID")) {
     return "Ugyldig API-nøgle på serveren.";
   } else if (msg.includes("GEMINI_API_KEY is not configured")) {
-    return "AI er ikke sat op paa serveren endnu. Grundimport virker stadig, men AI-forbedring er midlertidigt utilgaengelig.";
+    return "AI er ikke sat op på serveren endnu. Grundimport virker stadig, men AI-forbedring er midlertidigt utilgængelig.";
   } else if (msg.includes("spending cap") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("Quota exceeded")) {
     return "Du har nået grænsen for brug af AI. Prøv igen senere eller opgrader din plan.";
   } else if (msg.includes("fetch failed")) {
     return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
   }
   if (msg.includes('__MALFORMED_RESPONSE__') || msg.includes('Unexpected end of JSON input') || msg.includes('Unexpected token')) {
-    return 'Vi fik et ugyldigt svar tilbage. Proev igen om lidt.';
+    return 'Vi fik et ugyldigt svar tilbage. Prøv igen om lidt.';
   }
   return defaultMsg + ": " + msg;
 };
@@ -115,7 +115,7 @@ const getPersistentAIDisabledReason = (err: unknown): string | null => {
   const msg = err instanceof Error ? err.message : String(err ?? '');
 
   if (msg.includes('GEMINI_API_KEY is not configured') || msg.includes('API_KEY_INVALID')) {
-    return 'AI er ikke tilgaengelig lige nu. Grundimport, manuel oprettelse og cook mode virker stadig.';
+    return 'AI er ikke tilgængelig lige nu. Grundimport, manuel oprettelse og cook mode virker stadig.';
   }
 
   return null;
@@ -137,7 +137,7 @@ const blobToBase64Data = (blob: Blob) =>
         data: match[2],
       });
     };
-    reader.onerror = () => reject(reader.error ?? new Error('Offline-billedet kunne ikke laeses.'));
+    reader.onerror = () => reject(reader.error ?? new Error('Offline-billedet kunne ikke læses.'));
     reader.readAsDataURL(blob);
   });
 
@@ -180,7 +180,7 @@ export default function App() {
   const { updateAvailable, applyUpdate, dismiss } = useServiceWorkerUpdate();
   const { retryableCount, refreshPendingCount } = usePendingQueue();
   const aiDisabledReason = !isOnline
-    ? 'Du er offline. AI-funktioner kraever internetforbindelse.'
+    ? 'Du er offline. AI-funktioner kræver internetforbindelse.'
     : aiUnavailableMessage;
 
   useEffect(() => {
@@ -892,7 +892,7 @@ export default function App() {
           }
 
           if (importPreference === 'ask_first') {
-            const shouldUseAI = window.confirm('Grundimport kunne ikke klare denne side alene. Vil du proeve AI-import i stedet?');
+            const shouldUseAI = window.confirm('Grundimport kunne ikke klare denne side alene. Vil du prøve AI-import i stedet?');
             if (!shouldUseAI) {
               throw new Error('Importen blev afbrudt, fordi AI-import ikke blev godkendt.');
             }
@@ -902,7 +902,7 @@ export default function App() {
 
       if (!newRecipe) {
         if (type === 'url' && aiDisabledReason) {
-          throw new Error(`${aiDisabledReason} Proev et andet link med struktureret opskriftdata eller opret opskriften manuelt.`);
+          throw new Error(`${aiDisabledReason} Prøv et andet link med struktureret opskriftdata eller opret opskriften manuelt.`);
         }
 
         if (importPreference === 'basic_only' && type !== 'url') {
@@ -914,7 +914,7 @@ export default function App() {
         }
 
         if (importPreference === 'ask_first' && type !== 'url') {
-          const shouldUseAI = window.confirm('Denne type import kraever AI. Vil du fortsaette med AI-import?');
+          const shouldUseAI = window.confirm('Denne type import kræver AI. Vil du fortsætte med AI-import?');
           if (!shouldUseAI) {
             throw new Error('Importen blev afbrudt, fordi AI-import ikke blev godkendt.');
           }

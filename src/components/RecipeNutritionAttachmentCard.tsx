@@ -1,5 +1,6 @@
 import { Barcode, Link2, Search, ShieldAlert, Unlink2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
 import type { RecipeNutritionAttachment } from '../types';
 import {
   getNutritionStatus,
@@ -28,6 +29,7 @@ export function RecipeNutritionAttachmentCard({
   onAttach,
   onClear,
 }: RecipeNutritionAttachmentCardProps) {
+  const { enabled: nutritionToolsEnabled } = useNutritionToolsEnabled();
   const [enabled, setEnabled] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [mode, setMode] = useState<LookupMode>('barcode');
@@ -57,7 +59,7 @@ export function RecipeNutritionAttachmentCard({
       cancelled = true;
     };
   }, []);
-  if (loadingStatus || !enabled) {
+  if (loadingStatus || !enabled || !nutritionToolsEnabled) {
     return null;
   }
   const handleLookup = async () => {
@@ -154,7 +156,7 @@ export function RecipeNutritionAttachmentCard({
 
       {!canAttach && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          Gem opskriften foerst, hvis du vil knytte produktdata til den.
+          Gem opskriften først, hvis du vil knytte produktdata til den.
         </div>
       )}
       <div className="mt-4 flex flex-col sm:flex-row gap-3">

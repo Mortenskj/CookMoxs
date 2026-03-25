@@ -18,7 +18,7 @@ const AREA_LABELS: Record<LearningFeedbackArea, string> = {
 };
 
 const VALUE_LABELS: Record<LearningFeedbackValue, string> = {
-  positive: 'Hjaelpsomt',
+  positive: 'Hjælpsomt',
   neutral: 'Neutralt',
   negative: 'Ikke godt',
 };
@@ -88,10 +88,10 @@ export function LearningProfileTransparencyCard() {
       <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-900">
         <div className="flex items-center gap-2 font-bold uppercase tracking-widest text-xs">
           <ShieldCheck size={14} />
-          Graenser i dette step
+          Grænser i dette step
         </div>
         <p className="mt-2">
-          Modulet ser kun din eksplicitte feedback og eventuelle separate learning-signaler. Det skriver ikke ind i opskrifter, backup eller cloud-data i den nuvaerende beta.
+          Modulet ser kun din eksplicitte feedback og eventuelle separate learning-signaler. Det skriver ikke ind i opskrifter, backup eller cloud-data i den nuværende beta.
         </p>
       </div>
 
@@ -99,12 +99,12 @@ export function LearningProfileTransparencyCard() {
         <p className="font-serif text-lg text-forest-dark italic">Seneste eksplicitte feedback</p>
         {!snapshot.status.feedbackEnabled && (
           <p className="mt-2 text-sm text-forest-mid opacity-80">
-            Feedback er slaaet fra, saa der vises ingen aktiv learning-profil her.
+            Feedback er slået fra, så der vises ingen aktiv learning-profil her.
           </p>
         )}
         {snapshot.status.feedbackEnabled && snapshot.recentFeedback.length === 0 && (
           <p className="mt-2 text-sm text-forest-mid opacity-80">
-            Der er endnu ingen feedback gemt, selv om modulet er slaaet til.
+            Der er endnu ingen feedback gemt, selv om modulet er slået til.
           </p>
         )}
         {snapshot.recentFeedback.length > 0 && (
