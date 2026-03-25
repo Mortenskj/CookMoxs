@@ -309,7 +309,11 @@ async function startServer() {
   const PORT = Number(process.env.PORT || 3000);
 
   app.disable('x-powered-by');
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  }));
   app.use(express.json({ limit: '10mb' }));
   app.use('/api/events', express.text({ type: 'text/plain' }));
 
