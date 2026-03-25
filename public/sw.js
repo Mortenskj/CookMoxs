@@ -1,8 +1,12 @@
-const CACHE_NAME = 'cookmoxs-v1-1-2';
+const CACHE_NAME = 'cookmoxs-v1-1-3';
 const RECIPE_CACHE_NAME = 'cookmoxs-recipes-v1';
 const APP_SHELL = ['/', '/manifest.webmanifest'];
 const SAVED_RECIPES_CACHE_PATH = '/__recipe-cache/saved-recipes.json';
 const ACTIVE_RECIPE_CACHE_PATH = '/__recipe-cache/active-recipe.json';
+
+function isNavigationRequest(request) {
+  return request.mode === 'navigate';
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -40,6 +44,21 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  if (isNavigationRequest(request)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && url.origin === self.location.origin) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+    );
     return;
   }
 
