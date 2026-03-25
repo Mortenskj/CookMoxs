@@ -29,3 +29,9 @@
 - Scope: post-Phase-2 planning
 - Decision: The next phase should focus on visible permission vocabulary, narrow control surfaces, and explicit ownership inheritance rather than broad new backend concepts.
 - Rationale: Phase 2 already established household data/service foundations and basic ownership visibility, so the lowest-risk next step is to make permission state understandable before expanding more complex behavior.
+
+### 2026-03-25 - Prepare Phase 4 as an interface-first nutrition phase
+- Status: Accepted
+- Scope: post-Phase-3 planning
+- Decision: The next phase should begin with a repo-owned nutrition provider interface and a mockable provider path before adding barcode or nutrition UI.
+- Rationale: `PLAN.md` already points to Open Food Facts as the primary provider, but an interface-first sequence reduces vendor coupling, keeps local development unblocked, and limits early nutrition scope to a reversible module.

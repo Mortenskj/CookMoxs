@@ -418,3 +418,50 @@ Codex must keep progress and decision tracking up to date if the current step re
 ---
 
 **Deferred note:** Offline edit queue is intentionally deferred and is not part of Phase 1.7 in this plan; it may be reconsidered later after AI-optional import and basic offline queue flows are stable.
+
+
+### Phase 4 execution detail (prepared 2026-03-25)
+**Risk:** Medium to High
+**Out of scope for the phase:** pantry/inventory systems, shopping flows, premium nutrition logic, broad recipe import rewrites
+
+#### Step 4.1 â€” Nutrition provider interface and mock path
+**Goal:** define a stable nutrition/barcode provider contract before UI or provider-specific flow spread.
+**Files in scope:**
+- nutrition-related services/config only
+- optional mock provider files
+- `server.ts` only if a narrow relay/helper is required
+**Acceptance criteria:**
+- internal provider interface exists
+- Open Food Facts path is behind that interface
+- mock provider can satisfy the same contract for local development
+
+#### Step 4.2 â€” Product lookup and result model
+**Goal:** normalize barcode and text-search results into repo-owned product data before broader UI work.
+**Files in scope:**
+- nutrition/barcode services
+- shared result types/helpers
+- small server relay files if required
+**Acceptance criteria:**
+- barcode lookup and text search return a consistent internal result shape
+- provider errors fail with readable messages
+- no UI is required beyond minimal verification hooks
+
+#### Step 4.3 â€” Minimal nutrition and barcode UI
+**Goal:** expose the smallest useful nutrition surface without camera-heavy complexity first.
+**Files in scope:**
+- one contained nutrition/barcode UI surface
+- limited wiring in parent view(s) only if required
+**Acceptance criteria:**
+- user can enter a barcode or search text manually
+- result list or product summary is understandable
+- UI remains isolated and does not disrupt import/library/cook flows
+
+#### Step 4.4 â€” Recipe nutrition attachment and explanation
+**Goal:** let users view or attach nutrition results with clear provenance and limited implied certainty.
+**Files in scope:**
+- recipe-facing nutrition summary UI
+- nutrition helper components/services
+**Acceptance criteria:**
+- attached nutrition data is visibly sourced or marked as fallback
+- nutrition state does not silently overwrite recipe core data
+- wording avoids overclaiming precision

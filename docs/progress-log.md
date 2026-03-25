@@ -27,3 +27,10 @@
 - Status: Completed
 - Summary: Expanded Phase 3 from a deferred placeholder into a concrete execution sequence with scoped steps, risks, and prep notes for the next permission-model work.
 - Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-3-permission-ui-prep.md`
+
+#### Next phase prepared
+- Phase: `Phase 4 - Nutrition and barcode module`
+- Step: `Preparation only`
+- Status: Completed
+- Summary: Expanded Phase 4 from a provider-only placeholder into a concrete execution sequence with an interface-first scope, mock path, and limited first UI target.
+- Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-4-nutrition-prep.md`

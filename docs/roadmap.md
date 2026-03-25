@@ -75,7 +75,17 @@ Make inherited shared or household visibility explicit when saving or moving con
 ## Later phases
 
 ### Phase 4
-Nutrition and barcode module behind a stable provider interface.
+#### 4.1 Nutrition provider interface and mock path
+Define the internal provider contract first, then add Open Food Facts and a mock fallback behind it.
+
+#### 4.2 Product lookup and result model
+Normalize barcode and text-search results into a repo-owned product shape before broader UI work.
+
+#### 4.3 Minimal nutrition and barcode UI
+Expose the smallest contained nutrition surface with manual barcode entry before camera-heavy flows.
+
+#### 4.4 Recipe nutrition attachment and explanation
+Let users attach or view nutrition results with clear source labeling and limited implied certainty.
 
 ### Phase 5
 Learning loop and personal intelligence only after meaningful usage data exists.
