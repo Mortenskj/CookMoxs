@@ -1,0 +1,39 @@
+{
+  "name": "cookmoxs",
+  "version": "1.1.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "tsx server.ts",
+    "dev": "NODE_ENV=development tsx server.ts",
+    "build": "vite build",
+    "lint": "tsc --noEmit"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@google/genai": "^1.46.0",
+    "axios": "^1.13.6",
+    "cheerio": "^1.0.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "firebase": "^12.11.0",
+    "helmet": "^8.0.0",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "framer-motion": "^12.23.24"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "tailwindcss": "^4.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0"
+  },
+  "description": "CookMoxs showcase - AI-drevet opskriftsassistent med PWA-fundament"
+}

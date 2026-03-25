@@ -1,0 +1,294 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Default (Autumn/Forest) */
+  --theme-dark: #2C3531;
+  --theme-mid: #687870;
+  --theme-accent-mid: #8C9A8E;
+  --theme-accent-dark: #5A6B5D;
+  --theme-light: #F9F9F7;
+  --theme-bg-image: url('/backgrounds/autumn.jpg');
+  
+  /* Panel variables for light mode */
+  --theme-panel-bg: rgba(255, 255, 255, 0.5);
+  --theme-panel-border: rgba(255, 255, 255, 0.4);
+  --theme-panel-hover: rgba(255, 255, 255, 0.7);
+  --theme-panel-strong: rgba(255, 255, 255, 0.8);
+}
+
+.dark {
+  --theme-dark: #FFFFFF;
+  --theme-mid: #E0E8E1;
+  --theme-accent-mid: #C0D0C5;
+  --theme-accent-dark: #9AB0A4;
+  --theme-light: #121614;
+  
+  /* Panel variables for dark mode */
+  --theme-panel-bg: rgba(255, 255, 255, 0.15);
+  --theme-panel-border: rgba(255, 255, 255, 0.15);
+  --theme-panel-hover: rgba(255, 255, 255, 0.18);
+  --theme-panel-strong: rgba(255, 255, 255, 0.22);
+}
+
+.theme-spring {
+  --theme-dark: #1A3A28;
+  --theme-mid: #4A7C59;
+  --theme-accent-mid: #88B794;
+  --theme-accent-dark: #2D5A3F;
+  --theme-light: #F4F9F5;
+  --theme-bg-image: url('/backgrounds/spring.jpg');
+}
+
+.dark.theme-spring {
+  --theme-dark: #FFFFFF;
+  --theme-mid: #C5E3D0;
+  --theme-accent-mid: #A8D1B4;
+  --theme-accent-dark: #6A9C79;
+  --theme-light: #0A140E;
+}
+
+.theme-summer {
+  --theme-dark: #4A3B22;
+  --theme-mid: #C19A6B;
+  --theme-accent-mid: #E6C287;
+  --theme-accent-dark: #8B6B43;
+  --theme-light: #FDFBF7;
+  --theme-bg-image: url('/backgrounds/summer.jpg');
+}
+
+.dark.theme-summer {
+  --theme-dark: #FFFFFF;
+  --theme-mid: #FDE8C4;
+  --theme-accent-mid: #F2D4A2;
+  --theme-accent-dark: #D1AE82;
+  --theme-light: #1C150C;
+}
+
+.theme-autumn {
+  --theme-dark: #2C3531;
+  --theme-mid: #687870;
+  --theme-accent-mid: #8C9A8E;
+  --theme-accent-dark: #5A6B5D;
+  --theme-light: #F9F9F7;
+  --theme-bg-image: url('/backgrounds/autumn.jpg');
+}
+
+.dark.theme-autumn {
+  --theme-dark: #FFFFFF;
+  --theme-mid: #C2D1C4;
+  --theme-accent-mid: #A3B3A6;
+  --theme-accent-dark: #7A8C82;
+  --theme-light: #121614;
+}
+
+.theme-winter {
+  --theme-dark: #1A242B;
+  --theme-mid: #5C7285;
+  --theme-accent-mid: #A2B5C6;
+  --theme-accent-dark: #3A4F63;
+  --theme-light: #F0F4F8;
+  --theme-bg-image: url('/backgrounds/winter.jpg');
+}
+
+.dark.theme-winter {
+  --theme-dark: #FFFFFF;
+  --theme-mid: #DFEBF5;
+  --theme-accent-mid: #C2D4E6;
+  --theme-accent-dark: #8A9FBA;
+  --theme-light: #0A0E12;
+}
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --color-forest-dark: var(--theme-dark);
+  --color-forest-mid: var(--theme-mid);
+  --color-heath-mid: var(--theme-accent-mid);
+  --color-heath-dark: var(--theme-accent-dark);
+  --color-sand: var(--theme-light);
+  --color-wood-mid: #8B5A2B;
+  --color-wood-light: #CD853F;
+}
+
+@layer base {
+  body {
+    @apply font-sans antialiased text-forest-dark;
+    background-color: var(--theme-light);
+    background-image: 
+      linear-gradient(to bottom, color-mix(in srgb, var(--theme-light) 75%, transparent), color-mix(in srgb, var(--theme-light) 90%, transparent)),
+      var(--theme-bg-image);
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center top;
+    transition: background-image 0.5s ease-in-out, background-color 0.5s ease-in-out;
+  }
+}
+
+@layer utilities {
+  .text-engraved {
+    @apply text-forest-dark;
+    text-shadow: 0.5px 0.5px 0px var(--theme-panel-strong), -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
+  }
+  
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  /* Sandblasted / Frosted glass effect */
+  .glass-brushed {
+    background-color: var(--theme-panel-bg);
+    border: 1px solid var(--theme-panel-border);
+    backdrop-filter: blur(24px) saturate(120%);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      inset 0 0 0 1px var(--theme-panel-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Theme-aware utility overrides for panels */
+  .glass-panel .text-white { color: var(--theme-light) !important; }
+  .glass-panel .bg-white { background-color: var(--theme-panel-strong) !important; }
+  .glass-panel .bg-white\/20 { background-color: color-mix(in srgb, var(--theme-panel-bg) 50%, transparent) !important; }
+  .glass-panel .bg-white\/40 { background-color: var(--theme-panel-bg) !important; }
+  .glass-panel .bg-white\/60 { background-color: var(--theme-panel-hover) !important; }
+  .glass-panel .bg-white\/80 { background-color: var(--theme-panel-strong) !important; }
+  .glass-panel .bg-white\/90 { background-color: var(--theme-panel-strong) !important; }
+  
+  .glass-panel .hover\:bg-white:hover { background-color: var(--theme-panel-strong) !important; }
+  .glass-panel .hover\:bg-white\/40:hover { background-color: var(--theme-panel-hover) !important; }
+  .glass-panel .hover\:bg-white\/60:hover { background-color: var(--theme-panel-strong) !important; }
+  .glass-panel .hover\:bg-white\/80:hover { background-color: var(--theme-panel-strong) !important; }
+  
+  .glass-panel .border-white\/20 { border-color: var(--theme-panel-border) !important; }
+  .glass-panel .border-white\/40 { border-color: var(--theme-panel-hover) !important; }
+
+  .glass-brushed::before {
+    content: "";
+    @apply absolute inset-0 pointer-events-none opacity-[0.04];
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+  }
+
+  /* Stitched botanical label button - Sage Green */
+  .btn-botanical {
+    @apply relative overflow-hidden bg-heath-mid text-white transition-all duration-500 hover:bg-forest-mid hover:-translate-y-1 active:translate-y-0 active:scale-95;
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--theme-accent-mid) 20%, transparent);
+  }
+  .btn-botanical:hover {
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-mid) 25%, transparent);
+  }
+  
+  /* Stitched heath label button - Darker Sage */
+  .btn-heath {
+    @apply relative overflow-hidden bg-heath-dark text-white transition-all duration-500 hover:bg-forest-dark hover:-translate-y-1 active:translate-y-0 active:scale-95;
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--theme-accent-dark) 20%, transparent);
+  }
+  .btn-heath:hover {
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-dark) 25%, transparent);
+  }
+  
+  /* Light Wood / Sand button for main actions */
+  .btn-wood-light {
+    @apply relative overflow-hidden text-forest-dark transition-all duration-500 shadow-[0_8px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1 active:translate-y-0 active:scale-95;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--theme-light) 90%, black), color-mix(in srgb, var(--theme-light) 80%, black));
+    border: 1px solid rgba(255, 255, 255, 0.8);
+  }
+  
+  .btn-botanical::after, .btn-heath::after, .btn-wood-light::after {
+    content: '';
+    @apply absolute inset-1 border rounded-[inherit] pointer-events-none transition-colors duration-300;
+    border-style: dashed;
+  }
+  
+  .btn-botanical::after, .btn-heath::after {
+    @apply border-white/20;
+  }
+  
+  .btn-wood-light::after {
+    @apply border-forest-dark/10;
+  }
+  
+  .btn-botanical:hover::after, .btn-heath:hover::after {
+    @apply border-white/40;
+  }
+  
+  .btn-wood-light:hover::after {
+    @apply border-forest-dark/20;
+  }
+
+  .herbal-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 10c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5zm0 20c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5zm25-10c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5zm-50 0c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5z' fill='%23687870' fill-opacity='0.015' fill-rule='evenodd'/%3E%3C/svg%3E");
+  }
+}
+
+@media print {
+  @page {
+    margin: 1cm;
+    size: A4 portrait;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 10pt !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Force compact layout */
+  .glass-brushed {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Reduce spacing */
+  .space-y-8 > * + * {
+    margin-top: 0.5rem !important;
+  }
+  
+  .space-y-10 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 0.25rem !important;
+  }
+
+  .mb-10 {
+    margin-bottom: 1rem !important;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  h2 {
+    font-size: 14pt !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  p {
+    font-size: 10pt !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Avoid page breaks inside steps and ingredients */
+  li, .group {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Hide background images */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
