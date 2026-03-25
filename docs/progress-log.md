@@ -69,3 +69,31 @@
 - Status: Completed
 - Summary: Expanded the deferred Phase 5 placeholder into a conservative execution sequence and documented guardrails for allowed signals, separate profile data, and non-creepy behavior before any learning logic is built.
 - Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-5-learning-loop-prep.md`
+
+#### Step 5.1 completed
+- Phase: `Phase 5 - Learning loop / personal intelligence`
+- Step: `5.1 - Signal contract and profile boundary`
+- Status: Completed
+- Summary: Added an explicit learning signal contract and a separate profile boundary definition in docs and config, without adding any recommendation behavior, storage changes, or recipe-model coupling.
+- Evidence: `docs/learning-signal-contract.md`, `src/config/learningSignalContract.ts`
+
+#### Step 5.2 completed
+- Phase: `Phase 5 - Learning loop / personal intelligence`
+- Step: `5.2 - Modular profile store scaffold`
+- Status: Completed
+- Summary: Added a separate, disabled-by-default learning-profile module config and a no-op profile store scaffold so future profile data can stay outside recipe core data without changing current product behavior.
+- Evidence: `src/config/learningProfileModule.ts`, `src/services/learningProfileStore.ts`
+
+#### Step 5.3 completed
+- Phase: `Phase 5 - Learning loop / personal intelligence`
+- Step: `5.3 - Explicit feedback capture points`
+- Status: Completed
+- Summary: Added one narrow settings-based feedback surface with explicit opt-in, scoped feedback topics, and separate local learning-profile storage, without introducing hidden inference, scoring, or recommendation behavior.
+- Evidence: `src/components/LearningFeedbackCard.tsx`, `src/services/learningProfileStore.ts`, `src/config/storageKeys.ts`, `src/components/SettingsView.tsx`
+
+#### Step 5.4 completed
+- Phase: `Phase 5 - Learning loop / personal intelligence`
+- Step: `5.4 - Profile transparency surface`
+- Status: Completed
+- Summary: Added a settings-only transparency surface that shows whether learning feedback is active, what is stored locally, and the latest explicit feedback entries, without introducing recommendations or opaque profile behavior.
+- Evidence: `src/components/LearningProfileTransparencyCard.tsx`, `src/services/learningProfileStore.ts`, `src/components/SettingsView.tsx`

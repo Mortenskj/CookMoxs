@@ -4,6 +4,8 @@ import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/co
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
 import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
+import { LearningFeedbackCard } from './LearningFeedbackCard';
+import { LearningProfileTransparencyCard } from './LearningProfileTransparencyCard';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -321,6 +323,8 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
         </section>
 
         <HouseholdSettingsCard user={user} isOnline={isOnline} />
+        <LearningFeedbackCard />
+        <LearningProfileTransparencyCard />
         <NutritionLookupCard isOnline={isOnline} />
       </div>
     </div>

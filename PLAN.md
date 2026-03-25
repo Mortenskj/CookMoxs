@@ -484,6 +484,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - allowed vs disallowed signal categories are explicitly documented
 - future profile/preference data is defined as separate from recipe core data
 - no user-facing suggestion behavior is implemented
+**Progress note (2026-03-25):** Completed.
 
 #### Step 5.2 â€” Modular profile store scaffold
 **Goal:** add the smallest reversible storage boundary for future profile/preferences without changing recipe objects.
@@ -494,6 +495,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - profile storage is separate from recipe core data
 - the module can remain disabled without affecting the base product
 - no recommendation or suggestion logic is introduced
+**Progress note (2026-03-25):** Completed.
 
 #### Step 5.3 â€” Explicit feedback capture points
 **Goal:** prefer user-controlled feedback over hidden inference when the learning loop begins collecting signals.
@@ -504,6 +506,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - any new feedback signals are explicit and understandable
 - feedback collection is optional and clearly scoped
 - no opaque scoring or auto-personalization is introduced
+**Progress note (2026-03-25):** Completed.
 
 #### Step 5.4 â€” Profile transparency surface
 **Goal:** show the user what the learning module knows before acting on it with stronger suggestions.
@@ -514,3 +517,4 @@ Codex must keep progress and decision tracking up to date if the current step re
 - the user can inspect the currently stored preference/profile state
 - wording stays cautious and non-creepy
 - no broad recommendation UI is introduced in this step
+**Progress note (2026-03-25):** Completed.

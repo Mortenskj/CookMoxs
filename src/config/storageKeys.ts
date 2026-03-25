@@ -9,4 +9,6 @@ export const STORAGE_KEYS = {
   lastBackupAt: 'cookmoxs_last_backup_at',
   lastCloudSyncAt: 'cookmoxs_last_cloud_sync_at',
   cookFontSize: 'cookmoxs_cook_font_size',
+  learningProfile: 'cookmoxs_learning_profile_v1',
+  learningFeedbackEnabled: 'cookmoxs_learning_feedback_enabled',
 } as const;

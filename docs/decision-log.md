@@ -41,3 +41,27 @@
 - Scope: post-Phase-4 planning
 - Decision: Phase 5 should start with signal guardrails, explicit profile separation, and explanation-first foundations rather than recommendation logic or opaque personalization.
 - Rationale: `PLAN.md` explicitly marks Phase 5 as deferred and data-dependent, allowing only foundations and documentation beforehand. A conservative prep path reduces risk, avoids creepy behavior, and keeps future learning data separate from recipe core data.
+
+### 2026-03-25 - Define learning signals as an explicit contract before any profile storage
+- Status: Accepted
+- Scope: Phase 5.1 foundation
+- Decision: The first executable Phase 5 step should define allowed and disallowed signal categories and a separate learning-profile boundary in shared docs/config before any profile store or feedback collection is added.
+- Rationale: This satisfies the Step 5.1 acceptance criteria with the smallest reversible change, avoids hidden inference, and prevents recipe-core coupling before later Phase 5 steps exist.
+
+### 2026-03-25 - Keep the first profile store scaffold disabled and non-persistent
+- Status: Accepted
+- Scope: Phase 5.2 foundation
+- Decision: The first profile store scaffold should be a separate module boundary with a disabled-by-default, no-op store contract rather than an active persistence path.
+- Rationale: This satisfies Step 5.2 while keeping the base product unchanged, avoiding local storage/backup/Firestore coupling too early, and preserving a reversible path for later Phase 5 work.
+
+### 2026-03-25 - Make early feedback explicit, opt-in, and local-only
+- Status: Accepted
+- Scope: Phase 5.3 foundation
+- Decision: The first real feedback capture point should live in Settings, require explicit opt-in, and store only separate local learning-profile feedback rather than hidden behavioral signals.
+- Rationale: This satisfies Step 5.3 by preferring user-controlled input over inference, keeps the surface narrow and understandable, and avoids opaque scoring or broader personalization.
+
+### 2026-03-25 - Show the stored learning state before adding stronger behavior
+- Status: Accepted
+- Scope: Phase 5.4 foundation
+- Decision: The first transparency surface should remain settings-only and show only inspectable local learning-profile state, status, and recent explicit feedback.
+- Rationale: This satisfies Step 5.4 by making the module understandable before any stronger intelligence behavior exists, while keeping wording cautious and avoiding broad recommendation UI.
