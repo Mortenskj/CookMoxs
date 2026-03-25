@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OvenAnimation } from './components/OvenAnimation';
 import { PotAnimation } from './components/PotAnimation';
-import { Sprout, CookingPot, Leaf, Utensils, BookOpen, Timer as TimerIcon, Microwave, Home, PlusCircle, PlayCircle } from 'lucide-react';
+import { CookingPot, BookOpen, Timer as TimerIcon, Microwave, Home, PlusCircle } from 'lucide-react';
 // Removed direct usage of @google/genai.  All AI functionality is handled
 // server-side via services/aiService.  The RECIPE_SCHEMA constant below
 // served as a reference for AI prompts but is no longer used in the
@@ -62,7 +62,7 @@ import { UndoToast } from './components/UndoToast';
 import { AppUpdateToast } from './components/AppUpdateToast';
 import { PendingQueueToast } from './components/PendingQueueToast';
 import { auth, onAuthStateChanged, signInWithPopup, googleProvider, signOut } from './firebase';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { usePendingQueue } from './hooks/usePendingQueue';
@@ -1067,6 +1067,44 @@ export default function App() {
 
   const handleSaveRecipe = async (recipe: Recipe) => {
     if (!user) {
+      const updatedRecipe: Recipe = {
+        ...recipe,
+        isSaved: true,
+        createdAt: recipe.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setSavedRecipes(prev => {
+        const index = prev.findIndex(r => r.id === recipe.id);
+        const next = index >= 0
+          ? prev.map(r => r.id === recipe.id ? updatedRecipe : r)
+          : [updatedRecipe, ...prev];
+        saveLocalRecipes(next);
+
+        const updatedFolders = mergeMissingFoldersFromRecipes(next, folders);
+        if (updatedFolders !== folders) {
+          setFolders(updatedFolders);
+          saveLocalFolders(updatedFolders);
+        }
+
+        return next;
+      });
+
+      if (viewingRecipe?.id === recipe.id) {
+        setViewingRecipe(updatedRecipe);
+      }
+      if (activeRecipe?.id === recipe.id) {
+        saveActiveRecipe(updatedRecipe);
+      }
+
+      trackEvent('recipe_saved', {
+        ...getAnalyticsContext(),
+        recipeId: updatedRecipe.id,
+        folderId: updatedRecipe.folderId || null,
+      });
+      return;
+    }
+    if (false && !user) {
       setError("Du skal være logget ind for at gemme opskrifter.");
       navigateTo('settings');
       return;
@@ -1169,6 +1207,10 @@ export default function App() {
     if (viewingRecipe?.id === recipeId) {
       setViewingRecipe(null);
       navigateTo('home');
+    }
+
+    if (activeRecipe?.id === recipeId) {
+      saveActiveRecipe(null);
     }
 
     const timeoutId = setTimeout(() => {
@@ -1395,9 +1437,12 @@ export default function App() {
         onProcessNow={() => { void processPendingQueue('manual'); }}
         onDismissMessage={clearQueueProcessMessage}
       />
+      {updateAvailable && (
+        <AppUpdateToast onUpdate={applyUpdate} onDismiss={dismiss} />
+      )}
       
       <main className="flex-1 overflow-y-auto relative custom-scrollbar">
-      {!isOnline && (
+      {!isOnline && currentView !== 'cook' && (
         <div className="mb-4 rounded-2xl border border-amber-200/70 bg-amber-50/80 px-4 py-3 text-amber-900 shadow-sm">
           <p className="text-sm font-serif italic">Du er offline. Cloud-sync og AI kræver internetforbindelse.</p>
         </div>

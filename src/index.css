@@ -605,6 +605,55 @@
 }
 
 @media print {
+  /* Undo viewport clipping for print */
+  .h-screen,
+  .overflow-hidden,
+  .overflow-y-auto {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .flex-1 {
+    flex: none !important;
+  }
+
+  .flex.flex-col {
+    display: block !important;
+  }
+
+  #root,
+  #root > div,
+  main {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .fixed {
+    position: static !important;
+  }
+
+  nav,
+  .z-50,
+  .z-40,
+  .pointer-events-none,
+  .timer-widget {
+    display: none !important;
+  }
+
+  .herbal-pattern {
+    background-image: none !important;
+  }
+
+  .bg-noise {
+    display: none !important;
+  }
+
+  .glass-brushed::before {
+    display: none !important;
+  }
+
   @page {
     margin: 1cm;
     size: A4 portrait;

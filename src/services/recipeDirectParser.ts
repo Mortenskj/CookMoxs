@@ -85,7 +85,8 @@ function parseIngredient(input: unknown, index: number) {
 
   const raw = normalizeText(input);
   const { amount, remainder } = parseLeadingAmount(raw);
-  const unitMatch = remainder.match(new RegExp(`^(${allowedUnits.join('|')})\\b\\.?\\s*(.*)$`, 'i'));
+  const sortedUnits = [...allowedUnits].sort((a, b) => b.length - a.length);
+  const unitMatch = remainder.match(new RegExp(`^(${sortedUnits.join('|')})(?=\\s|$)\\.?\\s*(.*)$`, 'i'));
   const unit = unitMatch ? unitMatch[1] : '';
   const name = unitMatch ? normalizeText(unitMatch[2]) : remainder;
 
@@ -155,6 +156,33 @@ function parseCategories(recipe: Record<string, unknown>): string[] {
   return Array.from(new Set(categories));
 }
 
+function splitLongInstructionText(texts: string[]): string[] {
+  if (texts.length !== 1) return texts;
+  const single = texts[0];
+
+  // Split on numbered patterns: "1. ", "1) ", "Trin 1"
+  const numberedParts = single.split(/(?<=\.)\s+(?=\d+[\.\)]\s)|(?=(?:Trin|Step)\s+\d+)/i)
+    .map(s => normalizeText(s))
+    .filter(Boolean);
+  if (numberedParts.length > 1) return numberedParts;
+
+  // Split on sentence-ending period followed by a capital letter with extra whitespace
+  const sentenceParts = single.split(/\.\s{2,}(?=[A-ZÆØÅ])|\.(?:\s*\n)+(?=[A-ZÆØÅ])/)
+    .map((s, i, arr) => normalizeText(i < arr.length - 1 ? s + '.' : s))
+    .filter(Boolean);
+  if (sentenceParts.length > 1) return sentenceParts;
+
+  // Last resort: split on period-space-capital if the text is very long
+  if (single.length > 300) {
+    const longSplit = single.split(/\.(?:\s)(?=[A-ZÆØÅ])/)
+      .map((s, i, arr) => normalizeText(i < arr.length - 1 ? s + '.' : s))
+      .filter(Boolean);
+    if (longSplit.length > 1) return longSplit;
+  }
+
+  return texts;
+}
+
 export function parseStructuredRecipeToRecipe(structuredRecipe: unknown, options?: { sourceUrl?: string }): Recipe {
   if (!structuredRecipe || typeof structuredRecipe !== 'object') {
     throw new DirectParseError('Den strukturerede opskriftdata var ugyldig.');
@@ -163,7 +191,7 @@ export function parseStructuredRecipeToRecipe(structuredRecipe: unknown, options
   const recipeNode = structuredRecipe as Record<string, unknown>;
   const title = normalizeText(recipeNode.name || recipeNode.headline || '');
   const ingredients = toArray(recipeNode.recipeIngredient).map(parseIngredient);
-  const instructionTexts = collectInstructionTexts(recipeNode.recipeInstructions);
+  const instructionTexts = splitLongInstructionText(collectInstructionTexts(recipeNode.recipeInstructions));
 
   if (!title) {
     throw new DirectParseError('Opskriftens titel manglede i den strukturerede data.');

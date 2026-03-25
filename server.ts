@@ -620,4 +620,5 @@ async function startServer() {
   });
 }
 
+console.log(`[startup] GEMINI_API_KEY is ${process.env.GEMINI_API_KEY ? 'configured (' + process.env.GEMINI_API_KEY.slice(0, 6) + '...)' : 'MISSING'}`);
 startServer();

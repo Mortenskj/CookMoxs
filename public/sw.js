@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cookmoxs-v1-1-3';
+const CACHE_NAME = 'cookmoxs-v1-1-1';
 const RECIPE_CACHE_NAME = 'cookmoxs-recipes-v1';
 const APP_SHELL = ['/', '/manifest.webmanifest'];
 const SAVED_RECIPES_CACHE_PATH = '/__recipe-cache/saved-recipes.json';

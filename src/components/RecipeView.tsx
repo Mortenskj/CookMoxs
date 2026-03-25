@@ -378,20 +378,20 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   </div>
                 )}
               </div>
-              <div className="w-full sm:w-24">
+              <div className="w-full sm:w-40">
                 <label className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Antal</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-end">
                   <input 
                     type="number" 
                     value={editData.servings}
                     onChange={e => updateEditData({...editData, servings: Number(e.target.value)})}
-                    className="w-12 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
+                    className="w-16 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
                   />
                   <input 
                     type="text" 
                     value={editData.servingsUnit || 'pers.'}
                     onChange={e => updateEditData({...editData, servingsUnit: e.target.value})}
-                    className="w-16 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
+                    className="w-20 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
                   />
                 </div>
               </div>
@@ -1049,7 +1049,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       {/* Ingredients */}
       <section className="mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
               <ChefHat className="text-heath-mid" size={24} />
@@ -1080,7 +1080,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-4 bg-white/60 dark:bg-black/20 rounded-2xl px-4 py-2 border border-black/5 dark:border-white/10 shadow-sm w-full sm:w-auto justify-center print:border-none print:shadow-none print:bg-transparent print:p-0">
+          <div className="flex items-center gap-4 bg-white/60 dark:bg-black/20 rounded-2xl px-4 py-2 border border-black/5 dark:border-white/10 shadow-sm w-full justify-center print:border-none print:shadow-none print:bg-transparent print:p-0">
             <button onClick={() => handleScale(((recipe.servings * scale) - 1) / recipe.servings)} className="text-forest-mid dark:text-white/70 hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">-</button>
             <span className="text-xs font-bold text-forest-dark dark:text-white text-center uppercase tracking-widest min-w-[4rem]">{Math.round(recipe.servings * scale)} {recipe.servingsUnit || 'pers.'}</span>
             <button onClick={() => handleScale(((recipe.servings * scale) + 1) / recipe.servings)} className="text-forest-mid dark:text-white/70 hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">+</button>
