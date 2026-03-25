@@ -24,7 +24,7 @@ export function PendingQueueToast({ pendingCount, isProcessing, message, onProce
     : message || 'Du kan behandle ventende importer nu eller lade appen klare det ved reconnect og resume.';
 
   return (
-    <div className="fixed left-1/2 top-4 z-50 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 rounded-[2rem] border border-black/10 bg-white/80 shadow-lg backdrop-blur px-5 py-4">
+    <div className="season-toast-surface fixed left-1/2 top-4 z-50 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 rounded-[2rem] px-5 py-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <p className="font-serif text-lg italic text-forest-dark">{title}</p>

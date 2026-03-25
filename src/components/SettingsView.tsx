@@ -2,6 +2,7 @@ import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, M
 import { COOKING_LEVELS, LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/cookDisplay';
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
+import { SEASONAL_THEME_OPTIONS } from '../config/seasonalThemes';
 import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 import { LearningFeedbackCard } from './LearningFeedbackCard';
@@ -34,7 +35,31 @@ interface SettingsViewProps {
   aiDisabledReason?: string | null;
 }
 
-export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme, isDarkMode, onDarkModeChange, userLevel, setUserLevel, importPreference, setImportPreference, cookFontSize, setCookFontSize, onExportBackup, onImportBackup, lastBackupAt, cloudSyncStatus = 'idle', cloudSyncMessage, cloudLastSyncAt, appVersion, isOnline = true, aiDisabledReason }: SettingsViewProps) {
+export function SettingsView({
+  onBack,
+  user,
+  onLogin,
+  onLogout,
+  theme,
+  setTheme,
+  isDarkMode,
+  onDarkModeChange,
+  userLevel,
+  setUserLevel,
+  importPreference,
+  setImportPreference,
+  cookFontSize,
+  setCookFontSize,
+  onExportBackup,
+  onImportBackup,
+  lastBackupAt,
+  cloudSyncStatus = 'idle',
+  cloudSyncMessage,
+  cloudLastSyncAt,
+  appVersion,
+  isOnline = true,
+  aiDisabledReason,
+}: SettingsViewProps) {
   return (
     <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
       <div className="flex items-center gap-4 mb-10 pt-4">
@@ -53,7 +78,7 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <User size={14} /> Konto
           </h2>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <p className="font-serif text-lg text-forest-dark italic">Google Login</p>
@@ -63,14 +88,14 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
             </div>
             <div className="flex">
               {user ? (
-                <button 
+                <button
                   onClick={onLogout}
                   className="px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-forest-dark text-white shadow-sm flex items-center gap-2 hover:bg-forest-mid transition-colors"
                 >
                   <LogOut size={14} /> Log ud
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={onLogin}
                   className="px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-forest-dark text-white shadow-sm flex items-center gap-2 hover:bg-forest-mid transition-colors"
                 >
@@ -136,7 +161,7 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
             <ChefHat size={14} /> Dit niveau i køkkenet
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            {COOKING_LEVELS.map(level => {
+            {COOKING_LEVELS.map((level) => {
               const selected = userLevel === level;
               return (
                 <button
@@ -163,36 +188,21 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Palette size={14} /> Tema (Årstider)
           </h2>
-          
+
           <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={() => setTheme('theme-spring')}
-              className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${theme === 'theme-spring' ? 'border-forest-dark bg-white/60 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
-            >
-              <div className="w-12 h-12 rounded-full bg-[#A3B899] shadow-inner border border-black/10"></div>
-              <span className="font-serif text-sm text-forest-dark italic">Forår</span>
-            </button>
-            <button 
-              onClick={() => setTheme('theme-summer')}
-              className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${theme === 'theme-summer' ? 'border-forest-dark bg-white/60 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
-            >
-              <div className="w-12 h-12 rounded-full bg-[#E9C46A] shadow-inner border border-black/10"></div>
-              <span className="font-serif text-sm text-forest-dark italic">Sommer</span>
-            </button>
-            <button 
-              onClick={() => setTheme('theme-autumn')}
-              className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${theme === 'theme-autumn' ? 'border-forest-dark bg-white/60 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
-            >
-              <div className="w-12 h-12 rounded-full bg-[#8C9A8E] shadow-inner border border-black/10"></div>
-              <span className="font-serif text-sm text-forest-dark italic">Efterår</span>
-            </button>
-            <button 
-              onClick={() => setTheme('theme-winter')}
-              className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${theme === 'theme-winter' ? 'border-forest-dark bg-white/60 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
-            >
-              <div className="w-12 h-12 rounded-full bg-[#A2B5C6] shadow-inner border border-black/10"></div>
-              <span className="font-serif text-sm text-forest-dark italic">Vinter</span>
-            </button>
+            {SEASONAL_THEME_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setTheme(option.id)}
+                className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${theme === option.id ? 'border-forest-dark bg-white/60 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+              >
+                <div
+                  className="w-12 h-12 rounded-full shadow-inner border border-black/10"
+                  style={{ backgroundColor: option.swatch }}
+                ></div>
+                <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -200,20 +210,20 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Thermometer size={14} /> Præferencer
           </h2>
-          
+
           <div className="flex items-center justify-between mb-8">
             <div>
               <p className="font-serif text-lg text-forest-dark italic">Udseende</p>
               <p className="text-xs text-forest-mid italic opacity-70">Lyst eller mørkt tema</p>
             </div>
             <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
-              <button 
+              <button
                 onClick={() => onDarkModeChange(false)}
                 className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all ${!isDarkMode ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
               >
                 <Sun size={14} />
               </button>
-              <button 
+              <button
                 onClick={() => onDarkModeChange(true)}
                 className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all ${isDarkMode ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
               >
@@ -242,7 +252,7 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
               </div>
             </div>
             <div className="grid gap-3 mb-8">
-              {IMPORT_PREFERENCE_OPTIONS.map(option => (
+              {IMPORT_PREFERENCE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setImportPreference(option.value)}
@@ -274,7 +284,7 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {COOK_FONT_SIZES.map(size => (
+              {COOK_FONT_SIZES.map((size) => (
                 <button
                   key={size}
                   onClick={() => setCookFontSize(size)}
@@ -305,7 +315,7 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Info size={14} /> Om appen
           </h2>
-          
+
           <div className="space-y-5 text-sm text-forest-dark leading-relaxed font-serif italic">
             <div className="rounded-2xl border border-black/5 bg-white/50 p-4 not-italic">
               <div className="flex items-start justify-between gap-4">

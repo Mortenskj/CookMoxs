@@ -27,6 +27,7 @@ import { Recipe, ViewState, Timer, Folder } from './types';
 import { DEFAULT_USER_LEVEL, type UserLevel } from './config/cookingLevels';
 import { COOK_FONT_META, DEFAULT_COOK_FONT_SIZE, type CookFontSize } from './config/cookDisplay';
 import { DEFAULT_IMPORT_PREFERENCE, type ImportPreference } from './config/importPreferences';
+import { DEFAULT_SEASONAL_THEME, SEASONAL_THEME_IDS } from './config/seasonalThemes';
 import { STORAGE_KEYS } from './config/storageKeys';
 import { buildRecipeFromImport } from './services/recipeImportService';
 import { createBackupPayload, downloadBackupFile, parseBackupPayload } from './services/backupService';
@@ -144,7 +145,7 @@ export default function App() {
   const [viewHistory, setViewHistory] = useState<ViewState[]>(['home']);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [cookProgress, setCookProgress] = useState<Record<string, number>>({});
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem(STORAGE_KEYS.theme) || 'theme-autumn');
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem(STORAGE_KEYS.theme) || DEFAULT_SEASONAL_THEME);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem(STORAGE_KEYS.darkMode) === 'true');
   const [userLevel, setUserLevel] = useState<UserLevel>(() => {
     const raw = localStorage.getItem(STORAGE_KEYS.userLevel);
@@ -182,7 +183,7 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.theme, theme);
-    document.body.classList.remove('theme-spring', 'theme-summer', 'theme-autumn', 'theme-winter');
+    document.body.classList.remove(...SEASONAL_THEME_IDS);
     document.body.classList.add(theme);
   }, [theme]);
 

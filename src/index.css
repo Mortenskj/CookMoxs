@@ -3,101 +3,338 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Default (Autumn/Forest) */
-  --theme-dark: #2C3531;
-  --theme-mid: #687870;
-  --theme-accent-mid: #8C9A8E;
-  --theme-accent-dark: #5A6B5D;
-  --theme-light: #F9F9F7;
-  --theme-bg-image: url('/backgrounds/autumn.jpg');
-  
-  /* Panel variables for light mode */
-  --theme-panel-bg: rgba(255, 255, 255, 0.5);
-  --theme-panel-border: rgba(255, 255, 255, 0.4);
-  --theme-panel-hover: rgba(255, 255, 255, 0.7);
-  --theme-panel-strong: rgba(255, 255, 255, 0.8);
+  /* Default autumn token system */
+  --season-bg-main: #F9F9F7;
+  --season-bg-surface: rgba(255, 255, 255, 0.5);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.4);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.8);
+  --season-text-primary: #2C3531;
+  --season-text-secondary: #687870;
+  --season-border-soft: rgba(255, 255, 255, 0.4);
+  --season-accent: #8C9A8E;
+  --season-highlight: #5A6B5D;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #F9F9F7 75%, transparent),
+    color-mix(in srgb, #F9F9F7 90%, transparent)
+  );
+  --season-atmosphere-halo:
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--season-accent) 10%, transparent), transparent 68%),
+    radial-gradient(85% 45% at 15% 6%, color-mix(in srgb, var(--season-highlight) 8%, transparent), transparent 74%),
+    radial-gradient(80% 42% at 85% 8%, color-mix(in srgb, var(--season-text-secondary) 6%, transparent), transparent 74%);
+  --season-contour-tone: color-mix(in srgb, #687870 18%, transparent);
+  --season-contour-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 1600 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M0 158C42 147 81 124 121 132c37 7 64 44 101 51 58 11 108-52 166-52 48 0 80 42 128 45 46 4 79-28 124-35 54-8 101 19 154 22 60 4 111-23 171-31 58-8 110 5 166 22 61 18 115 40 179 37 67-4 118-34 183-34 37 0 71 10 108 18V0H0Z'/%3E%3C/svg%3E");
+  --season-contour-height: clamp(120px, 24vh, 220px);
+  --season-contour-opacity: 0.82;
+  --season-atmosphere-opacity: 0.95;
+  --season-pattern-tone: color-mix(in srgb, #687870 16%, transparent);
+  --season-pattern-size: 100px;
+  --season-panel-blur: 24px;
+  --season-panel-saturation: 120%;
+  --season-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --season-shadow-color: rgba(44, 53, 49, 0.12);
+  --season-illustration-opacity: 0.015;
+  --season-motion-duration: 0.5s;
+  --season-motion-ease: ease-in-out;
+  --season-motion-float-duration: 1.9s;
+  --season-motion-bubble-duration: 2.1s;
+  --season-motion-steam-duration: 2.6s;
+  --season-motion-stir-duration: 2.8s;
+  --season-motion-glow-duration: 2.4s;
+  --season-motion-loader-duration: 1.8s;
+  --season-loading-accent: color-mix(in srgb, var(--season-accent) 80%, white);
+  --season-bg-image: url('/backgrounds/autumn.jpg');
+
+  /* Compatibility aliases for the existing component layer */
+  --theme-dark: var(--season-text-primary);
+  --theme-mid: var(--season-text-secondary);
+  --theme-accent-mid: var(--season-accent);
+  --theme-accent-dark: var(--season-highlight);
+  --theme-light: var(--season-bg-main);
+  --theme-bg-image: var(--season-bg-image);
+  --theme-panel-bg: var(--season-bg-surface);
+  --theme-panel-border: var(--season-border-soft);
+  --theme-panel-hover: color-mix(in srgb, var(--season-bg-surface-strong) 85%, transparent);
+  --theme-panel-strong: var(--season-bg-surface-strong);
 }
 
 .dark {
-  --theme-dark: #FFFFFF;
-  --theme-mid: #E0E8E1;
-  --theme-accent-mid: #C0D0C5;
-  --theme-accent-dark: #9AB0A4;
-  --theme-light: #121614;
-  
-  /* Panel variables for dark mode */
-  --theme-panel-bg: rgba(255, 255, 255, 0.15);
-  --theme-panel-border: rgba(255, 255, 255, 0.15);
-  --theme-panel-hover: rgba(255, 255, 255, 0.18);
-  --theme-panel-strong: rgba(255, 255, 255, 0.22);
+  --season-bg-main: #121614;
+  --season-bg-surface: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.22);
+  --season-text-primary: #FFFFFF;
+  --season-text-secondary: #E0E8E1;
+  --season-border-soft: rgba(255, 255, 255, 0.15);
+  --season-accent: #C0D0C5;
+  --season-highlight: #9AB0A4;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #121614 70%, transparent),
+    color-mix(in srgb, #121614 92%, transparent)
+  );
+  --season-contour-tone: color-mix(in srgb, #C0D0C5 14%, transparent);
+  --season-pattern-tone: color-mix(in srgb, #C0D0C5 12%, transparent);
+  --season-atmosphere-opacity: 0.88;
+  --season-panel-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+  --season-shadow-color: rgba(0, 0, 0, 0.28);
+  --season-loading-accent: color-mix(in srgb, #C0D0C5 78%, white);
 }
 
 .theme-spring {
-  --theme-dark: #1A3A28;
-  --theme-mid: #4A7C59;
-  --theme-accent-mid: #88B794;
-  --theme-accent-dark: #2D5A3F;
-  --theme-light: #F4F9F5;
-  --theme-bg-image: url('/backgrounds/spring.jpg');
+  --season-bg-main: #F4F9F5;
+  --season-bg-surface: rgba(255, 255, 255, 0.52);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.42);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.82);
+  --season-text-primary: #1A3A28;
+  --season-text-secondary: #4A7C59;
+  --season-border-soft: rgba(255, 255, 255, 0.4);
+  --season-accent: #88B794;
+  --season-highlight: #2D5A3F;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #F4F9F5 72%, transparent),
+    color-mix(in srgb, #F4F9F5 90%, transparent)
+  );
+  --season-atmosphere-halo:
+    radial-gradient(125% 58% at 50% 0%, color-mix(in srgb, #F2E7A1 18%, transparent), transparent 70%),
+    radial-gradient(92% 40% at 18% 5%, color-mix(in srgb, #88B794 10%, transparent), transparent 76%),
+    radial-gradient(76% 36% at 82% 9%, color-mix(in srgb, #4A7C59 6%, transparent), transparent 78%);
+  --season-contour-tone: color-mix(in srgb, #4A7C59 16%, transparent);
+  --season-contour-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 1600 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M0 184C45 188 77 153 118 151c40-3 67 28 107 27 44-1 74-41 118-42 42-2 72 28 114 29 50 2 82-38 131-40 44-1 76 29 120 28 50-1 84-42 133-41 52 0 84 47 136 49 58 3 94-49 151-49 62-1 100 57 162 57 66 0 107-56 171-56 48 0 92 27 139 41V0H0Z'/%3E%3C/svg%3E");
+  --season-contour-height: clamp(126px, 22vh, 198px);
+  --season-contour-opacity: 0.7;
+  --season-atmosphere-opacity: 0.98;
+  --season-pattern-tone: color-mix(in srgb, #4A7C59 11%, transparent);
+  --season-pattern-size: 112px;
+  --season-panel-blur: 20px;
+  --season-panel-saturation: 114%;
+  --season-panel-shadow: 0 10px 26px rgba(26, 58, 40, 0.08);
+  --season-shadow-color: rgba(26, 58, 40, 0.12);
+  --season-motion-duration: 0.45s;
+  --season-motion-float-duration: 1.55s;
+  --season-motion-bubble-duration: 1.85s;
+  --season-motion-steam-duration: 2.1s;
+  --season-motion-stir-duration: 2.3s;
+  --season-motion-glow-duration: 2.1s;
+  --season-motion-loader-duration: 1.6s;
+  --season-loading-accent: color-mix(in srgb, #88B794 74%, white);
+  --season-bg-image: url('/backgrounds/spring.jpg');
 }
 
 .dark.theme-spring {
-  --theme-dark: #FFFFFF;
-  --theme-mid: #C5E3D0;
-  --theme-accent-mid: #A8D1B4;
-  --theme-accent-dark: #6A9C79;
-  --theme-light: #0A140E;
+  --season-bg-main: #0A140E;
+  --season-bg-surface: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.14);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.2);
+  --season-text-primary: #FFFFFF;
+  --season-text-secondary: #C5E3D0;
+  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-accent: #A8D1B4;
+  --season-highlight: #6A9C79;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #0A140E 68%, transparent),
+    color-mix(in srgb, #0A140E 90%, transparent)
+  );
+  --season-contour-tone: color-mix(in srgb, #A8D1B4 15%, transparent);
+  --season-pattern-tone: color-mix(in srgb, #A8D1B4 10%, transparent);
+  --season-atmosphere-opacity: 0.9;
+  --season-panel-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  --season-shadow-color: rgba(0, 0, 0, 0.28);
+  --season-loading-accent: color-mix(in srgb, #A8D1B4 74%, white);
 }
 
 .theme-summer {
-  --theme-dark: #4A3B22;
-  --theme-mid: #C19A6B;
-  --theme-accent-mid: #E6C287;
-  --theme-accent-dark: #8B6B43;
-  --theme-light: #FDFBF7;
-  --theme-bg-image: url('/backgrounds/summer.jpg');
+  --season-bg-main: #FDFBF7;
+  --season-bg-surface: rgba(255, 255, 255, 0.48);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.38);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.78);
+  --season-text-primary: #4A3B22;
+  --season-text-secondary: #C19A6B;
+  --season-border-soft: rgba(255, 255, 255, 0.38);
+  --season-accent: #E6C287;
+  --season-highlight: #8B6B43;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #FDFBF7 72%, transparent),
+    color-mix(in srgb, #FDFBF7 88%, transparent)
+  );
+  --season-atmosphere-halo:
+    radial-gradient(125% 64% at 52% 0%, color-mix(in srgb, #E6C287 18%, transparent), transparent 66%),
+    radial-gradient(96% 48% at 16% 8%, color-mix(in srgb, #C19A6B 11%, transparent), transparent 72%),
+    radial-gradient(88% 44% at 84% 10%, color-mix(in srgb, #8B6B43 9%, transparent), transparent 74%);
+  --season-contour-tone: color-mix(in srgb, #C19A6B 18%, transparent);
+  --season-contour-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 1600 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M0 176C54 161 98 118 154 117c53 0 89 38 142 39 54 0 91-38 145-39 63-1 102 48 165 49 69 0 113-58 183-59 67-1 109 51 176 52 67 0 110-50 176-50 58 0 98 38 156 53 61 17 119 12 179-3V0H0Z'/%3E%3C/svg%3E");
+  --season-contour-height: clamp(136px, 26vh, 226px);
+  --season-contour-opacity: 0.88;
+  --season-atmosphere-opacity: 1;
+  --season-pattern-tone: color-mix(in srgb, #C19A6B 14%, transparent);
+  --season-pattern-size: 92px;
+  --season-panel-blur: 23px;
+  --season-panel-saturation: 132%;
+  --season-panel-shadow: 0 14px 34px rgba(74, 59, 34, 0.1);
+  --season-shadow-color: rgba(74, 59, 34, 0.12);
+  --season-motion-duration: 0.52s;
+  --season-motion-float-duration: 1.9s;
+  --season-motion-bubble-duration: 2.15s;
+  --season-motion-steam-duration: 2.7s;
+  --season-motion-stir-duration: 3.1s;
+  --season-motion-glow-duration: 2.5s;
+  --season-motion-loader-duration: 1.95s;
+  --season-loading-accent: color-mix(in srgb, #E6C287 76%, white);
+  --season-bg-image: url('/backgrounds/summer.jpg');
 }
 
 .dark.theme-summer {
-  --theme-dark: #FFFFFF;
-  --theme-mid: #FDE8C4;
-  --theme-accent-mid: #F2D4A2;
-  --theme-accent-dark: #D1AE82;
-  --theme-light: #1C150C;
+  --season-bg-main: #1C150C;
+  --season-bg-surface: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.14);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.2);
+  --season-text-primary: #FFFFFF;
+  --season-text-secondary: #FDE8C4;
+  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-accent: #F2D4A2;
+  --season-highlight: #D1AE82;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #1C150C 70%, transparent),
+    color-mix(in srgb, #1C150C 92%, transparent)
+  );
+  --season-contour-tone: color-mix(in srgb, #F2D4A2 16%, transparent);
+  --season-pattern-tone: color-mix(in srgb, #F2D4A2 10%, transparent);
+  --season-atmosphere-opacity: 0.92;
+  --season-panel-shadow: 0 12px 34px rgba(0, 0, 0, 0.26);
+  --season-shadow-color: rgba(0, 0, 0, 0.28);
+  --season-loading-accent: color-mix(in srgb, #F2D4A2 74%, white);
 }
 
 .theme-autumn {
-  --theme-dark: #2C3531;
-  --theme-mid: #687870;
-  --theme-accent-mid: #8C9A8E;
-  --theme-accent-dark: #5A6B5D;
-  --theme-light: #F9F9F7;
-  --theme-bg-image: url('/backgrounds/autumn.jpg');
+  --season-bg-main: #F9F9F7;
+  --season-bg-surface: rgba(255, 255, 255, 0.5);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.4);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.8);
+  --season-text-primary: #2C3531;
+  --season-text-secondary: #687870;
+  --season-border-soft: rgba(255, 255, 255, 0.4);
+  --season-accent: #8C9A8E;
+  --season-highlight: #5A6B5D;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #F9F9F7 75%, transparent),
+    color-mix(in srgb, #F9F9F7 90%, transparent)
+  );
+  --season-atmosphere-halo:
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, #D1A15A 14%, transparent), transparent 67%),
+    radial-gradient(90% 42% at 17% 7%, color-mix(in srgb, #8C9A8E 9%, transparent), transparent 74%),
+    radial-gradient(82% 40% at 84% 10%, color-mix(in srgb, #5A6B5D 7%, transparent), transparent 76%);
+  --season-contour-tone: color-mix(in srgb, #687870 18%, transparent);
+  --season-contour-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 1600 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M0 164C53 166 92 146 145 145c48-1 83 17 131 17 54 0 96-23 150-24 57 0 99 25 156 26 58 2 100-21 158-22 66-2 113 25 179 26 75 2 126-29 201-29 62 0 112 21 172 37 52 15 104 27 158 24V0H0Z'/%3E%3C/svg%3E");
+  --season-contour-height: clamp(132px, 25vh, 214px);
+  --season-contour-opacity: 0.84;
+  --season-atmosphere-opacity: 0.97;
+  --season-pattern-tone: color-mix(in srgb, #687870 13%, transparent);
+  --season-pattern-size: 102px;
+  --season-panel-blur: 26px;
+  --season-panel-saturation: 124%;
+  --season-panel-shadow: 0 12px 34px rgba(44, 53, 49, 0.1);
+  --season-shadow-color: rgba(44, 53, 49, 0.12);
+  --season-motion-duration: 0.5s;
+  --season-motion-float-duration: 1.8s;
+  --season-motion-bubble-duration: 2s;
+  --season-motion-steam-duration: 2.4s;
+  --season-motion-stir-duration: 2.8s;
+  --season-motion-glow-duration: 2.3s;
+  --season-motion-loader-duration: 1.8s;
+  --season-loading-accent: color-mix(in srgb, #8C9A8E 76%, white);
+  --season-bg-image: url('/backgrounds/autumn.jpg');
 }
 
 .dark.theme-autumn {
-  --theme-dark: #FFFFFF;
-  --theme-mid: #C2D1C4;
-  --theme-accent-mid: #A3B3A6;
-  --theme-accent-dark: #7A8C82;
-  --theme-light: #121614;
+  --season-bg-main: #121614;
+  --season-bg-surface: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.22);
+  --season-text-primary: #FFFFFF;
+  --season-text-secondary: #C2D1C4;
+  --season-border-soft: rgba(255, 255, 255, 0.15);
+  --season-accent: #A3B3A6;
+  --season-highlight: #7A8C82;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #121614 70%, transparent),
+    color-mix(in srgb, #121614 92%, transparent)
+  );
+  --season-contour-tone: color-mix(in srgb, #A3B3A6 15%, transparent);
+  --season-pattern-tone: color-mix(in srgb, #A3B3A6 11%, transparent);
+  --season-atmosphere-opacity: 0.9;
+  --season-panel-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  --season-shadow-color: rgba(0, 0, 0, 0.28);
+  --season-loading-accent: color-mix(in srgb, #A3B3A6 74%, white);
 }
 
 .theme-winter {
-  --theme-dark: #1A242B;
-  --theme-mid: #5C7285;
-  --theme-accent-mid: #A2B5C6;
-  --theme-accent-dark: #3A4F63;
-  --theme-light: #F0F4F8;
-  --theme-bg-image: url('/backgrounds/winter.jpg');
+  --season-bg-main: #F0F4F8;
+  --season-bg-surface: rgba(255, 255, 255, 0.5);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.4);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.82);
+  --season-text-primary: #1A242B;
+  --season-text-secondary: #5C7285;
+  --season-border-soft: rgba(255, 255, 255, 0.42);
+  --season-accent: #A2B5C6;
+  --season-highlight: #3A4F63;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #F0F4F8 76%, transparent),
+    color-mix(in srgb, #F0F4F8 92%, transparent)
+  );
+  --season-atmosphere-halo:
+    radial-gradient(118% 56% at 50% 0%, color-mix(in srgb, #FFFFFF 10%, transparent), transparent 70%),
+    radial-gradient(82% 36% at 20% 5%, color-mix(in srgb, #A2B5C6 9%, transparent), transparent 78%),
+    radial-gradient(74% 32% at 83% 7%, color-mix(in srgb, #5C7285 6%, transparent), transparent 80%);
+  --season-contour-tone: color-mix(in srgb, #5C7285 14%, transparent);
+  --season-contour-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 1600 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='white' d='M0 194C46 177 84 132 132 131c43-1 72 39 114 39 45 0 75-46 121-47 44 0 74 45 118 45 49 0 81-55 131-55 49 0 82 55 131 55 54 0 88-64 143-64 55 0 88 61 143 62 58 1 97-50 155-50 59 0 98 48 156 49 52 1 92-35 156-51V0H0Z'/%3E%3C/svg%3E");
+  --season-contour-height: clamp(118px, 21vh, 188px);
+  --season-contour-opacity: 0.68;
+  --season-atmosphere-opacity: 0.84;
+  --season-pattern-tone: color-mix(in srgb, #5C7285 9%, transparent);
+  --season-pattern-size: 122px;
+  --season-panel-blur: 18px;
+  --season-panel-saturation: 108%;
+  --season-panel-shadow: 0 8px 26px rgba(26, 36, 43, 0.08);
+  --season-shadow-color: rgba(26, 36, 43, 0.12);
+  --season-motion-duration: 0.56s;
+  --season-motion-float-duration: 2.2s;
+  --season-motion-bubble-duration: 2.35s;
+  --season-motion-steam-duration: 3s;
+  --season-motion-stir-duration: 3.35s;
+  --season-motion-glow-duration: 2.8s;
+  --season-motion-loader-duration: 2.1s;
+  --season-loading-accent: color-mix(in srgb, #A2B5C6 74%, white);
+  --season-bg-image: url('/backgrounds/winter.jpg');
 }
 
 .dark.theme-winter {
-  --theme-dark: #FFFFFF;
-  --theme-mid: #DFEBF5;
-  --theme-accent-mid: #C2D4E6;
-  --theme-accent-dark: #8A9FBA;
-  --theme-light: #0A0E12;
+  --season-bg-main: #0A0E12;
+  --season-bg-surface: rgba(255, 255, 255, 0.15);
+  --season-bg-surface-muted: rgba(255, 255, 255, 0.14);
+  --season-bg-surface-strong: rgba(255, 255, 255, 0.2);
+  --season-text-primary: #FFFFFF;
+  --season-text-secondary: #DFEBF5;
+  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-accent: #C2D4E6;
+  --season-highlight: #8A9FBA;
+  --season-atmosphere-overlay: linear-gradient(
+    to bottom,
+    color-mix(in srgb, #0A0E12 74%, transparent),
+    color-mix(in srgb, #0A0E12 94%, transparent)
+  );
+  --season-contour-tone: color-mix(in srgb, #C2D4E6 12%, transparent);
+  --season-pattern-tone: color-mix(in srgb, #C2D4E6 8%, transparent);
+  --season-atmosphere-opacity: 0.8;
+  --season-panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  --season-shadow-color: rgba(0, 0, 0, 0.28);
+  --season-loading-accent: color-mix(in srgb, #C2D4E6 74%, white);
 }
 
 @theme {
@@ -115,18 +352,136 @@
 @layer base {
   body {
     @apply font-sans antialiased text-forest-dark;
-    background-color: var(--theme-light);
-    background-image: 
-      linear-gradient(to bottom, color-mix(in srgb, var(--theme-light) 75%, transparent), color-mix(in srgb, var(--theme-light) 90%, transparent)),
-      var(--theme-bg-image);
+    position: relative;
+    background-color: var(--season-bg-main);
+    background-image: var(--season-atmosphere-overlay), var(--season-bg-image);
     background-size: cover;
     background-attachment: fixed;
     background-position: center top;
-    transition: background-image 0.5s ease-in-out, background-color 0.5s ease-in-out;
+    transition:
+      background-image var(--season-motion-duration) var(--season-motion-ease),
+      background-color var(--season-motion-duration) var(--season-motion-ease);
+  }
+
+  #root > .herbal-pattern {
+    position: relative;
+    isolation: isolate;
+  }
+
+  #root > .herbal-pattern::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image: var(--season-atmosphere-halo);
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: var(--season-atmosphere-opacity);
+  }
+
+  #root > .herbal-pattern::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--season-contour-height);
+    pointer-events: none;
+    z-index: -1;
+    opacity: var(--season-contour-opacity);
+    background-color: var(--season-contour-tone);
+    -webkit-mask-image: var(--season-contour-mask);
+    mask-image: var(--season-contour-mask);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-position: top center;
+    mask-position: top center;
   }
 }
 
 @layer utilities {
+  @keyframes season-loader-pulse {
+    0%, 100% { transform: scaleX(0.38); opacity: 0.55; }
+    50% { transform: scaleX(1); opacity: 1; }
+  }
+
+  @keyframes season-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8%); }
+  }
+
+  @keyframes season-bubble {
+    0%, 100% { transform: translateY(0) scale(0.92); opacity: 0.55; }
+    50% { transform: translateY(-26%) scale(1.04); opacity: 1; }
+  }
+
+  @keyframes season-steam {
+    0% { transform: translateY(0) scaleY(0.86); opacity: 0.2; }
+    50% { transform: translateY(-12%) scaleY(1); opacity: 0.5; }
+    100% { transform: translateY(-22%) scaleY(1.08); opacity: 0.12; }
+  }
+
+  @keyframes season-stir {
+    0%, 100% { transform: rotate(-7deg); }
+    50% { transform: rotate(8deg); }
+  }
+
+  @keyframes season-glow {
+    0%, 100% { opacity: 0.25; filter: saturate(0.95); }
+    50% { opacity: 0.75; filter: saturate(1.1); }
+  }
+
+  .season-loading-shell {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .season-toast-surface {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 90%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-panel-border) 92%, transparent);
+    backdrop-filter: blur(calc(var(--season-panel-blur) * 0.75)) saturate(var(--season-panel-saturation));
+    box-shadow:
+      var(--season-panel-shadow),
+      inset 0 0 0 1px color-mix(in srgb, var(--theme-panel-border) 70%, transparent);
+  }
+
+  .season-loading-shell::after {
+    content: "";
+    position: absolute;
+    inset: auto 12% 0 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--season-loading-accent), transparent);
+    opacity: 0.45;
+  }
+
+  .season-loading-progress {
+    transform-origin: left center;
+    animation: season-loader-pulse var(--season-motion-loader-duration) var(--season-motion-ease) infinite;
+  }
+
+  .season-motion-float {
+    animation: season-float var(--season-motion-float-duration) var(--season-motion-ease) infinite;
+  }
+
+  .season-motion-bubble {
+    animation: season-bubble var(--season-motion-bubble-duration) var(--season-motion-ease) infinite;
+  }
+
+  .season-motion-steam {
+    animation: season-steam var(--season-motion-steam-duration) var(--season-motion-ease) infinite;
+  }
+
+  .season-motion-stir {
+    animation: season-stir var(--season-motion-stir-duration) var(--season-motion-ease) infinite;
+  }
+
+  .season-motion-glow {
+    animation: season-glow var(--season-motion-glow-duration) var(--season-motion-ease) infinite;
+  }
+
   .text-engraved {
     @apply text-forest-dark;
     text-shadow: 0.5px 0.5px 0px var(--theme-panel-strong), -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
@@ -140,9 +495,9 @@
   .glass-brushed {
     background-color: var(--theme-panel-bg);
     border: 1px solid var(--theme-panel-border);
-    backdrop-filter: blur(24px) saturate(120%);
+    backdrop-filter: blur(var(--season-panel-blur)) saturate(var(--season-panel-saturation));
     box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.06),
+      var(--season-panel-shadow),
       inset 0 0 0 1px var(--theme-panel-border);
     position: relative;
     overflow: hidden;
@@ -219,7 +574,33 @@
   }
 
   .herbal-pattern {
-    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 10c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5zm0 20c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5zm25-10c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5zm-50 0c2 0 4 2 4 5s-2 5-4 5-4-2-4-5 2-5 4-5z' fill='%23687870' fill-opacity='0.015' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-image:
+      radial-gradient(circle at 50% 10px, var(--season-pattern-tone) 0 3px, transparent 3.5px),
+      radial-gradient(circle at 50% 30px, var(--season-pattern-tone) 0 3px, transparent 3.5px),
+      radial-gradient(circle at 25px 20px, var(--season-pattern-tone) 0 3px, transparent 3.5px),
+      radial-gradient(circle at 75px 20px, var(--season-pattern-tone) 0 3px, transparent 3.5px);
+    background-size: var(--season-pattern-size) var(--season-pattern-size);
+    background-repeat: repeat;
+    background-position: top left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @layer base {
+    body {
+      transition: none;
+    }
+  }
+
+  @layer utilities {
+    .season-loading-progress,
+    .season-motion-float,
+    .season-motion-bubble,
+    .season-motion-steam,
+    .season-motion-stir,
+    .season-motion-glow {
+      animation: none !important;
+    }
   }
 }
 
