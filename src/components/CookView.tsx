@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, PlayCircle, PauseCircle, CheckCircle, X, Fla
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
+import { findRelevantIngredientsForStep } from '../services/cookModeHeuristics';
 
 interface CookViewProps {
   recipe: Recipe | null;
@@ -121,27 +122,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
   // Dynamically find ingredients mentioned in this step if relevantIngredients is empty
   const mentionedIngredients = step.relevantIngredients?.length 
     ? step.relevantIngredients 
-    : (recipe.ingredients || []).filter(ing => {
-        const ingName = ing.name.toLowerCase();
-        const stepText = step.text.toLowerCase();
-        
-        // Exact match
-        if (stepText.includes(ingName)) return true;
-        
-        // Match without last letter (e.g. "Tomater" -> "Tomate" -> "Tomat")
-        if (ingName.length > 3 && stepText.includes(ingName.slice(0, -1))) return true;
-        if (ingName.length > 4 && stepText.includes(ingName.slice(0, -2))) return true;
-
-        // Split ingredient name into words and check if the most significant word is in the step text
-        const words = ingName.split(' ').filter(w => w.length > 3);
-        if (words.length > 0 && words.some(w => stepText.includes(w))) return true;
-
-        return false;
-      }).map(ing => ({
-        name: ing.name,
-        amount: ing.amount,
-        unit: ing.unit
-      }));
+    : findRelevantIngredientsForStep(step.text, recipe.ingredients || []);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);

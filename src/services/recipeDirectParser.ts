@@ -1,4 +1,10 @@
 import type { Recipe } from '../types';
+import {
+  buildHeatAndOvenGuides,
+  findRelevantIngredientsForStep,
+  inferHeatFromStepText,
+  inferTimerFromStepText,
+} from './cookModeHeuristics';
 
 export class DirectParseError extends Error {}
 
@@ -206,6 +212,14 @@ export function parseStructuredRecipeToRecipe(structuredRecipe: unknown, options
   const now = new Date().toISOString();
   const categories = parseCategories(recipeNode);
   const { servings, servingsUnit } = parseServings(recipeNode.recipeYield);
+  const steps = instructionTexts.map((text, index) => ({
+    id: `step-${index}`,
+    text,
+    heat: inferHeatFromStepText(text),
+    timer: inferTimerFromStepText(text),
+    relevantIngredients: findRelevantIngredientsForStep(text, ingredients),
+  }));
+  const { heatGuide, ovenGuide } = buildHeatAndOvenGuides(steps);
 
   return {
     id: `direct-${Date.now()}`,
@@ -220,17 +234,13 @@ export function parseStructuredRecipeToRecipe(structuredRecipe: unknown, options
     servings,
     servingsUnit,
     ingredients,
-    steps: instructionTexts.map((text, index) => ({
-      id: `step-${index}`,
-      text,
-      relevantIngredients: [],
-    })),
+    steps,
     flavorBoosts: [],
     pitfalls: [],
     hints: [],
     substitutions: [],
-    heatGuide: [],
-    ovenGuide: [],
+    heatGuide,
+    ovenGuide,
     kitchenTimeline: [],
     sourceUrl: options?.sourceUrl,
     lastUsed: now,
