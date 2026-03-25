@@ -97,3 +97,10 @@
 - Status: Completed
 - Summary: Added a settings-only transparency surface that shows whether learning feedback is active, what is stored locally, and the latest explicit feedback entries, without introducing recommendations or opaque profile behavior.
 - Evidence: `src/components/LearningProfileTransparencyCard.tsx`, `src/services/learningProfileStore.ts`, `src/components/SettingsView.tsx`
+
+#### Next phase prepared
+- Phase: `Phase 6 - Rollout preparation`
+- Step: `Preparation only`
+- Status: Completed
+- Summary: Expanded the broad rollout placeholder into a conservative execution sequence focused on supportability, diagnostics boundaries, privacy/help alignment, and controlled beta readiness.
+- Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-6-rollout-prep.md`

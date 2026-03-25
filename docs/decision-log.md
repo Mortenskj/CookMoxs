@@ -65,3 +65,9 @@
 - Scope: Phase 5.4 foundation
 - Decision: The first transparency surface should remain settings-only and show only inspectable local learning-profile state, status, and recent explicit feedback.
 - Rationale: This satisfies Step 5.4 by making the module understandable before any stronger intelligence behavior exists, while keeping wording cautious and avoiding broad recommendation UI.
+
+### 2026-03-25 - Prepare Phase 6 as an operational rollout phase, not a feature phase
+- Status: Accepted
+- Scope: post-Phase-5 planning
+- Decision: Phase 6 should begin with a conservative operational sequence covering support surfaces, diagnostics boundaries, privacy/help alignment, and controlled beta readiness rather than broad launch logic or new product work.
+- Rationale: `PLAN.md` defines Phase 6 as rollout preparation. Converting that into narrow operational steps improves supportability and transparency while avoiding unrelated feature expansion.

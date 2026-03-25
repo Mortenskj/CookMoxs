@@ -335,6 +335,7 @@ Provider decision: **Open Food Facts** as primary provider for Phase 4. If unava
 
 ### Phase 6 — Rollout preparation
 Versioning, support tooling, error reporting, privacy docs, controlled beta readiness.
+**Progress note (2026-03-25):** Preparation only completed. Conservative execution detail added below; no broad rollout or new product feature logic implemented yet.
 
 ---
 
@@ -518,3 +519,46 @@ Codex must keep progress and decision tracking up to date if the current step re
 - wording stays cautious and non-creepy
 - no broad recommendation UI is introduced in this step
 **Progress note (2026-03-25):** Completed.
+
+### Phase 6 execution detail (prepared 2026-03-25)
+**Risk:** Medium
+**Out of scope for the phase:** broad public launch logic, payment/premium implementation, creator/public-sharing expansion, speculative recommendation systems, pantry/inventory systems, large UI redesigns, and unrelated refactors
+
+#### Step 6.1 — Version and support surface
+**Goal:** expose the smallest useful support and version information so beta users can self-report issues clearly.
+**Files in scope:**
+- one contained support/version surface
+- small support/config helpers only if required
+**Acceptance criteria:**
+- app version is clearly visible in a support-friendly way
+- users can find a simple support/report path
+- wording is clear and non-technical for end users
+
+#### Step 6.2 — Error reporting boundary and minimal diagnostics
+**Goal:** add a narrow, privacy-conscious error reporting/diagnostic boundary for rollout support.
+**Files in scope:**
+- error reporting or diagnostics services/helpers
+- one small user-facing support/status surface only if required
+**Acceptance criteria:**
+- diagnostics stay minimal and privacy-conscious
+- no raw technical dump is shown to normal users
+- supportability improves without broad new UX
+
+#### Step 6.3 — Privacy and support docs alignment
+**Goal:** make visible help/privacy/support wording match the actual current product behavior.
+**Files in scope:**
+- docs and user-facing help/privacy text only
+**Acceptance criteria:**
+- no policy claims exceed current product behavior
+- support/help wording matches current sync, backup, AI, and learning behavior
+- docs are understandable for a controlled beta audience
+
+#### Step 6.4 — Controlled beta checklist and release readiness
+**Goal:** create an operational checklist for controlled rollout, verification, and support response.
+**Files in scope:**
+- rollout/release docs only
+- small support checklist files if needed
+**Acceptance criteria:**
+- verification steps are concrete
+- rollout/support ownership is clear
+- no launch-wide automation or growth logic is introduced

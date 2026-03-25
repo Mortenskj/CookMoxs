@@ -104,4 +104,17 @@ Prefer user-controlled feedback signals over hidden inference when the learning 
 Show the user what the module knows before introducing stronger suggestions.
 
 ### Phase 6
-Rollout preparation, support tooling, privacy docs, error reporting, and beta readiness.
+#### Preparation only
+Turn the rollout placeholder into a conservative operational sequence before shipping broader release work.
+
+#### 6.1 Version and support surface
+Expose the smallest support-ready version and report path for beta users.
+
+#### 6.2 Error reporting boundary and minimal diagnostics
+Add a narrow, privacy-conscious diagnostics and reporting boundary.
+
+#### 6.3 Privacy and support docs alignment
+Align help/privacy/support wording with actual product behavior.
+
+#### 6.4 Controlled beta checklist and release readiness
+Create the concrete rollout and support checklist before broader beta handling.
