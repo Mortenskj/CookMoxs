@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OvenAnimation } from './components/OvenAnimation';
 import { PotAnimation } from './components/PotAnimation';
 import { Sprout, CookingPot, Leaf, Utensils, BookOpen, Timer as TimerIcon, Microwave, Home, PlusCircle, PlayCircle } from 'lucide-react';
@@ -14,9 +14,18 @@ import {
   applyPrefix as aiApplyPrefix,
   importRecipe as aiImportRecipe,
 } from './services/aiService';
+import { trackEvent } from './services/analyticsService';
+import { normalizeImportError, normalizeSyncError } from './services/errorMessageService';
+import {
+  cacheActiveRecipeForCookMode,
+  cacheSavedRecipesForCookMode,
+  loadCachedActiveRecipeForCookMode,
+  loadCachedSavedRecipesForCookMode,
+} from './services/recipeCacheService';
 import { Recipe, ViewState, Timer, Folder } from './types';
 import { DEFAULT_USER_LEVEL, type UserLevel } from './config/cookingLevels';
 import { COOK_FONT_META, DEFAULT_COOK_FONT_SIZE, type CookFontSize } from './config/cookDisplay';
+import { DEFAULT_IMPORT_PREFERENCE, type ImportPreference } from './config/importPreferences';
 import { STORAGE_KEYS } from './config/storageKeys';
 import { buildRecipeFromImport } from './services/recipeImportService';
 import { createBackupPayload, downloadBackupFile, parseBackupPayload } from './services/backupService';
@@ -48,10 +57,14 @@ import { CookView } from './components/CookView';
 import { SettingsView } from './components/SettingsView';
 import { UndoToast } from './components/UndoToast';
 import { AppUpdateToast } from './components/AppUpdateToast';
+import { PendingQueueToast } from './components/PendingQueueToast';
 import { auth, onAuthStateChanged, signInWithPopup, googleProvider, signOut } from './firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { usePendingQueue } from './hooks/usePendingQueue';
+import { useOfflineQueueProcessor } from './hooks/useOfflineQueueProcessor';
+import type { OfflineQueueItem } from './services/offlineQueueService';
 
 // Remove direct instantiation of GoogleGenAI on the client.  All AI work
 // is delegated to the server via services/aiService.
@@ -82,13 +95,48 @@ const parseAIError = (err: any, defaultMsg: string) => {
 
   if (msg.includes("API_KEY_INVALID")) {
     return "Ugyldig API-nøgle på serveren.";
+  } else if (msg.includes("GEMINI_API_KEY is not configured")) {
+    return "AI er ikke sat op paa serveren endnu. Grundimport virker stadig, men AI-forbedring er midlertidigt utilgaengelig.";
   } else if (msg.includes("spending cap") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("Quota exceeded")) {
     return "Du har nået grænsen for brug af AI. Prøv igen senere eller opgrader din plan.";
   } else if (msg.includes("fetch failed")) {
     return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
   }
+  if (msg.includes('__MALFORMED_RESPONSE__') || msg.includes('Unexpected end of JSON input') || msg.includes('Unexpected token')) {
+    return 'Vi fik et ugyldigt svar tilbage. Proev igen om lidt.';
+  }
   return defaultMsg + ": " + msg;
 };
+
+const getPersistentAIDisabledReason = (err: unknown): string | null => {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+
+  if (msg.includes('GEMINI_API_KEY is not configured') || msg.includes('API_KEY_INVALID')) {
+    return 'AI er ikke tilgaengelig lige nu. Grundimport, manuel oprettelse og cook mode virker stadig.';
+  }
+
+  return null;
+};
+
+const blobToBase64Data = (blob: Blob) =>
+  new Promise<{ data: string; mimeType: string }>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const match = result.match(/^data:(.+);base64,(.+)$/);
+      if (!match) {
+        reject(new Error('Offline-billedet kunne ikke konverteres til importformat.'));
+        return;
+      }
+
+      resolve({
+        mimeType: match[1],
+        data: match[2],
+      });
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Offline-billedet kunne ikke laeses.'));
+    reader.readAsDataURL(blob);
+  });
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>('home');
@@ -103,6 +151,12 @@ export default function App() {
       ? raw
       : DEFAULT_USER_LEVEL;
   });
+  const [importPreference, setImportPreference] = useState<ImportPreference>(() => {
+    const raw = localStorage.getItem(STORAGE_KEYS.importPreference);
+    return raw === 'ai_auto' || raw === 'ask_first' || raw === 'basic_only'
+      ? raw
+      : DEFAULT_IMPORT_PREFERENCE;
+  });
   const [activeTimerPopup, setActiveTimerPopup] = useState<string | null>(null);
   const [cookFontSize, setCookFontSize] = useState<CookFontSize>(() => {
     const raw = localStorage.getItem(STORAGE_KEYS.cookFontSize);
@@ -114,11 +168,16 @@ export default function App() {
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'saved' | 'error'>('idle');
   const [cloudSyncMessage, setCloudSyncMessage] = useState<string | null>('Kun lokal lagring aktiv');
   const [cloudLastSyncAt, setCloudLastSyncAt] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.lastCloudSyncAt));
+  const [aiUnavailableMessage, setAiUnavailableMessage] = useState<string | null>(null);
   const [undoDeleteRecipe, setUndoDeleteRecipe] = useState<{ recipe: Recipe; index: number; timeoutId: any } | null>(null);
   const [undoDeleteFolder, setUndoDeleteFolder] = useState<{ folder: Folder; prevFolders: Folder[]; prevRecipes: Recipe[]; movedRecipes: Recipe[]; timeoutId: any } | null>(null);
   const backupImportRef = useRef<HTMLInputElement | null>(null);
   const { isOnline } = useNetworkStatus();
   const { updateAvailable, applyUpdate, dismiss } = useServiceWorkerUpdate();
+  const { retryableCount, refreshPendingCount } = usePendingQueue();
+  const aiDisabledReason = !isOnline
+    ? 'Du er offline. AI-funktioner kraever internetforbindelse.'
+    : aiUnavailableMessage;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.theme, theme);
@@ -138,6 +197,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.userLevel, userLevel);
   }, [userLevel]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.importPreference, importPreference);
+  }, [importPreference]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.cookFontSize, cookFontSize);
@@ -198,8 +261,8 @@ export default function App() {
       markCloudSyncing('Sletter opskrift i cloud...');
       await deleteRecipeInCloud(recipeId);
       markCloudSaved('Opskrift slettet i cloud');
-    } catch {
-      markCloudError('Sletning i cloud mislykkedes');
+    } catch (error) {
+      markCloudError(normalizeSyncError(error, 'Sletning i cloud mislykkedes.'));
     }
   };
 
@@ -212,8 +275,8 @@ export default function App() {
         await saveRecipeInCloud(r);
       }
       markCloudSaved('Mappe slettet og opskrifter flyttet');
-    } catch {
-      markCloudError('Sletning af mappe mislykkedes');
+    } catch (error) {
+      markCloudError(normalizeSyncError(error, 'Sletning af mappe mislykkedes.'));
     }
   };
 
@@ -241,6 +304,23 @@ export default function App() {
   const [adjusting, setAdjusting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timers, setTimers] = useState<Timer[]>([]);
+  const [isSavedRecipeCacheReady, setIsSavedRecipeCacheReady] = useState(false);
+  const [isActiveRecipeCacheReady, setIsActiveRecipeCacheReady] = useState(false);
+
+  const getAnalyticsContext = () => ({
+    userState: user ? 'authenticated' : 'guest',
+    view: currentView,
+  });
+
+  const handleDarkModeChange = (nextIsDarkMode: boolean) => {
+    if (nextIsDarkMode === isDarkMode) return;
+
+    setIsDarkMode(nextIsDarkMode);
+    trackEvent(nextIsDarkMode ? 'module_enabled' : 'module_disabled', {
+      ...getAnalyticsContext(),
+      module: 'dark_mode',
+    });
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -253,15 +333,32 @@ export default function App() {
   useEffect(() => {
     if (!isAuthReady) return;
 
+    let cancelled = false;
+
     if (user) {
       let unsubSharedRecipes: (() => void) | null = null;
+      let hasReceivedCloudRecipes = false;
+      const handleSyncListenerError = (syncError: unknown) => {
+        markCloudError(normalizeSyncError(syncError, 'Cloud-sync kunne ikke opdateres lige nu.'));
+      };
+
+      void loadCachedSavedRecipesForCookMode().then((cachedRecipes) => {
+        if (cancelled || hasReceivedCloudRecipes || !cachedRecipes?.length) {
+          return;
+        }
+
+        setSavedRecipes((prev) => (prev.length > 0 ? prev : cachedRecipes));
+        setIsSavedRecipeCacheReady(true);
+      });
 
       const unsubRecipes = listenToUserRecipes(user.uid, (recipes) => {
+        hasReceivedCloudRecipes = true;
+        setIsSavedRecipeCacheReady(true);
         setSavedRecipes(prev => {
           const shared = prev.filter(r => r.authorUID !== user.uid);
           return [...recipes, ...shared];
         });
-      });
+      }, handleSyncListenerError);
 
       const unsubFoldersSync = listenToAccessibleFolders(user.uid, (snapshotFolders) => {
         const allFolders: Folder[] = [];
@@ -293,7 +390,9 @@ export default function App() {
               sharedWith: updatedSharedWith,
               editorUids: Array.from(editorUids),
               viewerUids: Array.from(viewerUids),
-            }).catch(console.error);
+            }).catch((error) => {
+              markCloudError(normalizeSyncError(error, 'Cloud-sync af delte mapper fejlede.'));
+            });
           }
 
           allFolders.push(data);
@@ -308,7 +407,9 @@ export default function App() {
             sharedWith: [],
             editorUids: [],
             viewerUids: [],
-          }).catch(console.error);
+          }).catch((error) => {
+            markCloudError(normalizeSyncError(error, 'Standardmappen kunne ikke synkroniseres.'));
+          });
         }
 
         setFolders(allFolders);
@@ -324,24 +425,62 @@ export default function App() {
               const myRecipes = prev.filter(r => r.authorUID === user.uid);
               return [...myRecipes, ...sharedRecipes];
             });
-          });
+          }, handleSyncListenerError);
         }
-      });
+      }, handleSyncListenerError);
 
       return () => {
+        cancelled = true;
         unsubRecipes();
         unsubFoldersSync();
         if (unsubSharedRecipes) unsubSharedRecipes();
       };
     } else {
-      setSavedRecipes(loadLocalRecipes());
+      void (async () => {
+        const localRecipes = loadLocalRecipes();
+        const cachedRecipes = localRecipes.length > 0 ? null : await loadCachedSavedRecipesForCookMode();
+        const nextRecipes = localRecipes.length > 0 ? localRecipes : cachedRecipes || [];
+
+        if (cancelled) return;
+
+        setSavedRecipes(nextRecipes);
+        setIsSavedRecipeCacheReady(true);
+      })();
       setFolders(loadLocalFolders());
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [user, isAuthReady]);
 
   useEffect(() => {
-    setActiveRecipe(loadLocalActiveRecipe());
+    let cancelled = false;
+
+    void (async () => {
+      const localActiveRecipe = loadLocalActiveRecipe();
+      const cachedActiveRecipe = localActiveRecipe ? null : await loadCachedActiveRecipeForCookMode();
+
+      if (cancelled) return;
+
+      setActiveRecipe(localActiveRecipe || cachedActiveRecipe);
+      setIsActiveRecipeCacheReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isSavedRecipeCacheReady) return;
+    void cacheSavedRecipesForCookMode(savedRecipes);
+  }, [isSavedRecipeCacheReady, savedRecipes]);
+
+  useEffect(() => {
+    if (!isActiveRecipeCacheReady) return;
+    void cacheActiveRecipeForCookMode(activeRecipe);
+  }, [activeRecipe, isActiveRecipeCacheReady]);
 
   useEffect(() => {
     let interval: number;
@@ -385,7 +524,9 @@ export default function App() {
         sharedWith: [],
         editorUids: [],
         viewerUids: [],
-      }).catch(console.error);
+      }).catch((error) => {
+        markCloudError(normalizeSyncError(error, 'Standardmappen kunne ikke synkroniseres.'));
+      });
     }
   }, [folders, user, isAuthReady]);
 
@@ -409,6 +550,7 @@ export default function App() {
       activeRecipe,
       preferences: {
         userLevel,
+        importPreference,
         theme,
         isDarkMode,
         cookFontSize,
@@ -418,6 +560,11 @@ export default function App() {
     downloadBackupFile(payload);
     localStorage.setItem(STORAGE_KEYS.lastBackupAt, payload.exportedAt);
     setLastBackupAt(payload.exportedAt);
+    trackEvent('backup_exported', {
+      ...getAnalyticsContext(),
+      recipeCount: savedRecipes.length,
+      folderCount: folders.length,
+    });
   };
 
   const handleBackupImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -435,6 +582,9 @@ export default function App() {
       localStorage.setItem(STORAGE_KEYS.theme, backup.preferences.theme);
       localStorage.setItem(STORAGE_KEYS.darkMode, String(backup.preferences.isDarkMode));
       localStorage.setItem(STORAGE_KEYS.userLevel, backup.preferences.userLevel);
+      if (backup.preferences.importPreference) {
+        localStorage.setItem(STORAGE_KEYS.importPreference, backup.preferences.importPreference);
+      }
 
       setSavedRecipes(backup.recipes);
       setFolders(backup.folders);
@@ -442,6 +592,9 @@ export default function App() {
       setTheme(backup.preferences.theme);
       setIsDarkMode(backup.preferences.isDarkMode);
       setUserLevel(backup.preferences.userLevel);
+      if (backup.preferences.importPreference) {
+        setImportPreference(backup.preferences.importPreference);
+      }
       if (backup.preferences.cookFontSize) {
         localStorage.setItem(STORAGE_KEYS.cookFontSize, backup.preferences.cookFontSize);
         setCookFontSize(backup.preferences.cookFontSize);
@@ -450,14 +603,26 @@ export default function App() {
 
       if (user) {
         markCloudSyncing('Gendanner backup til cloud...');
-        await Promise.all([
-          ...backup.folders.map(folder => saveFolderInCloud(folder)),
-          ...backup.recipes.map(recipe => saveRecipeInCloud({ ...recipe, authorUID: user.uid })),
-        ]);
-        markCloudSaved('Backup gendannet og synkroniseret');
+        try {
+          await Promise.all([
+            ...backup.folders.map(folder => saveFolderInCloud(folder)),
+            ...backup.recipes.map(recipe => saveRecipeInCloud({ ...recipe, authorUID: user.uid })),
+          ]);
+          markCloudSaved('Backup gendannet og synkroniseret');
+        } catch (error) {
+          const syncMessage = normalizeSyncError(error, 'Backup blev gendannet lokalt, men cloud-sync fejlede.');
+          markCloudError(syncMessage);
+          setError(syncMessage);
+          return;
+        }
       }
+
+      trackEvent('backup_restored', {
+        ...getAnalyticsContext(),
+        recipeCount: backup.recipes.length,
+        folderCount: backup.folders.length,
+      });
     } catch (err: any) {
-      if (user) markCloudError('Gendannelse til cloud fejlede');
       setError(err?.message || 'Kunne ikke gendanne backupfilen.');
     } finally {
       event.target.value = '';
@@ -475,9 +640,15 @@ export default function App() {
     };
 
     if (user) {
-      markCloudSyncing('Opretter mappe i cloud...');
-      await saveFolderInCloud(newFolder);
-      markCloudSaved('Mappe gemt i cloud');
+      try {
+        markCloudSyncing('Opretter mappe i cloud...');
+        await saveFolderInCloud(newFolder);
+        markCloudSaved('Mappe gemt i cloud');
+      } catch (error) {
+        const syncMessage = normalizeSyncError(error, 'Mappen kunne ikke gemmes i cloud.');
+        markCloudError(syncMessage);
+        setError(syncMessage);
+      }
     } else {
       const newFolders = [...folders, newFolder].sort((a, b) => a.name.localeCompare(b.name));
       setFolders(newFolders);
@@ -492,9 +663,15 @@ export default function App() {
     const updatedFolder = { ...folder, name: newName };
 
     if (user) {
-      markCloudSyncing('Opdaterer mappe i cloud...');
-      await saveFolderInCloud(updatedFolder);
-      markCloudSaved('Mappe opdateret i cloud');
+      try {
+        markCloudSyncing('Opdaterer mappe i cloud...');
+        await saveFolderInCloud(updatedFolder);
+        markCloudSaved('Mappe opdateret i cloud');
+      } catch (error) {
+        const syncMessage = normalizeSyncError(error, 'Mappen kunne ikke opdateres i cloud.');
+        markCloudError(syncMessage);
+        setError(syncMessage);
+      }
     } else {
       const newFolders = folders.map(f => f.id === folderId ? updatedFolder : f);
       setFolders(newFolders);
@@ -565,9 +742,15 @@ export default function App() {
       markCloudSyncing('Deler mappe via cloud...');
       await saveFolderInCloud(updatedFolder);
       markCloudSaved('Mappedeling gemt i cloud');
+      trackEvent('folder_shared', {
+        ...getAnalyticsContext(),
+        folderId,
+        role,
+      });
     } catch (error) {
-      markCloudError('Mappedeling kunne ikke gemmes');
-      // error already normalized in service
+      const syncMessage = normalizeSyncError(error, 'Mappedeling kunne ikke gemmes.');
+      markCloudError(syncMessage);
+      setError(syncMessage);
     }
   };
 
@@ -576,70 +759,250 @@ export default function App() {
     setActiveRecipe(recipe);
   };
 
-  const handleImport = async (content: string | { data: string, mimeType: string }, type: 'url' | 'text' | 'file' | 'image') => {
-    setLoading(true);
-    setError(null);
+  const hydrateDirectImportRecipe = (directRecipe: Recipe, sourceUrl: string): Recipe => {
+    const defaultFolder = folders.find(f => f.isDefault || f.name === 'Ikke gemte') || folders[0];
+    const now = new Date().toISOString();
+
+    return {
+      ...directRecipe,
+      id: Date.now().toString(),
+      folder: defaultFolder?.name || 'Ikke gemte',
+      folderId: defaultFolder?.id || `default-un-saved-${user?.uid}`,
+      isSaved: false,
+      sourceUrl,
+      authorUID: user?.uid,
+      lastUsed: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+  };
+
+  const requestDirectImport = async (url: string): Promise<Recipe> => {
+    const response = await fetch('/api/parse-direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.error || 'Direkte grundimport fejlede.');
+    }
+    return data.recipe as Recipe;
+  };
+
+  const rememberAIDisabledState = (err: unknown) => {
+    const message = getPersistentAIDisabledReason(err);
+    if (message) {
+      setAiUnavailableMessage(message);
+    }
+  };
+
+  const executeImportFlow = useCallback(async (
+    content: string | { data: string, mimeType: string },
+    type: 'url' | 'text' | 'file' | 'image',
+    options?: { showLoading?: boolean; navigateOnSuccess?: boolean; surfaceErrors?: boolean },
+  ) => {
+    const showLoading = options?.showLoading ?? true;
+    const navigateOnSuccess = options?.navigateOnSuccess ?? true;
+    const surfaceErrors = options?.surfaceErrors ?? true;
+
+    if (showLoading) {
+      setLoading(true);
+    }
+    if (surfaceErrors) {
+      setError(null);
+    }
+
+    trackEvent('recipe_import_started', {
+      ...getAnalyticsContext(),
+      sourceType: type,
+    });
+
     try {
-      let parsedData: any;
+      let newRecipe: Recipe | null = null;
 
-      if (type === 'url' || type === 'text') {
-        let textToParse = content as string;
-        let isJson = false;
+      if (type === 'url') {
+        try {
+          const directRecipe = await requestDirectImport(content as string);
+          newRecipe = hydrateDirectImportRecipe(directRecipe, content as string);
+        } catch (directError) {
+          if (importPreference === 'basic_only') {
+            throw directError;
+          }
 
-        if (type === 'url') {
-          const response = await fetch(`/api/fetch-url?url=${encodeURIComponent(content as string)}`);
-          if (!response.ok) throw new Error("Kunne ikke hente indhold fra URL. Tjek om URL'en er korrekt.");
-          const data = await response.json();
+          if (importPreference === 'ask_first') {
+            const shouldUseAI = window.confirm('Grundimport kunne ikke klare denne side alene. Vil du proeve AI-import i stedet?');
+            if (!shouldUseAI) {
+              throw new Error('Importen blev afbrudt, fordi AI-import ikke blev godkendt.');
+            }
+          }
+        }
+      }
 
-          if (data.json) {
-            textToParse = JSON.stringify(data.json);
-            isJson = true;
-          } else {
-            textToParse = data.html;
+      if (!newRecipe) {
+        if (type === 'url' && aiDisabledReason) {
+          throw new Error(`${aiDisabledReason} Proev et andet link med struktureret opskriftdata eller opret opskriften manuelt.`);
+        }
+
+        if (importPreference === 'basic_only' && type !== 'url') {
+          throw new Error('Grundimport virker lige nu kun for links med struktureret opskriftdata.');
+        }
+
+        if (type !== 'url' && aiDisabledReason) {
+          throw new Error(`${aiDisabledReason} Brug linkimport eller opret opskriften manuelt.`);
+        }
+
+        if (importPreference === 'ask_first' && type !== 'url') {
+          const shouldUseAI = window.confirm('Denne type import kraever AI. Vil du fortsaette med AI-import?');
+          if (!shouldUseAI) {
+            throw new Error('Importen blev afbrudt, fordi AI-import ikke blev godkendt.');
           }
         }
 
-        parsedData = await aiImportRecipe({
-          sourceType: type,
-          textContent: textToParse,
-          isStructuredData: isJson,
-          level: userLevel,
-        });
-      } else if (type === 'file' || type === 'image') {
-        const fileContent = content as { data: string, mimeType: string };
-        parsedData = await aiImportRecipe({
-          sourceType: type,
-          fileData: fileContent,
-          level: userLevel,
-        });
-      }
+        let parsedData: any;
 
-      const newRecipe: Recipe = buildRecipeFromImport({
-        parsedData,
-        sourceType: type,
-        originalContent: typeof content === 'string' ? content : undefined,
-        folders,
-        userId: user?.uid,
-      });
+        if (type === 'url' || type === 'text') {
+          let textToParse = content as string;
+          let isJson = false;
+
+          if (type === 'url') {
+            const response = await fetch(`/api/fetch-url?url=${encodeURIComponent(content as string)}`);
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+              throw new Error(data?.error || 'Failed to fetch URL content');
+            }
+
+            if (data.json) {
+              textToParse = JSON.stringify(data.json);
+              isJson = true;
+            } else {
+              textToParse = data.html;
+            }
+          }
+
+          parsedData = await aiImportRecipe({
+            sourceType: type,
+            textContent: textToParse,
+            isStructuredData: isJson,
+            level: userLevel,
+          });
+        } else if (type === 'file' || type === 'image') {
+          const fileContent = content as { data: string, mimeType: string };
+          parsedData = await aiImportRecipe({
+            sourceType: type,
+            fileData: fileContent,
+            level: userLevel,
+          });
+        }
+
+        newRecipe = buildRecipeFromImport({
+          parsedData,
+          sourceType: type,
+          originalContent: typeof content === 'string' ? content : undefined,
+          folders,
+          userId: user?.uid,
+        });
+        setAiUnavailableMessage(null);
+      }
 
       if (user) {
         markCloudSyncing('Gemmer importeret opskrift i cloud...');
         await saveRecipeInCloud(newRecipe);
         markCloudSaved('Importeret opskrift gemt i cloud');
       } else {
-        const newSaved = [newRecipe, ...savedRecipes];
-        saveToLocalStorage(newSaved);
+        setSavedRecipes(prev => {
+          const newSaved = [newRecipe, ...prev];
+          saveLocalRecipes(newSaved);
+
+          const updatedFolders = mergeMissingFoldersFromRecipes(newSaved, folders);
+          if (updatedFolders !== folders) {
+            setFolders(updatedFolders);
+            saveLocalFolders(updatedFolders);
+          }
+
+          return newSaved;
+        });
       }
 
-      setViewingRecipe(newRecipe);
-      navigateTo('recipe');
+      if (navigateOnSuccess) {
+        setViewingRecipe(newRecipe);
+        navigateTo('recipe');
+      }
+
+      trackEvent('recipe_import_succeeded', {
+        ...getAnalyticsContext(),
+        sourceType: type,
+        recipeId: newRecipe.id,
+      });
+      return newRecipe;
     } catch (err: any) {
       console.error('AI Error:', err);
-      setError(parseAIError(err, 'Der opstod en fejl under parsing af opskriften'));
+      rememberAIDisabledState(err);
+      const { category, message } = normalizeImportError(err);
+      if (surfaceErrors) {
+        setError(message);
+      }
+      trackEvent('recipe_import_failed', {
+        ...getAnalyticsContext(),
+        sourceType: type,
+        errorCategory: category,
+        errorMessage: message,
+      });
+      throw err;
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
+  }, [aiDisabledReason, folders, getAnalyticsContext, importPreference, navigateTo, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
+
+  const handleImport = async (content: string | { data: string, mimeType: string }, type: 'url' | 'text' | 'file' | 'image') => {
+    await executeImportFlow(content, type);
   };
+
+  const processQueuedItem = useCallback(async (item: OfflineQueueItem) => {
+    if (item.type === 'url') {
+      await executeImportFlow(item.payloadText, 'url', {
+        showLoading: false,
+        navigateOnSuccess: false,
+        surfaceErrors: false,
+      });
+      return;
+    }
+
+    if (item.type === 'text') {
+      await executeImportFlow(item.payloadText, 'text', {
+        showLoading: false,
+        navigateOnSuccess: false,
+        surfaceErrors: false,
+      });
+      return;
+    }
+
+    if (item.type === 'image') {
+      const fileData = await blobToBase64Data(item.payloadBlob);
+      await executeImportFlow(fileData, 'image', {
+        showLoading: false,
+        navigateOnSuccess: false,
+        surfaceErrors: false,
+      });
+      return;
+    }
+
+    throw new Error('Denne queue-type kan ikke behandles endnu.');
+  }, [executeImportFlow]);
+
+  const {
+    isProcessingQueue,
+    queueProcessMessage,
+    clearQueueProcessMessage,
+    processPendingQueue,
+  } = useOfflineQueueProcessor({
+    isOnline,
+    canProcess: !loading && !adjusting,
+    onProcessItem: processQueuedItem,
+    onQueueChanged: refreshPendingCount,
+  });
 
   const handleSaveRecipe = async (recipe: Recipe) => {
     if (!user) {
@@ -708,9 +1071,16 @@ export default function App() {
       if (activeRecipe?.id === recipe.id) {
         saveActiveRecipe(updatedRecipe);
       }
+
+      trackEvent('recipe_saved', {
+        ...getAnalyticsContext(),
+        recipeId: updatedRecipe.id,
+        folderId: updatedRecipe.folderId || null,
+      });
     } catch (err: any) {
-      markCloudError('Opskriften kunne ikke gemmes i cloud');
-      setError(err?.message || 'Kunne ikke gemme opskriften.');
+      const syncMessage = normalizeSyncError(err, 'Opskriften kunne ikke gemmes i cloud.');
+      markCloudError(syncMessage);
+      setError(syncMessage);
     }
   };
 
@@ -747,6 +1117,10 @@ export default function App() {
     }, 8000);
 
     setUndoDeleteRecipe({ recipe, index: idx, timeoutId });
+    trackEvent('recipe_deleted', {
+      ...getAnalyticsContext(),
+      recipeId,
+    });
   };
 
   const handleToggleFavorite = (recipe: Recipe) => {
@@ -759,7 +1133,7 @@ export default function App() {
       markCloudSyncing('Opdaterer favorit i cloud...');
       saveRecipeInCloud(updatedRecipe)
         .then(() => markCloudSaved('Favoritstatus synkroniseret'))
-        .catch(() => markCloudError('Favoritstatus kunne ikke synkroniseres'));
+        .catch((error) => markCloudError(normalizeSyncError(error, 'Favoritstatus kunne ikke synkroniseres.')));
     }
     
     if (activeRecipe?.id === recipe.id) {
@@ -793,14 +1167,21 @@ export default function App() {
     setError(null);
     try {
       const updated = await aiAdjustRecipe(recipe, instruction);
+      setAiUnavailableMessage(null);
       setViewingRecipe({
         ...updated,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
       });
+      trackEvent('ai_adjust_used', {
+        ...getAnalyticsContext(),
+        recipeId: recipe.id,
+        action: 'smart_adjust',
+      });
     } catch (err: any) {
       console.error('AI Adjust Error:', err);
-      setError(err?.message || 'Kunne ikke tilpasse opskriften');
+      rememberAIDisabledState(err);
+      setError(parseAIError(err, 'Kunne ikke tilpasse opskriften'));
     } finally {
       setAdjusting(false);
     }
@@ -811,14 +1192,21 @@ export default function App() {
     setError(null);
     try {
       const updated = await aiGenerateSteps(recipe, userLevel);
+      setAiUnavailableMessage(null);
       setViewingRecipe({
         ...updated,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
       });
+      trackEvent('ai_adjust_used', {
+        ...getAnalyticsContext(),
+        recipeId: recipe.id,
+        action: 'generate_steps',
+      });
     } catch (err: any) {
       console.error('AI Generate Error:', err);
-      setError(err?.message || 'Kunne ikke generere fremgangsmåde');
+      rememberAIDisabledState(err);
+      setError(parseAIError(err, 'Kunne ikke generere fremgangsmåde'));
     } finally {
       setAdjusting(false);
     }
@@ -829,15 +1217,22 @@ export default function App() {
     setError(null);
     try {
       const updated = await aiFillRest(recipe, userLevel);
+      setAiUnavailableMessage(null);
       setViewingRecipe({
         ...updated,
         title: recipe.title,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
       });
+      trackEvent('ai_adjust_used', {
+        ...getAnalyticsContext(),
+        recipeId: recipe.id,
+        action: 'fill_rest',
+      });
     } catch (err: any) {
       console.error('AI Fill Rest Error:', err);
-      setError(err?.message || 'Kunne ikke udfylde resten');
+      rememberAIDisabledState(err);
+      setError(parseAIError(err, 'Kunne ikke udfylde resten'));
     } finally {
       setAdjusting(false);
     }
@@ -848,12 +1243,19 @@ export default function App() {
     setError(null);
     try {
       const tipsAndTricks = await aiGenerateTips(recipe);
+      setAiUnavailableMessage(null);
       const updatedRecipe: Recipe = { ...recipe, tipsAndTricks };
       setViewingRecipe(updatedRecipe);
       handleSaveRecipe(updatedRecipe);
+      trackEvent('ai_adjust_used', {
+        ...getAnalyticsContext(),
+        recipeId: recipe.id,
+        action: 'generate_tips',
+      });
     } catch (err: any) {
       console.error('AI Tips Error:', err);
-      setError(err?.message || 'Kunne ikke generere tips');
+      rememberAIDisabledState(err);
+      setError(parseAIError(err, 'Kunne ikke generere tips'));
     } finally {
       setAdjusting(false);
     }
@@ -864,6 +1266,7 @@ export default function App() {
     setError(null);
     try {
       const updated = await aiApplyPrefix(recipe, prefix);
+      setAiUnavailableMessage(null);
       const newRecipe: Recipe = {
         ...updated,
         id: Date.now().toString(),
@@ -871,9 +1274,15 @@ export default function App() {
         lastUsed: new Date().toISOString(),
       };
       setViewingRecipe(newRecipe);
+      trackEvent('ai_adjust_used', {
+        ...getAnalyticsContext(),
+        recipeId: recipe.id,
+        action: 'apply_prefix',
+      });
     } catch (err: any) {
       console.error('AI Prefix Error:', err);
-      setError(err?.message || 'Kunne ikke tilpasse opskriften');
+      rememberAIDisabledState(err);
+      setError(parseAIError(err, 'Kunne ikke tilpasse opskriften'));
     } finally {
       setAdjusting(false);
     }
@@ -887,6 +1296,12 @@ export default function App() {
     const newSaved = savedRecipes.map(r => r.id === recipe.id ? updatedRecipe : r);
     saveToLocalStorage(newSaved);
     
+    trackEvent('cook_mode_started', {
+      ...getAnalyticsContext(),
+      recipeId: recipe.id,
+      includePrep,
+      scale,
+    });
     navigateTo('cook');
   };
 
@@ -903,6 +1318,13 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col font-sans text-forest-dark dark:text-white selection:bg-forest-mid/20 herbal-pattern overflow-hidden">
       <div className="fixed inset-0 bg-noise pointer-events-none opacity-40" />
+      <PendingQueueToast
+        pendingCount={isOnline ? retryableCount : 0}
+        isProcessing={isProcessingQueue}
+        message={queueProcessMessage}
+        onProcessNow={() => { void processPendingQueue('manual'); }}
+        onDismissMessage={clearQueueProcessMessage}
+      />
       
       <main className="flex-1 overflow-y-auto relative custom-scrollbar">
       {!isOnline && (
@@ -958,6 +1380,8 @@ export default function App() {
           }}
           loading={loading}
           error={error}
+          importPreference={importPreference}
+          aiDisabledReason={aiDisabledReason}
         />
       )}
 
@@ -998,6 +1422,7 @@ export default function App() {
           recipe={viewingRecipe}
           allCategories={Array.from(new Set(savedRecipes.flatMap(r => r.categories || [])))}
           allFolders={folders}
+          currentUser={user}
           onFolderCreate={handleCreateFolder}
           onBack={goBack}
           onForward={goForward}
@@ -1016,6 +1441,7 @@ export default function App() {
             if (original) setViewingRecipe(original);
           }}
           isAdjusting={adjusting}
+          aiDisabledReason={aiDisabledReason}
           initialEditMode={viewingRecipe.title === ''}
         />
       )}
@@ -1034,8 +1460,23 @@ export default function App() {
             }
           }}
           onExit={() => navigateTo('active')}
+          onCompleteCooking={() => {
+            if (activeRecipe) {
+              trackEvent('cook_mode_completed', {
+                ...getAnalyticsContext(),
+                recipeId: activeRecipe.id,
+                completionMethod: 'final_step_confirmed',
+              });
+            }
+            navigateTo('active');
+          }}
           onStopCooking={() => {
             if (activeRecipe) {
+              trackEvent('cook_mode_completed', {
+                ...getAnalyticsContext(),
+                recipeId: activeRecipe.id,
+                completionMethod: 'explicit_stop',
+              });
               setCookProgress(prev => {
                 const newProgress = { ...prev };
                 delete newProgress[activeRecipe.id];
@@ -1059,9 +1500,11 @@ export default function App() {
           theme={theme}
           setTheme={setTheme}
           isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
+          onDarkModeChange={handleDarkModeChange}
           userLevel={userLevel}
           setUserLevel={setUserLevel}
+          importPreference={importPreference}
+          setImportPreference={setImportPreference}
           cookFontSize={cookFontSize}
           setCookFontSize={setCookFontSize}
           onExportBackup={handleExportBackup}
@@ -1072,6 +1515,7 @@ export default function App() {
           cloudLastSyncAt={cloudLastSyncAt}
           appVersion={appVersion}
           isOnline={isOnline}
+          aiDisabledReason={aiDisabledReason}
         />
       )}
       </main>
@@ -1123,6 +1567,11 @@ export default function App() {
 
             setUndoDeleteFolder(null);
             if (user) markCloudSaved('Sletning fortrudt');
+            trackEvent('folder_deleted_undone', {
+              ...getAnalyticsContext(),
+              folderId: undoDeleteFolder.folder.id,
+              movedRecipesCount: undoDeleteFolder.movedRecipes.length,
+            });
           }}
           onDismiss={() => {
             clearTimeout(undoDeleteFolder.timeoutId);

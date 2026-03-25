@@ -1,6 +1,8 @@
 import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type } from 'lucide-react';
 import { COOKING_LEVELS, LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/cookDisplay';
+import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
+import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -10,9 +12,11 @@ interface SettingsViewProps {
   theme: string;
   setTheme: (theme: string) => void;
   isDarkMode: boolean;
-  setIsDarkMode: (isDark: boolean) => void;
+  onDarkModeChange: (isDark: boolean) => void;
   userLevel: UserLevel;
   setUserLevel: (level: UserLevel) => void;
+  importPreference: ImportPreference;
+  setImportPreference: (value: ImportPreference) => void;
   cookFontSize: CookFontSize;
   setCookFontSize: (size: CookFontSize) => void;
   onExportBackup: () => void;
@@ -23,9 +27,10 @@ interface SettingsViewProps {
   cloudLastSyncAt?: string | null;
   appVersion?: string;
   isOnline?: boolean;
+  aiDisabledReason?: string | null;
 }
 
-export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme, isDarkMode, setIsDarkMode, userLevel, setUserLevel, cookFontSize, setCookFontSize, onExportBackup, onImportBackup, lastBackupAt, cloudSyncStatus = 'idle', cloudSyncMessage, cloudLastSyncAt, appVersion, isOnline = true }: SettingsViewProps) {
+export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme, isDarkMode, onDarkModeChange, userLevel, setUserLevel, importPreference, setImportPreference, cookFontSize, setCookFontSize, onExportBackup, onImportBackup, lastBackupAt, cloudSyncStatus = 'idle', cloudSyncMessage, cloudLastSyncAt, appVersion, isOnline = true, aiDisabledReason }: SettingsViewProps) {
   return (
     <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
       <div className="flex items-center gap-4 mb-10 pt-4">
@@ -199,13 +204,13 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
             </div>
             <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
               <button 
-                onClick={() => setIsDarkMode(false)}
+                onClick={() => onDarkModeChange(false)}
                 className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all ${!isDarkMode ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
               >
                 <Sun size={14} />
               </button>
               <button 
-                onClick={() => setIsDarkMode(true)}
+                onClick={() => onDarkModeChange(true)}
                 className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all ${isDarkMode ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
               >
                 <Moon size={14} />
@@ -225,6 +230,38 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
           </div>
 
           <div className="mt-8">
+            <div className="flex items-start gap-3 mb-4">
+              <ChefHat size={14} className="text-forest-mid mt-1" />
+              <div>
+                <p className="font-serif text-lg text-forest-dark italic">Import med eller uden AI</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Vaelg om opskriftimport skal forbedres automatisk eller holde sig til grundimport.</p>
+              </div>
+            </div>
+            <div className="grid gap-3 mb-8">
+              {IMPORT_PREFERENCE_OPTIONS.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setImportPreference(option.value)}
+                  className={`p-4 rounded-2xl border transition-all text-left ${importPreference === option.value ? 'border-forest-dark bg-white/70 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
+                    {importPreference === option.value && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-forest-dark">Aktiv</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-forest-mid opacity-75">{option.description}</p>
+                </button>
+              ))}
+            </div>
+            {aiDisabledReason && (
+              <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-900">AI-status</p>
+                <p className="mt-2 text-sm text-amber-900">{aiDisabledReason}</p>
+                <p className="mt-2 text-xs text-amber-900/80">Linkimport med struktureret data, manuel oprettelse og cook mode virker stadig.</p>
+              </div>
+            )}
+
             <div className="flex items-start gap-3 mb-4">
               <Type size={14} className="text-forest-mid mt-1" />
               <div>
@@ -281,6 +318,8 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
             </p>
           </div>
         </section>
+
+        <HouseholdSettingsCard user={user} isOnline={isOnline} />
       </div>
     </div>
   );

@@ -1,21 +1,28 @@
 import { collection, deleteDoc, doc as firestoreDoc, onSnapshot, or, query, setDoc, where } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, sanitizeData } from '../firebase';
-import type { Folder, Recipe } from '../types';
+import { FIRESTORE_COLLECTIONS } from '../config/householdModel';
+import { createFirestoreErrorInfo, db, handleFirestoreError, OperationType, sanitizeData, type FirestoreErrorInfo } from '../firebase';
+import type { Folder, Household, Recipe } from '../types';
 
-export function listenToUserRecipes(userId: string, onData: (recipes: Recipe[]) => void) {
-  const recipesQuery = query(collection(db, 'recipes'), where('authorUID', '==', userId));
+export type RecipeDocument = Recipe;
+export type FolderDocument = Folder;
+export type HouseholdDocument = Household;
+
+export function listenToUserRecipes(userId: string, onData: (recipes: Recipe[]) => void, onError?: (error: FirestoreErrorInfo) => void) {
+  const recipesQuery = query(collection(db, FIRESTORE_COLLECTIONS.recipes), where('authorUID', '==', userId));
   return onSnapshot(recipesQuery, (snapshot) => {
     const recipes: Recipe[] = [];
     snapshot.forEach((doc) => recipes.push(doc.data() as Recipe));
     onData(recipes);
   }, (error) => {
-    handleFirestoreError(error, OperationType.LIST, 'recipes');
+    const errInfo = createFirestoreErrorInfo(error, OperationType.LIST, 'recipes');
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    onError?.(errInfo);
   });
 }
 
-export function listenToAccessibleFolders(userId: string, onData: (folders: Folder[]) => void) {
+export function listenToAccessibleFolders(userId: string, onData: (folders: Folder[]) => void, onError?: (error: FirestoreErrorInfo) => void) {
   const foldersQuery = query(
-    collection(db, 'folders'),
+    collection(db, FIRESTORE_COLLECTIONS.folders),
     or(
       where('ownerUID', '==', userId),
       where('editorUids', 'array-contains', userId),
@@ -28,11 +35,13 @@ export function listenToAccessibleFolders(userId: string, onData: (folders: Fold
     snapshot.forEach((doc) => folders.push(doc.data() as Folder));
     onData(folders);
   }, (error) => {
-    handleFirestoreError(error, OperationType.LIST, 'folders');
+    const errInfo = createFirestoreErrorInfo(error, OperationType.LIST, 'folders');
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    onError?.(errInfo);
   });
 }
 
-export function listenToSharedRecipes(folderIds: string[], onData: (recipes: Recipe[]) => void) {
+export function listenToSharedRecipes(folderIds: string[], onData: (recipes: Recipe[]) => void, onError?: (error: FirestoreErrorInfo) => void) {
   const unsubscribers: Array<() => void> = [];
   const collected = new Map<string, Recipe>();
 
@@ -40,7 +49,7 @@ export function listenToSharedRecipes(folderIds: string[], onData: (recipes: Rec
 
   for (let i = 0; i < folderIds.length; i += 10) {
     const chunk = folderIds.slice(i, i + 10);
-    const sharedQuery = query(collection(db, 'recipes'), where('folderId', 'in', chunk));
+    const sharedQuery = query(collection(db, FIRESTORE_COLLECTIONS.recipes), where('folderId', 'in', chunk));
     const unsub = onSnapshot(sharedQuery, (snapshot) => {
       // remove chunk recipes first then re-add from snapshot for correctness
       for (const [id, recipe] of collected.entries()) {
@@ -54,7 +63,9 @@ export function listenToSharedRecipes(folderIds: string[], onData: (recipes: Rec
       });
       emit();
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'recipes_shared');
+      const errInfo = createFirestoreErrorInfo(error, OperationType.LIST, 'recipes_shared');
+      console.error('Firestore Error: ', JSON.stringify(errInfo));
+      onError?.(errInfo);
     });
     unsubscribers.push(unsub);
   }
@@ -64,7 +75,7 @@ export function listenToSharedRecipes(folderIds: string[], onData: (recipes: Rec
 
 export async function saveFolder(folder: Folder) {
   try {
-    await setDoc(firestoreDoc(db, 'folders', folder.id), sanitizeData(folder));
+    await setDoc(firestoreDoc(db, FIRESTORE_COLLECTIONS.folders, folder.id), sanitizeData(folder));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `folders/${folder.id}`);
   }
@@ -72,7 +83,7 @@ export async function saveFolder(folder: Folder) {
 
 export async function deleteFolder(folderId: string) {
   try {
-    await deleteDoc(firestoreDoc(db, 'folders', folderId));
+    await deleteDoc(firestoreDoc(db, FIRESTORE_COLLECTIONS.folders, folderId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `folders/${folderId}`);
   }
@@ -80,7 +91,7 @@ export async function deleteFolder(folderId: string) {
 
 export async function saveRecipe(recipe: Recipe) {
   try {
-    await setDoc(firestoreDoc(db, 'recipes', recipe.id), sanitizeData(recipe));
+    await setDoc(firestoreDoc(db, FIRESTORE_COLLECTIONS.recipes, recipe.id), sanitizeData(recipe));
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `recipes/${recipe.id}`);
   }
@@ -88,7 +99,7 @@ export async function saveRecipe(recipe: Recipe) {
 
 export async function deleteRecipe(recipeId: string) {
   try {
-    await deleteDoc(firestoreDoc(db, 'recipes', recipeId));
+    await deleteDoc(firestoreDoc(db, FIRESTORE_COLLECTIONS.recipes, recipeId));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `recipes/${recipeId}`);
   }

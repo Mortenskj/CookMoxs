@@ -6,6 +6,7 @@ import * as cheerio from 'cheerio';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, Type } from '@google/genai';
+import { DirectParseError, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
 
 const RECIPE_SCHEMA = {
   type: Type.OBJECT,
@@ -138,6 +139,164 @@ function isPrivateHostname(hostname: string) {
   return false;
 }
 
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function findRecipeInStructuredData(input: any): any {
+  if (!input) return null;
+  if (input['@type'] === 'Recipe' || (Array.isArray(input['@type']) && input['@type'].includes('Recipe'))) return input;
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      const found = findRecipeInStructuredData(item);
+      if (found) return found;
+    }
+  }
+  if (typeof input === 'object') {
+    if (input['@graph']) return findRecipeInStructuredData(input['@graph']);
+    for (const key in input) {
+      if (typeof input[key] === 'object') {
+        const found = findRecipeInStructuredData(input[key]);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+}
+
+async function fetchRecipeSource(url: string) {
+  if (!url || typeof url !== 'string') {
+    throw new HttpError(400, 'URL is required');
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new HttpError(400, 'URL er ugyldig');
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new HttpError(400, 'Kun http og https er tilladt');
+  }
+  if (isPrivateHostname(parsedUrl.hostname)) {
+    throw new HttpError(400, 'Private eller lokale adresser er ikke tilladt');
+  }
+
+  try {
+    const response = await axios.get(parsedUrl.toString(), {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+      timeout: 10000,
+    });
+
+    const $ = cheerio.load(response.data);
+    let recipeJson: any = null;
+
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const content = $(el).html();
+        if (!content || recipeJson) return;
+        const json = JSON.parse(content);
+        recipeJson = findRecipeInStructuredData(json);
+      } catch {
+        // ignore malformed json-ld
+      }
+    });
+
+    if (recipeJson) {
+      return { json: recipeJson };
+    }
+
+    const recipeElement = $('[itemtype*="schema.org/Recipe"]');
+    if (recipeElement.length > 0) {
+      const ingredients: string[] = [];
+      recipeElement.find('[itemprop="recipeIngredient"]').each((_, el) => { ingredients.push($(el).text().trim()); });
+      const instructions: string[] = [];
+      recipeElement.find('[itemprop="recipeInstructions"]').each((_, el) => { instructions.push($(el).text().trim()); });
+      if (ingredients.length > 0 || instructions.length > 0) {
+        return { json: {
+          '@type': 'Recipe',
+          name: $('h1').first().text().trim() || $('title').text().trim(),
+          recipeIngredient: ingredients,
+          recipeInstructions: instructions,
+          recipeYield: recipeElement.find('[itemprop="recipeYield"]').text().trim(),
+          prepTime: recipeElement.find('[itemprop="prepTime"]').attr('content') || recipeElement.find('[itemprop="prepTime"]').text().trim(),
+          cookTime: recipeElement.find('[itemprop="cookTime"]').attr('content') || recipeElement.find('[itemprop="cookTime"]').text().trim(),
+          totalTime: recipeElement.find('[itemprop="totalTime"]').attr('content') || recipeElement.find('[itemprop="totalTime"]').text().trim(),
+        } };
+      }
+    }
+
+    $('script, style, nav, footer, iframe, noscript, svg, path, symbol, use, .ads, .sidebar, header, .header, .menu, .comments, .related, .newsletter, [role="navigation"], [role="banner"], [role="contentinfo"]').remove();
+    const recipeSelectors = ['.recipe-container','.recipe-content','.wprm-recipe-container','.tasty-recipes','.mv-recipe-card','[itemtype="http://schema.org/Recipe"]','[itemprop="recipe"]','.recipe-card','article.recipe','main'];
+    let targetElement = null;
+    for (const selector of recipeSelectors) {
+      const found = $(selector);
+      if (found.length > 0) {
+        targetElement = found.first();
+        break;
+      }
+    }
+    const contentElement = targetElement || $('body');
+    contentElement.find('br').replaceWith('\n');
+    contentElement.find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
+    return { html: contentElement.text().replace(/\s+/g, ' ').trim() };
+  } catch (error: any) {
+    console.error('Error fetching URL:', error.message);
+    if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
+      throw new HttpError(504, 'Kilden brugte for lang tid paa at svare');
+    }
+    if (axios.isAxiosError(error) && (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN' || error.code === 'ECONNREFUSED')) {
+      throw new HttpError(502, 'Kunne ikke oprette forbindelse til kilden');
+    }
+    throw new HttpError(502, 'Kilden kunne ikke bruges som opskrift');
+  }
+}
+
+function parseAnalyticsRequestBody(body: unknown) {
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return null;
+    }
+  }
+
+  if (body && typeof body === 'object') {
+    return body;
+  }
+
+  return null;
+}
+
+function sanitizeAnalyticsValue(value: unknown): string | number | boolean | null | Array<string | number | boolean | null> {
+  if (value === null) return null;
+  if (typeof value === 'string') return value.slice(0, 200);
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 20)
+      .map((item) => {
+        if (item === null) return null;
+        if (typeof item === 'string') return item.slice(0, 200);
+        if (typeof item === 'number' || typeof item === 'boolean') return item;
+        return JSON.stringify(item).slice(0, 200);
+      });
+  }
+
+  return JSON.stringify(value).slice(0, 200);
+}
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
@@ -145,6 +304,7 @@ async function startServer() {
   app.disable('x-powered-by');
   app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
   app.use(express.json({ limit: '10mb' }));
+  app.use('/api/events', express.text({ type: 'text/plain' }));
 
   const aiLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -154,6 +314,40 @@ async function startServer() {
     message: { error: 'For mange AI-kald lige nu. Prøv igen om et øjeblik.' },
   });
   app.use('/api/ai', aiLimiter);
+
+  app.post('/api/events', (req, res) => {
+    const analyticsBody = parseAnalyticsRequestBody(req.body);
+    const name = typeof analyticsBody?.name === 'string' ? analyticsBody.name.trim() : '';
+
+    if (!name) {
+      return res.status(400).json({ error: 'event name is required' });
+    }
+
+    const occurredAt = typeof analyticsBody?.occurredAt === 'string'
+      ? analyticsBody.occurredAt
+      : new Date().toISOString();
+    const pathValue = typeof analyticsBody?.path === 'string'
+      ? analyticsBody.path.slice(0, 300)
+      : null;
+
+    const payload = analyticsBody?.payload && typeof analyticsBody.payload === 'object' && !Array.isArray(analyticsBody.payload)
+      ? Object.fromEntries(
+          Object.entries(analyticsBody.payload).slice(0, 20).map(([key, value]) => [
+            key.slice(0, 80),
+            sanitizeAnalyticsValue(value),
+          ]),
+        )
+      : {};
+
+    console.info('[analytics]', JSON.stringify({
+      name,
+      occurredAt,
+      path: pathValue,
+      payload,
+    }));
+
+    return res.status(202).json({ ok: true });
+  });
 
   app.post('/api/ai/adjust', async (req, res) => {
     const { recipe, instruction } = req.body;
@@ -319,110 +513,44 @@ async function startServer() {
     }
   });
 
-  app.get('/api/fetch-url', async (req, res) => {
-    const { url } = req.query;
+  app.post('/api/parse-direct', async (req, res) => {
+    const { url } = req.body;
+
     if (!url || typeof url !== 'string') {
       return res.status(400).json({ error: 'URL is required' });
     }
 
-    let parsedUrl: URL;
     try {
-      parsedUrl = new URL(url);
-    } catch {
-      return res.status(400).json({ error: 'URL er ugyldig' });
-    }
-
-    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-      return res.status(400).json({ error: 'Kun http og https er tilladt' });
-    }
-    if (isPrivateHostname(parsedUrl.hostname)) {
-      return res.status(400).json({ error: 'Private eller lokale adresser er ikke tilladt' });
-    }
-
-    try {
-      const response = await axios.get(parsedUrl.toString(), {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7',
-        },
-        timeout: 10000,
-      });
-
-      const $ = cheerio.load(response.data);
-      let recipeJson: any = null;
-
-      $('script[type="application/ld+json"]').each((_, el) => {
-        try {
-          const content = $(el).html();
-          if (!content || recipeJson) return;
-          const json = JSON.parse(content);
-          const searchRecipe = (obj: any): any => {
-            if (!obj) return null;
-            if (obj['@type'] === 'Recipe' || (Array.isArray(obj['@type']) && obj['@type'].includes('Recipe'))) return obj;
-            if (Array.isArray(obj)) {
-              for (const item of obj) {
-                const found = searchRecipe(item);
-                if (found) return found;
-              }
-            }
-            if (typeof obj === 'object') {
-              if (obj['@graph']) return searchRecipe(obj['@graph']);
-              for (const key in obj) {
-                if (typeof obj[key] === 'object') {
-                  const found = searchRecipe(obj[key]);
-                  if (found) return found;
-                }
-              }
-            }
-            return null;
-          };
-          recipeJson = searchRecipe(json);
-        } catch {
-          // ignore malformed json-ld
-        }
-      });
-
-      if (recipeJson) return res.json({ json: recipeJson });
-
-      const recipeElement = $('[itemtype*="schema.org/Recipe"]');
-      if (recipeElement.length > 0) {
-        const ingredients: string[] = [];
-        recipeElement.find('[itemprop="recipeIngredient"]').each((_, el) => { ingredients.push($(el).text().trim()); });
-        const instructions: string[] = [];
-        recipeElement.find('[itemprop="recipeInstructions"]').each((_, el) => { instructions.push($(el).text().trim()); });
-        if (ingredients.length > 0 || instructions.length > 0) {
-          return res.json({ json: {
-            '@type': 'Recipe',
-            name: $('h1').first().text().trim() || $('title').text().trim(),
-            recipeIngredient: ingredients,
-            recipeInstructions: instructions,
-            recipeYield: recipeElement.find('[itemprop="recipeYield"]').text().trim(),
-            prepTime: recipeElement.find('[itemprop="prepTime"]').attr('content') || recipeElement.find('[itemprop="prepTime"]').text().trim(),
-            cookTime: recipeElement.find('[itemprop="cookTime"]').attr('content') || recipeElement.find('[itemprop="cookTime"]').text().trim(),
-            totalTime: recipeElement.find('[itemprop="totalTime"]').attr('content') || recipeElement.find('[itemprop="totalTime"]').text().trim(),
-          } });
-        }
+      const extracted = await fetchRecipeSource(url);
+      if (!extracted.json) {
+        return res.status(422).json({ error: 'Siden har ikke struktureret opskriftdata, der kan grundimporteres direkte.' });
       }
 
-      $('script, style, nav, footer, iframe, noscript, svg, path, symbol, use, .ads, .sidebar, header, .header, .menu, .comments, .related, .newsletter, [role="navigation"], [role="banner"], [role="contentinfo"]').remove();
-      const recipeSelectors = ['.recipe-container','.recipe-content','.wprm-recipe-container','.tasty-recipes','.mv-recipe-card','[itemtype="http://schema.org/Recipe"]','[itemprop="recipe"]','.recipe-card','article.recipe','main'];
-      let targetElement = null;
-      for (const selector of recipeSelectors) {
-        const found = $(selector);
-        if (found.length > 0) {
-          targetElement = found.first();
-          break;
-        }
-      }
-      const contentElement = targetElement || $('body');
-      contentElement.find('br').replaceWith('\n');
-      contentElement.find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
-      const textContent = contentElement.text().replace(/\s+/g, ' ').trim();
-      return res.json({ html: textContent });
+      const recipe = parseStructuredRecipeToRecipe(extracted.json, { sourceUrl: url });
+      return res.json({ recipe });
     } catch (error: any) {
-      console.error('Error fetching URL:', error.message);
-      return res.status(500).json({ error: 'Failed to fetch URL content' });
+      if (error instanceof DirectParseError) {
+        return res.status(422).json({ error: error.message });
+      }
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error('Direct Parse Error:', error);
+      return res.status(500).json({ error: 'Direkte grundimport fejlede.' });
+    }
+  });
+
+  app.get('/api/fetch-url', async (req, res) => {
+    const { url } = req.query;
+
+    try {
+      return res.json(await fetchRecipeSource(String(url)));
+    } catch (error: any) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      console.error('Fetch URL Error:', error);
+      return res.status(500).json({ error: 'Kunne ikke hente kildesiden' });
     }
   });
 

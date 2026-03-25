@@ -2,16 +2,31 @@ async function request<T>(url: string, body: unknown): Promise<T> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     throw new Error('Du er offline. AI-funktioner kræver internetforbindelse.');
   }
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
 
-  const data = await resp.json().catch(() => null);
-  if (!resp.ok) {
-    throw new Error(data?.error || 'Der opstod en fejl ved AI-kaldet. Prøv igen om lidt.');
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Failed to fetch');
   }
+
+  const data = await resp.json().catch(() => '__MALFORMED_RESPONSE__');
+
+  if (!resp.ok) {
+    if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
+      throw new Error(data.error);
+    }
+    throw new Error(typeof data === 'string' ? data : 'Der opstod en fejl ved AI-kaldet. Prøv igen om lidt.');
+  }
+
+  if (data === '__MALFORMED_RESPONSE__') {
+    throw new Error('__MALFORMED_RESPONSE__');
+  }
+
   return data as T;
 }
 

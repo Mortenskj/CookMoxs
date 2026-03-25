@@ -1,6 +1,8 @@
 import { Recipe, Folder as FolderType } from '../types';
 import { Search, Heart, Book, List, Tag, ChevronRight, ArrowLeft, Folder, Plus, Edit3, Trash2, X, TreePine, Share2, UserPlus, Shield, ShieldCheck, Save } from 'lucide-react';
 import { useState } from 'react';
+import { OwnershipBadge } from './OwnershipBadge';
+import { getFolderOwnershipDisplay } from '../services/ownershipLabelService';
 import { LibraryRecipeCard } from './library/LibraryRecipeCard';
 import { LibraryEmptyState } from './library/LibraryEmptyState';
 import { LibrarySortSelect } from './library/LibrarySortSelect';
@@ -75,7 +77,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
       <div className="space-y-4">
         {recipes.map((recipe) => (
           <div key={recipe.id}>
-            <LibraryRecipeCard recipe={recipe} onOpen={onOpenRecipe} currentUser={currentUser} />
+            <LibraryRecipeCard recipe={recipe} onOpen={onOpenRecipe} currentUser={currentUser} allFolders={allFolders} />
           </div>
         ))}
       </div>
@@ -228,14 +230,19 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
       ) : activeSection === 'cookbooks' ? (
         selectedFolderId && selectedFolder ? (
           <div>
+            {(() => {
+              const folderOwnership = getFolderOwnershipDisplay(selectedFolder, currentUser);
+              return (
+                <>
             <div className="flex justify-between items-center mb-6">
               <div className="flex flex-col">
                 <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved">
                   <Folder size={20} className="text-forest-mid dark:text-white/70"/> {selectedFolder.name}
                 </h2>
-                {selectedFolder.ownerUID !== currentUser?.uid && (
-                  <span className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-widest opacity-60 ml-7">Delt med dig</span>
-                )}
+                <div className="ml-7 mt-2 flex items-center gap-2">
+                  <OwnershipBadge ownership={folderOwnership} />
+                  <span className="text-xs text-forest-mid dark:text-white/70 opacity-70">{folderOwnership.detail}</span>
+                </div>
               </div>
               <div className="flex gap-2">
                 {(selectedFolder.ownerUID === currentUser?.uid || selectedFolder.sharedWith?.some(s => s.uid === currentUser?.uid && s.role === 'editor')) && (
@@ -275,6 +282,9 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 )}
               </div>
             </div>
+                </>
+              );
+            })()}
 
             <div className="flex justify-end mb-6">
               <LibrarySortSelect value={sortOrder} onChange={setSortOrder} />
@@ -387,6 +397,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
               {allFolders.filter(f => f.name !== 'Ikke gemte' || savedRecipes.some(r => r.folder === 'Ikke gemte')).map(folder => {
                 const count = savedRecipes.filter(r => r.folderId === folder.id || (r.folder === folder.name && !r.folderId)).length;
                 const isShared = folder.ownerUID !== currentUser?.uid;
+                const folderOwnership = getFolderOwnershipDisplay(folder, currentUser);
                 return (
                   <button
                     key={folder.id}
@@ -401,6 +412,9 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                     )}
                     <span className="font-serif text-lg text-forest-dark dark:text-white line-clamp-1 italic text-engraved">{folder.name}</span>
                     <span className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-widest opacity-50 mt-1">{count} opskrifter</span>
+                    <div className="mt-3">
+                      <OwnershipBadge ownership={folderOwnership} />
+                    </div>
                   </button>
                 );
               })}

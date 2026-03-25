@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DEFAULT_RECIPE_CATEGORIES, COMMON_INGREDIENT_SUGGESTIONS, COMMON_RECIPE_UNITS } from '../config/recipeEditorOptions';
 import { RECIPE_PRINT_STYLES } from '../config/recipePrintStyles';
+import { OwnershipBadge } from './OwnershipBadge';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
+import { getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
   recipe: Recipe;
@@ -25,10 +27,12 @@ interface RecipeViewProps {
   onApplyPrefix?: (recipe: Recipe, prefix: string) => void;
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
+  aiDisabledReason?: string | null;
   initialEditMode?: boolean;
+  currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, initialEditMode = false }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [includePrep, setIncludePrep] = useState(true);
   const [isEditing, setIsEditing] = useState(initialEditMode);
@@ -73,6 +77,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [confirmedIngredients, setConfirmedIngredients] = useState<Record<string, boolean>>({});
+  const aiDisabled = Boolean(aiDisabledReason);
+  const ownership = getRecipeOwnershipDisplay(recipe, allFolders, currentUser);
 
   useEffect(() => {
     if (!isEditing || isAdjusting) {
@@ -724,7 +730,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           {onFillRest && (
             <button
               onClick={() => onFillRest(editData)}
-              disabled={isAdjusting}
+              disabled={isAdjusting || aiDisabled}
               className="w-full py-4 bg-[#2A1F1A] text-[#D4B886] rounded-2xl font-serif text-lg border border-[#3A2A22] hover:bg-[#3A2A22] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isAdjusting ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
@@ -779,6 +785,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {!recipe.isSaved && (
         <RecipeImportedNotice
           isAdjusting={isAdjusting}
+          aiDisabledReason={aiDisabledReason}
           onSimplify={() => onSmartAdjust(recipe, 'Gør fremgangsmåden enklere, kortere og mere overskuelig uden at ændre retten eller ingredienslisten unødigt.')}
           onTighten={() => onSmartAdjust(recipe, 'Gennemgå opskriften og fjern gentagelser, upræcise formuleringer og uklare gruppenavne. Bevar retten, men gør den skarpere og mere konsekvent.')}
           onCheckTimes={() => onSmartAdjust(recipe, 'Gennemgå alle tider, varmeangivelser og timere. Ret det, der virker upræcist, og tilføj manglende timer hvor det giver mening.')}
@@ -795,6 +802,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               Sidst gemt: {new Date(recipe.updatedAt || recipe.createdAt!).toLocaleString('da-DK')}
             </p>
           )}
+          <div className="mb-4 flex items-center gap-3">
+            <OwnershipBadge ownership={ownership} />
+            <p className="text-xs text-forest-mid dark:text-white/70 opacity-80">{ownership.detail}</p>
+          </div>
           
           <div className="flex flex-wrap gap-2 mb-6">
             <div className="relative">
@@ -805,7 +816,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     e.target.value = ""; // reset
                   }
                 }}
-                disabled={isAdjusting}
+                disabled={isAdjusting || aiDisabled}
                 className="bg-white/60 dark:bg-black/20 text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 outline-none appearance-none cursor-pointer pr-10 relative shadow-sm hover:bg-white dark:hover:bg-white/10 transition-all"
                 style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%238A5A7D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right .8rem top 50%', backgroundSize: '.6rem auto' }}
               >
@@ -823,7 +834,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             {onGenerateTips && (
               <button 
                 onClick={() => setShowTipsModal(true)}
-                disabled={isAdjusting}
+                disabled={isAdjusting || aiDisabled}
                 className="flex items-center gap-2 bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/80 hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 transition-all shadow-sm hover:bg-white dark:hover:bg-white/10"
               >
                 {isAdjusting ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
@@ -842,6 +853,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </span>
             ))}
           </div>
+          {aiDisabledReason && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+              AI-hjaelp er midlertidigt slaaet fra. {aiDisabledReason}
+            </div>
+          )}
 
           {recipe.notes && (
             <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 mt-4 relative overflow-hidden">
@@ -946,7 +962,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   onGenerateTips(recipe);
                   setShowTipsModal(false);
                 }}
-                disabled={isAdjusting}
+                disabled={isAdjusting || aiDisabled}
                 className="mt-8 w-full py-4 bg-forest-mid text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-forest-dark transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
@@ -968,7 +984,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="flex items-center gap-2 print:hidden">
               <button 
                 onClick={() => setShowSmartModal(true)} 
-                disabled={isAdjusting}
+                disabled={isAdjusting || aiDisabled}
                 className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all shadow-sm disabled:opacity-50" 
                 title="Smart Tilpasning"
               >

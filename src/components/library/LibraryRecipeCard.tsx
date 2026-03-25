@@ -1,18 +1,22 @@
 import React from 'react';
 import { ChevronRight, Folder, Heart, Cloud, HardDrive, Edit3 } from 'lucide-react';
-import type { Recipe } from '../../types';
+import { OwnershipBadge } from '../OwnershipBadge';
+import { getRecipeOwnershipDisplay } from '../../services/ownershipLabelService';
+import type { Folder as FolderType, Recipe } from '../../types';
 
 interface LibraryRecipeCardProps {
   recipe: Recipe;
   onOpen: (recipe: Recipe) => void;
   currentUser: any;
+  allFolders: FolderType[];
 }
 
-export function LibraryRecipeCard({ recipe, onOpen, currentUser }: LibraryRecipeCardProps) {
+export function LibraryRecipeCard({ recipe, onOpen, currentUser, allFolders }: LibraryRecipeCardProps) {
   const savedAt = recipe.updatedAt || recipe.createdAt;
   const isCloudBacked = Boolean(currentUser && recipe.authorUID) || Boolean(!currentUser && false);
   const statusLabel = isCloudBacked ? (recipe.isSaved ? 'Cloud' : 'Cloud kladde') : 'Lokal';
   const StatusIcon = isCloudBacked ? (recipe.isSaved ? Cloud : Edit3) : HardDrive;
+  const ownership = getRecipeOwnershipDisplay(recipe, allFolders, currentUser);
 
   return (
     <div
@@ -50,9 +54,12 @@ export function LibraryRecipeCard({ recipe, onOpen, currentUser }: LibraryRecipe
             Sidst gemt: {new Date(savedAt).toLocaleString('da-DK')}
           </div>
         ) : <div />}
-        <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${isCloudBacked ? 'bg-sky-100 text-sky-800' : 'bg-stone-100 text-stone-700'}`}>
-          <StatusIcon size={11} />
-          <span>{statusLabel}</span>
+        <div className="flex items-center gap-2">
+          <OwnershipBadge ownership={ownership} />
+          <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${isCloudBacked ? 'bg-sky-100 text-sky-800' : 'bg-stone-100 text-stone-700'}`}>
+            <StatusIcon size={11} />
+            <span>{statusLabel}</span>
+          </div>
         </div>
       </div>
     </div>

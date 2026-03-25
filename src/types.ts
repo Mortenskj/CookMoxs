@@ -1,3 +1,42 @@
+export type ShareRole = 'viewer' | 'editor';
+export type HouseholdRole = 'owner' | 'admin' | 'member';
+export type HouseholdMemberStatus = 'invited' | 'active';
+export type OwnershipType = 'private' | 'shared' | 'household';
+
+export interface SharedUser {
+  uid: string;
+  email: string;
+  role: ShareRole;
+}
+
+export interface OwnershipMetadata {
+  type: OwnershipType;
+  ownerUserId?: string;
+  householdId?: string;
+  inheritedFromFolderId?: string;
+}
+
+export interface HouseholdMember {
+  uid?: string;
+  email?: string | null;
+  displayName?: string | null;
+  role: HouseholdRole;
+  status: HouseholdMemberStatus;
+  invitedAt?: string;
+  joinedAt?: string;
+}
+
+export interface Household {
+  id: string;
+  name: string;
+  ownerUID: string;
+  adminUids?: string[];
+  memberUids?: string[];
+  members?: HouseholdMember[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Ingredient {
   id: string;
   name: string;
@@ -50,7 +89,9 @@ export interface Folder {
   id: string;
   name: string;
   ownerUID: string;
-  sharedWith?: { uid: string, email: string, role: 'viewer' | 'editor' }[];
+  householdId?: string;
+  ownership?: OwnershipMetadata;
+  sharedWith?: SharedUser[];
   editorUids?: string[];
   viewerUids?: string[];
   isDefault?: boolean;
@@ -86,6 +127,8 @@ export interface Recipe {
   tipsAndTricks?: string[];
   originalRecipeId?: string;
   authorUID?: string;
+  householdId?: string;
+  ownership?: OwnershipMetadata;
   createdAt?: string;
   updatedAt?: string;
 }

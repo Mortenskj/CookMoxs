@@ -13,6 +13,7 @@ interface CookViewProps {
   includePrep?: boolean;
   onStepChange?: (step: number) => void;
   onExit: () => void;
+  onCompleteCooking: () => void;
   onStopCooking: () => void;
   timers: Timer[];
   setTimers: React.Dispatch<React.SetStateAction<Timer[]>>;
@@ -22,7 +23,7 @@ const renderStepTextWithIngredients = (text: string, ingredients: any[]) => {
   return <>{text}</>;
 };
 
-export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep = 0, includePrep = false, onStepChange, onExit, onStopCooking, timers, setTimers }: CookViewProps) {
+export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep = 0, includePrep = false, onStepChange, onExit, onCompleteCooking, onStopCooking, timers, setTimers }: CookViewProps) {
   const levelMeta = LEVEL_META[userLevel];
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [showIngredients, setShowIngredients] = useState(false);
@@ -353,7 +354,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
             if (currentStep < steps.length - 1) {
               setCurrentStep(currentStep + 1);
             } else {
-              onExit();
+              onCompleteCooking();
             }
           }}
           className="pointer-events-auto p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all shadow-lg hover:scale-105 active:scale-95 border border-white/10"

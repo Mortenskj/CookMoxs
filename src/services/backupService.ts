@@ -1,6 +1,7 @@
 import { Folder, Recipe } from '../types';
 import type { UserLevel } from '../config/cookingLevels';
 import type { CookFontSize } from '../config/cookDisplay';
+import type { ImportPreference } from '../config/importPreferences';
 
 export interface BackupPayload {
   app: 'CookMoxs';
@@ -11,6 +12,7 @@ export interface BackupPayload {
   activeRecipe: Recipe | null;
   preferences: {
     userLevel: UserLevel;
+    importPreference?: ImportPreference;
     theme: string;
     isDarkMode: boolean;
     cookFontSize?: CookFontSize;
