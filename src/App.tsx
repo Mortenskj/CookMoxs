@@ -61,6 +61,7 @@ import { SettingsView } from './components/SettingsView';
 import { UndoToast } from './components/UndoToast';
 import { AppUpdateToast } from './components/AppUpdateToast';
 import { PendingQueueToast } from './components/PendingQueueToast';
+import { SeasonalScene } from './components/SeasonalScene';
 import { auth, onAuthStateChanged, signInWithPopup, googleProvider, signOut } from './firebase';
 import { motion } from 'framer-motion';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
@@ -1428,8 +1429,8 @@ export default function App() {
   );
 
   return (
-    <div className="h-screen flex flex-col font-sans text-forest-dark dark:text-white selection:bg-forest-mid/20 herbal-pattern overflow-hidden">
-      <div className="fixed inset-0 bg-noise pointer-events-none opacity-40" />
+    <SeasonalScene theme={theme} isCookMode={currentView === 'cook'}>
+    <div className="h-screen flex flex-col font-sans text-forest-dark dark:text-white selection:bg-forest-mid/20 overflow-hidden">
       <PendingQueueToast
         pendingCount={isOnline ? retryableCount : 0}
         isProcessing={isProcessingQueue}
@@ -1815,5 +1816,6 @@ export default function App() {
         </nav>
       )}
     </div>
+    </SeasonalScene>
   );
 }
