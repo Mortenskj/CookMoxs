@@ -34,3 +34,10 @@
 - Status: Completed
 - Summary: Expanded Phase 4 from a provider-only placeholder into a concrete execution sequence with an interface-first scope, mock path, and limited first UI target.
 - Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-4-nutrition-prep.md`
+
+#### Step 4.1 completed
+- Phase: `Phase 4 - Nutrition and barcode module`
+- Step: `4.1 - Nutrition provider interface and mock path`
+- Status: Completed
+- Summary: Added a feature-flagged nutrition provider contract, an Open Food Facts adapter, a mock fallback adapter, and a narrow server status relay without introducing nutrition UI.
+- Evidence: `src/config/nutritionModule.ts`, `src/services/nutrition/nutritionProviderTypes.ts`, `src/services/nutrition/mockNutritionProvider.ts`, `src/services/nutrition/openFoodFactsNutritionProvider.ts`, `src/services/nutrition/nutritionProviderRegistry.ts`, `server.ts`

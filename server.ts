@@ -6,7 +6,9 @@ import * as cheerio from 'cheerio';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, Type } from '@google/genai';
+import { getNutritionModuleConfig } from './src/config/nutritionModule.ts';
 import { DirectParseError, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
+import { getNutritionProviderStatus } from './src/services/nutrition/nutritionProviderRegistry.ts';
 
 const RECIPE_SCHEMA = {
   type: Type.OBJECT,
@@ -347,6 +349,19 @@ async function startServer() {
     }));
 
     return res.status(202).json({ ok: true });
+  });
+
+  app.get('/api/nutrition/status', (_req, res) => {
+    const moduleConfig = getNutritionModuleConfig();
+    const providerStatus = getNutritionProviderStatus();
+
+    return res.json({
+      enabled: moduleConfig.enabled,
+      envKey: moduleConfig.envKey,
+      primaryProviderId: moduleConfig.primaryProviderId,
+      fallbackProviderId: moduleConfig.fallbackProviderId,
+      providers: providerStatus.availableProviders,
+    });
   });
 
   app.post('/api/ai/adjust', async (req, res) => {

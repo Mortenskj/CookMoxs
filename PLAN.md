@@ -434,6 +434,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - internal provider interface exists
 - Open Food Facts path is behind that interface
 - mock provider can satisfy the same contract for local development
+**Progress note (2026-03-25):** Completed.
 
 #### Step 4.2 â€” Product lookup and result model
 **Goal:** normalize barcode and text-search results into repo-owned product data before broader UI work.
