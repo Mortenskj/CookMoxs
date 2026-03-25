@@ -7,6 +7,7 @@ import { RECIPE_PRINT_STYLES } from '../config/recipePrintStyles';
 import { OwnershipBadge } from './OwnershipBadge';
 import { FolderVisibilityNotice } from './FolderVisibilityNotice';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
+import { RecipeNutritionAttachmentCard } from './RecipeNutritionAttachmentCard';
 import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
@@ -934,6 +935,13 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           )}
         </div>
       </div>
+
+      <RecipeNutritionAttachmentCard
+        attachment={recipe.nutritionAttachment}
+        canAttach={Boolean(recipe.isSaved)}
+        onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
+        onClear={() => onSave({ ...recipe, nutritionAttachment: undefined })}
+      />
 
       {/* AI Rationale */}
       {recipe.aiRationale && (

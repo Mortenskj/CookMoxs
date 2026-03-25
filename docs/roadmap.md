@@ -88,7 +88,20 @@ Expose the smallest contained nutrition surface with manual barcode entry before
 Let users attach or view nutrition results with clear source labeling and limited implied certainty.
 
 ### Phase 5
-Learning loop and personal intelligence only after meaningful usage data exists.
+#### Preparation only
+Turn the deferred learning-loop phase into a conservative execution sequence before any profile or suggestion behavior lands.
+
+#### 5.1 Signal contract and profile boundary
+Document which learning signals are allowed and keep future profile data separate from recipe core data.
+
+#### 5.2 Modular profile store scaffold
+Add only a reversible storage boundary for future profile data, separate from recipes and optional behind a feature flag.
+
+#### 5.3 Explicit feedback capture points
+Prefer user-controlled feedback signals over hidden inference when the learning loop begins.
+
+#### 5.4 Profile transparency surface
+Show the user what the module knows before introducing stronger suggestions.
 
 ### Phase 6
 Rollout preparation, support tooling, privacy docs, error reporting, and beta readiness.

@@ -35,3 +35,9 @@
 - Scope: post-Phase-3 planning
 - Decision: The next phase should begin with a repo-owned nutrition provider interface and a mockable provider path before adding barcode or nutrition UI.
 - Rationale: `PLAN.md` already points to Open Food Facts as the primary provider, but an interface-first sequence reduces vendor coupling, keeps local development unblocked, and limits early nutrition scope to a reversible module.
+
+### 2026-03-25 - Prepare Phase 5 as a conservative learning-foundation phase
+- Status: Accepted
+- Scope: post-Phase-4 planning
+- Decision: Phase 5 should start with signal guardrails, explicit profile separation, and explanation-first foundations rather than recommendation logic or opaque personalization.
+- Rationale: `PLAN.md` explicitly marks Phase 5 as deferred and data-dependent, allowing only foundations and documentation beforehand. A conservative prep path reduces risk, avoids creepy behavior, and keeps future learning data separate from recipe core data.

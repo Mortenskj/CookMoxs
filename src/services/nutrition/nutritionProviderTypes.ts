@@ -47,7 +47,7 @@ export interface NutritionProviderDescriptor {
 export interface NutritionProvider {
   descriptor: NutritionProviderDescriptor;
   lookupByBarcode(barcode: string): Promise<NutritionProviderResponse>;
-  searchProducts?: (query: string, limit?: number) => Promise<NutritionProviderResponse>;
+  searchProducts(query: string, limit?: number): Promise<NutritionProviderResponse>;
 }
 
 export const createNutritionProvenance = ({

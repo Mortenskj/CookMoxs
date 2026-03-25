@@ -2,6 +2,7 @@ import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, M
 import { COOKING_LEVELS, LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/cookDisplay';
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
+import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 
 interface SettingsViewProps {
@@ -320,6 +321,7 @@ export function SettingsView({ onBack, user, onLogin, onLogout, theme, setTheme,
         </section>
 
         <HouseholdSettingsCard user={user} isOnline={isOnline} />
+        <NutritionLookupCard isOnline={isOnline} />
       </div>
     </div>
   );

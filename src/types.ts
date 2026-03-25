@@ -77,6 +77,37 @@ export interface BetterModes {
   boernevenlig?: string;
 }
 
+export type NutritionConfidence = 'high' | 'medium' | 'low';
+
+export interface RecipeNutritionFacts {
+  energyKcalPer100g?: number | null;
+  fatPer100g?: number | null;
+  carbsPer100g?: number | null;
+  proteinPer100g?: number | null;
+}
+
+export interface RecipeNutritionProvenance {
+  providerId: string;
+  providerLabel: string;
+  sourceUrl?: string;
+  fetchedAt: string;
+  confidence: NutritionConfidence;
+  isFallback: boolean;
+  notes?: string;
+}
+
+export interface RecipeNutritionAttachment {
+  productId: string;
+  title: string;
+  brand?: string;
+  barcode?: string;
+  mode: 'barcode' | 'text_search';
+  query: string;
+  attachedAt: string;
+  nutrition?: RecipeNutritionFacts;
+  provenance: RecipeNutritionProvenance;
+}
+
 export interface Timer {
   id: string;
   duration: number;
@@ -129,6 +160,7 @@ export interface Recipe {
   authorUID?: string;
   householdId?: string;
   ownership?: OwnershipMetadata;
+  nutritionAttachment?: RecipeNutritionAttachment;
   createdAt?: string;
   updatedAt?: string;
 }

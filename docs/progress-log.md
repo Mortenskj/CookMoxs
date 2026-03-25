@@ -41,3 +41,31 @@
 - Status: Completed
 - Summary: Added a feature-flagged nutrition provider contract, an Open Food Facts adapter, a mock fallback adapter, and a narrow server status relay without introducing nutrition UI.
 - Evidence: `src/config/nutritionModule.ts`, `src/services/nutrition/nutritionProviderTypes.ts`, `src/services/nutrition/mockNutritionProvider.ts`, `src/services/nutrition/openFoodFactsNutritionProvider.ts`, `src/services/nutrition/nutritionProviderRegistry.ts`, `server.ts`
+
+#### Step 4.2 completed
+- Phase: `Phase 4 - Nutrition and barcode module`
+- Step: `4.2 - Product lookup and result model`
+- Status: Completed
+- Summary: Added normalized barcode lookup and text search services plus narrow server relay endpoints with readable Danish error handling and no nutrition UI.
+- Evidence: `src/services/nutrition/nutritionProviderTypes.ts`, `src/services/nutrition/openFoodFactsNutritionProvider.ts`, `src/services/nutrition/mockNutritionProvider.ts`, `src/services/nutrition/nutritionLookupService.ts`, `server.ts`
+
+#### Step 4.3 completed
+- Phase: `Phase 4 - Nutrition and barcode module`
+- Step: `4.3 - Minimal nutrition and barcode UI`
+- Status: Completed
+- Summary: Added one contained, feature-flagged settings surface for manual barcode lookup and product text search, without camera flow or recipe attachment.
+- Evidence: `src/components/NutritionLookupCard.tsx`, `src/components/SettingsView.tsx`, `src/services/nutrition/nutritionClientService.ts`
+
+#### Step 4.4 completed
+- Phase: `Phase 4 - Nutrition and barcode module`
+- Step: `4.4 - Recipe nutrition attachment and explanation`
+- Status: Completed
+- Summary: Added a recipe-facing, feature-flagged nutrition attachment card with lookup, attach/remove actions, visible provenance, fallback markers, and cautious wording that avoids pretending the recipe has exact calculated macros.
+- Evidence: `src/types.ts`, `src/components/RecipeNutritionAttachmentCard.tsx`, `src/components/RecipeView.tsx`, `src/services/nutrition/recipeNutritionAttachmentService.ts`
+
+#### Next phase prepared
+- Phase: `Phase 5 - Learning loop / personal intelligence`
+- Step: `Preparation only`
+- Status: Completed
+- Summary: Expanded the deferred Phase 5 placeholder into a conservative execution sequence and documented guardrails for allowed signals, separate profile data, and non-creepy behavior before any learning logic is built.
+- Evidence: `PLAN.md`, `docs/roadmap.md`, `docs/phase-5-learning-loop-prep.md`

@@ -331,6 +331,7 @@ Provider decision: **Open Food Facts** as primary provider for Phase 4. If unava
 
 ### Phase 5 — Learning loop / personal intelligence
 **Deferred detail:** do not fully implement until data from Phase 1 and real usage from Phase 2–3 exist. Only foundations and documentation may be prepared beforehand.
+**Progress note (2026-03-25):** Preparation only completed. Conservative execution detail added below; no learning behavior or suggestions implemented yet.
 
 ### Phase 6 — Rollout preparation
 Versioning, support tooling, error reporting, privacy docs, controlled beta readiness.
@@ -446,6 +447,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - barcode lookup and text search return a consistent internal result shape
 - provider errors fail with readable messages
 - no UI is required beyond minimal verification hooks
+**Progress note (2026-03-25):** Completed.
 
 #### Step 4.3 â€” Minimal nutrition and barcode UI
 **Goal:** expose the smallest useful nutrition surface without camera-heavy complexity first.
@@ -456,6 +458,7 @@ Codex must keep progress and decision tracking up to date if the current step re
 - user can enter a barcode or search text manually
 - result list or product summary is understandable
 - UI remains isolated and does not disrupt import/library/cook flows
+**Progress note (2026-03-25):** Completed.
 
 #### Step 4.4 â€” Recipe nutrition attachment and explanation
 **Goal:** let users view or attach nutrition results with clear provenance and limited implied certainty.
@@ -466,3 +469,48 @@ Codex must keep progress and decision tracking up to date if the current step re
 - attached nutrition data is visibly sourced or marked as fallback
 - nutrition state does not silently overwrite recipe core data
 - wording avoids overclaiming precision
+**Progress note (2026-03-25):** Completed.
+
+### Phase 5 execution detail (prepared 2026-03-25)
+**Risk:** Medium to High
+**Out of scope for the phase:** broad recommendation systems, opaque personalization, speculative AI behavior, payment/premium logic, creator/public-sharing logic, and growth experiments
+
+#### Step 5.1 â€” Signal contract and profile boundary
+**Goal:** define the allowed learning signals and keep any future profile data outside recipe core data before behavioral features exist.
+**Files in scope:**
+- shared learning/profile docs, config, or types only
+- no recipe core model changes
+**Acceptance criteria:**
+- allowed vs disallowed signal categories are explicitly documented
+- future profile/preference data is defined as separate from recipe core data
+- no user-facing suggestion behavior is implemented
+
+#### Step 5.2 â€” Modular profile store scaffold
+**Goal:** add the smallest reversible storage boundary for future profile/preferences without changing recipe objects.
+**Files in scope:**
+- dedicated profile/preference services/config only
+- feature flag/config files if risk is non-trivial
+**Acceptance criteria:**
+- profile storage is separate from recipe core data
+- the module can remain disabled without affecting the base product
+- no recommendation or suggestion logic is introduced
+
+#### Step 5.3 â€” Explicit feedback capture points
+**Goal:** prefer user-controlled feedback over hidden inference when the learning loop begins collecting signals.
+**Files in scope:**
+- narrow settings or recipe-adjacent feedback surfaces only if required
+- dedicated learning/profile services
+**Acceptance criteria:**
+- any new feedback signals are explicit and understandable
+- feedback collection is optional and clearly scoped
+- no opaque scoring or auto-personalization is introduced
+
+#### Step 5.4 â€” Profile transparency surface
+**Goal:** show the user what the learning module knows before acting on it with stronger suggestions.
+**Files in scope:**
+- one contained settings/profile transparency surface
+- dedicated learning/profile helpers
+**Acceptance criteria:**
+- the user can inspect the currently stored preference/profile state
+- wording stays cautious and non-creepy
+- no broad recommendation UI is introduced in this step

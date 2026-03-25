@@ -8,6 +8,11 @@ import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, Type } from '@google/genai';
 import { getNutritionModuleConfig } from './src/config/nutritionModule.ts';
 import { DirectParseError, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
+import {
+  NutritionLookupError,
+  lookupNutritionByBarcode,
+  searchNutritionProducts,
+} from './src/services/nutrition/nutritionLookupService.ts';
 import { getNutritionProviderStatus } from './src/services/nutrition/nutritionProviderRegistry.ts';
 
 const RECIPE_SCHEMA = {
@@ -362,6 +367,32 @@ async function startServer() {
       fallbackProviderId: moduleConfig.fallbackProviderId,
       providers: providerStatus.availableProviders,
     });
+  });
+
+  app.get('/api/nutrition/barcode/:barcode', async (req, res) => {
+    try {
+      const result = await lookupNutritionByBarcode(req.params.barcode || '');
+      return res.json(result);
+    } catch (error) {
+      if (error instanceof NutritionLookupError) {
+        return res.status(error.status).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: 'Kunne ikke hente produktdata lige nu.', code: 'unknown_error' });
+    }
+  });
+
+  app.get('/api/nutrition/search', async (req, res) => {
+    try {
+      const query = typeof req.query.q === 'string' ? req.query.q : '';
+      const limit = typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined;
+      const result = await searchNutritionProducts(query, limit);
+      return res.json(result);
+    } catch (error) {
+      if (error instanceof NutritionLookupError) {
+        return res.status(error.status).json({ error: error.message, code: error.code });
+      }
+      return res.status(500).json({ error: 'Kunne ikke soege efter produktdata lige nu.', code: 'unknown_error' });
+    }
   });
 
   app.post('/api/ai/adjust', async (req, res) => {
