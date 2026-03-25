@@ -5,8 +5,9 @@ import { motion } from 'framer-motion';
 import { DEFAULT_RECIPE_CATEGORIES, COMMON_INGREDIENT_SUGGESTIONS, COMMON_RECIPE_UNITS } from '../config/recipeEditorOptions';
 import { RECIPE_PRINT_STYLES } from '../config/recipePrintStyles';
 import { OwnershipBadge } from './OwnershipBadge';
+import { FolderVisibilityNotice } from './FolderVisibilityNotice';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
-import { getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
+import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
   recipe: Recipe;
@@ -76,9 +77,23 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const [newFolderName, setNewFolderName] = useState('');
   const [showTipsModal, setShowTipsModal] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [editPermissionConfirmed, setEditPermissionConfirmed] = useState(false);
+  const [folderConfirmationError, setFolderConfirmationError] = useState<string | null>(null);
+  const [pendingFolderSaveId, setPendingFolderSaveId] = useState<string | null>(null);
   const [confirmedIngredients, setConfirmedIngredients] = useState<Record<string, boolean>>({});
   const aiDisabled = Boolean(aiDisabledReason);
   const ownership = getRecipeOwnershipDisplay(recipe, allFolders, currentUser);
+  const currentFolder = findFolderForRecipe(recipe, allFolders);
+  const selectedEditFolder = findFolderForRecipe(editData, allFolders);
+  const pendingFolderSave = pendingFolderSaveId ? allFolders.find((folder) => folder.id === pendingFolderSaveId) || null : null;
+
+  const requiresPermissionConfirmation = (targetFolder?: FolderType) => {
+    if (!targetFolder) return false;
+    if (getFolderOwnershipDisplay(targetFolder, currentUser).state === 'private') return false;
+    return !recipe.isSaved || targetFolder.id !== currentFolder?.id;
+  };
+
+  const editRequiresPermissionConfirmation = requiresPermissionConfirmation(selectedEditFolder);
 
   useEffect(() => {
     if (!isEditing || isAdjusting) {
@@ -87,6 +102,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       setHistoryIndex(0);
     }
   }, [recipe, isEditing, isAdjusting]);
+
+  useEffect(() => {
+    setEditPermissionConfirmed(false);
+    setFolderConfirmationError(null);
+  }, [isEditing, selectedEditFolder?.id, recipe.id]);
 
   const mergedCategories = Array.from(new Set([...DEFAULT_RECIPE_CATEGORIES, ...allCategories])).sort();
 
@@ -150,6 +170,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
 
   const handleSaveEdit = () => {
+    if (editRequiresPermissionConfirmation && !editPermissionConfirmed) {
+      setFolderConfirmationError('Bekraeft at opskriften maa arve synligheden fra den valgte mappe.');
+      return;
+    }
+
     const dataToSave = { ...editData };
     if (!dataToSave.folder || dataToSave.folder.trim() === '') {
       dataToSave.folder = 'Opskrift';
@@ -163,6 +188,21 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     setIsEditing(false);
     setCategorySearch('');
     setShowCategoryDropdown(false);
+  };
+
+  const commitFolderSave = (targetFolder?: FolderType | null) => {
+    if (targetFolder) {
+      onSave({ ...recipe, folder: targetFolder.name, folderId: targetFolder.id });
+    } else {
+      onSave({ ...recipe, folder: 'Opskrift', folderId: undefined });
+    }
+    setPendingFolderSaveId(null);
+    setShowFolderPicker(false);
+  };
+
+  const openFolderPickerForSave = () => {
+    setPendingFolderSaveId(requiresPermissionConfirmation(currentFolder) ? currentFolder?.id || null : null);
+    setShowFolderPicker(true);
   };
 
   const groupedIngredients = (recipe.ingredients || []).reduce((acc, ing) => {
@@ -292,9 +332,13 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         const selectedFolderId = e.target.value;
                         const folder = allFolders?.find(f => f.id === selectedFolderId);
                         if (folder) {
+                          setEditPermissionConfirmed(false);
+                          setFolderConfirmationError(null);
                           updateEditData({...editData, folderId: selectedFolderId, folder: folder.name});
                         } else {
                           // Fallback for old string-based folders
+                          setEditPermissionConfirmed(false);
+                          setFolderConfirmationError(null);
                           updateEditData({...editData, folder: selectedFolderId, folderId: undefined});
                         }
                       }
@@ -309,6 +353,28 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     )}
                     <option value="__NEW__">+ Opret ny mappe...</option>
                   </select>
+                )}
+                {selectedEditFolder && editRequiresPermissionConfirmation && (
+                  <div className="mt-4 space-y-3">
+                    <FolderVisibilityNotice folder={selectedEditFolder} currentUser={currentUser} />
+                    <label className="flex items-start gap-3 rounded-2xl border border-black/5 bg-white/40 px-4 py-3 text-sm text-forest-mid dark:text-white/70">
+                      <input
+                        type="checkbox"
+                        checked={editPermissionConfirmed}
+                        onChange={e => {
+                          setEditPermissionConfirmed(e.target.checked);
+                          if (e.target.checked) {
+                            setFolderConfirmationError(null);
+                          }
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-forest-mid/30"
+                      />
+                      <span>Jeg forstaar at opskriften arver adgang og synlighed fra den valgte mappe.</span>
+                    </label>
+                    {folderConfirmationError && (
+                      <p className="text-xs text-red-700">{folderConfirmationError}</p>
+                    )}
+                  </div>
                 )}
               </div>
               <div className="w-full sm:w-24">
@@ -760,7 +826,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         <div className="flex gap-2 flex-wrap justify-end">
           {(recipe.folder === 'Ikke gemte' || !recipe.isSaved) && (
             <button 
-              onClick={() => setShowFolderPicker(true)} 
+              onClick={openFolderPickerForSave} 
               className="flex items-center gap-2 px-6 py-2 bg-heath-mid text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-lg hover:bg-heath-dark transition-all scale-105 animate-pulse hover:animate-none"
             >
               <Save size={18} />
@@ -1287,7 +1353,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           </label>
           {!recipe.isSaved && (
             <button 
-              onClick={() => onSave(recipe)}
+              onClick={openFolderPickerForSave}
               className="btn-botanical w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
             >
               <Save size={20} />
@@ -1309,7 +1375,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           <div className="glass-brushed bg-white/90 dark:bg-forest-dark/95 w-full max-w-sm rounded-[2.5rem] p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic text-engraved">Gem i mappe</h3>
-              <button onClick={() => setShowFolderPicker(false)} className="p-2 hover:bg-black/5 dark:hover:bg-white/10 text-forest-mid dark:text-white/70 rounded-full transition-colors">
+              <button onClick={() => {
+                setPendingFolderSaveId(null);
+                setShowFolderPicker(false);
+              }} className="p-2 hover:bg-black/5 dark:hover:bg-white/10 text-forest-mid dark:text-white/70 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -1321,13 +1390,21 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <button
                   key={folder.id}
                   onClick={() => {
-                    onSave({ ...recipe, folder: folder.name, folderId: folder.id });
-                    setShowFolderPicker(false);
+                    if (requiresPermissionConfirmation(folder)) {
+                      setPendingFolderSaveId(folder.id);
+                      return;
+                    }
+                    commitFolderSave(folder);
                   }}
                   className="w-full flex items-center gap-4 p-4 glass-brushed rounded-2xl hover:bg-white dark:hover:bg-white/10 transition-all text-left group border border-black/5 dark:border-white/10"
                 >
                   <Folder size={20} className="text-forest-mid dark:text-white/70 group-hover:scale-110 transition-transform" />
-                  <span className="font-serif text-forest-dark dark:text-white italic">{folder.name}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-serif text-forest-dark dark:text-white italic">{folder.name}</span>
+                    <div className="mt-2">
+                      <OwnershipBadge ownership={getFolderOwnershipDisplay(folder, currentUser)} />
+                    </div>
+                  </div>
                 </button>
               ))}
               
@@ -1365,10 +1442,29 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               )}
             </div>
 
+            {pendingFolderSave && (
+              <div className="mb-6 space-y-3">
+                <FolderVisibilityNotice folder={pendingFolderSave} currentUser={currentUser} />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => commitFolderSave(pendingFolderSave)}
+                    className="flex-1 rounded-2xl bg-forest-dark py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg"
+                  >
+                    Fortsaet og gem
+                  </button>
+                  <button
+                    onClick={() => setPendingFolderSaveId(null)}
+                    className="flex-1 rounded-2xl glass-brushed py-3 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/70"
+                  >
+                    Annuller
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button 
               onClick={() => {
-                onSave({ ...recipe, folder: 'Opskrift', folderId: undefined });
-                setShowFolderPicker(false);
+                commitFolderSave(null);
               }}
               className="w-full py-4 bg-forest-dark text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-forest-mid transition-all"
             >

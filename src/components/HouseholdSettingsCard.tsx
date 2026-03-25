@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Home, Users } from 'lucide-react';
+import { Home, Shield, ShieldCheck, Trash2, Users } from 'lucide-react';
 import {
   createHousehold,
   inviteHouseholdMember,
   listenToAccessibleHouseholds,
+  removeHouseholdMember,
+  updateHouseholdMemberRole,
 } from '../services/householdService';
-import type { Household, HouseholdMember, ShareRole } from '../types';
+import type { Household, HouseholdMember } from '../types';
 
 interface HouseholdSettingsCardProps {
   user: any;
@@ -23,12 +25,28 @@ const statusLabel: Record<HouseholdMember['status'], string> = {
   invited: 'Inviteret',
 };
 
+type ManageableHouseholdRole = Exclude<HouseholdMember['role'], 'owner'>;
+
 const getCurrentUserRole = (household: Household, userId?: string) => {
   if (!userId) return null;
   if (household.ownerUID === userId) return 'owner';
   if (household.adminUids?.includes(userId)) return 'admin';
   if (household.memberUids?.includes(userId)) return 'member';
   return household.members?.find((member) => member.uid === userId)?.role || null;
+};
+
+const getMemberKey = (member: HouseholdMember) => member.uid || member.email || `${member.role}-${member.status}`;
+
+const getMemberRef = (member: HouseholdMember) => ({
+  uid: member.uid,
+  email: member.email,
+});
+
+const canManageMember = (currentRole: HouseholdMember['role'] | null, member: HouseholdMember) => {
+  if (!currentRole || member.role === 'owner') return false;
+  if (currentRole === 'owner') return true;
+  if (currentRole === 'admin') return member.role === 'member';
+  return false;
 };
 
 const sortMembers = (members: HouseholdMember[] = []) =>
@@ -45,7 +63,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [householdName, setHouseholdName] = useState('');
   const [inviteEmailByHousehold, setInviteEmailByHousehold] = useState<Record<string, string>>({});
-  const [inviteRoleByHousehold, setInviteRoleByHousehold] = useState<Record<string, ShareRole>>({});
+  const [inviteRoleByHousehold, setInviteRoleByHousehold] = useState<Record<string, ManageableHouseholdRole>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -107,12 +125,48 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     try {
       await inviteHouseholdMember(householdId, {
         email,
-        role: inviteRoleByHousehold[householdId] === 'editor' ? 'admin' : 'member',
+        role: inviteRoleByHousehold[householdId] || 'member',
       });
       setInviteEmailByHousehold((prev) => ({ ...prev, [householdId]: '' }));
       setStatusMessage('Invitationen er gemt i husstanden.');
     } catch {
       setError('Invitationen kunne ikke gemmes.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const handleRoleChange = async (householdId: string, member: HouseholdMember, role: ManageableHouseholdRole) => {
+    if (!isOnline) return;
+
+    const memberKey = getMemberKey(member);
+    setBusyKey(`role:${householdId}:${memberKey}`);
+    setError(null);
+    setStatusMessage(null);
+
+    try {
+      await updateHouseholdMemberRole(householdId, getMemberRef(member), role);
+      setStatusMessage(`${member.displayName || member.email || 'Medlemmet'} er nu ${roleLabel[role].toLowerCase()} i husstanden.`);
+    } catch {
+      setError('Medlemsrollen kunne ikke opdateres.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const handleRemoveMember = async (householdId: string, member: HouseholdMember) => {
+    if (!isOnline) return;
+
+    const memberKey = getMemberKey(member);
+    setBusyKey(`remove:${householdId}:${memberKey}`);
+    setError(null);
+    setStatusMessage(null);
+
+    try {
+      await removeHouseholdMember(householdId, getMemberRef(member));
+      setStatusMessage(member.status === 'invited' ? 'Invitationen er fjernet fra husstanden.' : 'Medlemmet er fjernet fra husstanden.');
+    } catch {
+      setError(member.status === 'invited' ? 'Invitationen kunne ikke fjernes.' : 'Medlemmet kunne ikke fjernes.');
     } finally {
       setBusyKey(null);
     }
@@ -168,6 +222,8 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
             const currentRole = getCurrentUserRole(household, user.uid);
             const canInvite = currentRole === 'owner' || currentRole === 'admin';
             const members = sortMembers(household.members);
+            const activeMembers = members.filter((member) => member.status === 'active');
+            const invitedMembers = members.filter((member) => member.status === 'invited');
 
             return (
               <div key={household.id} className="rounded-[2rem] border border-black/5 bg-white/55 p-5">
@@ -183,25 +239,166 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                   </span>
                 </div>
 
-                <div className="mt-4 space-y-3">
-                  {members.map((member, index) => (
-                    <div key={`${household.id}-${member.uid || member.email || index}`} className="rounded-2xl border border-black/5 bg-white/60 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Ukendt medlem'}</p>
-                          <p className="text-xs text-forest-mid opacity-75">{member.email || member.uid || 'Afventer invitation'}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-forest-dark text-white">
-                            {roleLabel[member.role]}
-                          </span>
-                          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${member.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {statusLabel[member.status]}
-                          </span>
-                        </div>
-                      </div>
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-forest-mid opacity-60">Aktive medlemmer</p>
+                      <span className="text-[11px] text-forest-mid opacity-70">{activeMembers.length}</span>
                     </div>
-                  ))}
+                    <div className="space-y-3">
+                      {activeMembers.map((member) => {
+                        const memberKey = getMemberKey(member);
+                        const canManage = canManageMember(currentRole, member);
+                        const isUpdatingRole = busyKey === `role:${household.id}:${memberKey}`;
+                        const isRemoving = busyKey === `remove:${household.id}:${memberKey}`;
+
+                        return (
+                          <div key={`${household.id}-${memberKey}`} className="rounded-2xl border border-black/5 bg-white/60 p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Ukendt medlem'}</p>
+                                <p className="text-xs text-forest-mid opacity-75">{member.email || member.uid || 'Afventer invitation'}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-forest-dark text-white">
+                                  {roleLabel[member.role]}
+                                </span>
+                                <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-800">
+                                  {statusLabel[member.status]}
+                                </span>
+                              </div>
+                            </div>
+
+                            {canManage ? (
+                              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                <div className="flex flex-1 gap-2">
+                                  <button
+                                    onClick={() => void handleRoleChange(household.id, member, 'member')}
+                                    disabled={!isOnline || isUpdatingRole || member.role === 'member'}
+                                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
+                                      member.role === 'member'
+                                        ? 'bg-forest-dark text-white shadow-md'
+                                        : 'glass-brushed text-forest-mid'
+                                    } disabled:opacity-50`}
+                                  >
+                                    <Shield size={12} /> Medlem
+                                  </button>
+                                  <button
+                                    onClick={() => void handleRoleChange(household.id, member, 'admin')}
+                                    disabled={!isOnline || isUpdatingRole || member.role === 'admin'}
+                                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
+                                      member.role === 'admin'
+                                        ? 'bg-forest-dark text-white shadow-md'
+                                        : 'glass-brushed text-forest-mid'
+                                    } disabled:opacity-50`}
+                                  >
+                                    <ShieldCheck size={12} /> Admin
+                                  </button>
+                                </div>
+                                <button
+                                  onClick={() => void handleRemoveMember(household.id, member)}
+                                  disabled={!isOnline || isRemoving}
+                                  className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-red-700 glass-brushed disabled:opacity-50"
+                                >
+                                  <Trash2 size={12} /> Fjern
+                                </button>
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-xs text-forest-mid opacity-70">
+                                {member.role === 'owner'
+                                  ? 'Ejeren styres ikke fra denne flade.'
+                                  : currentRole === 'admin'
+                                    ? 'Admins kan kun ændre almindelige medlemmer.'
+                                    : 'Kun owner eller admin kan ændre medlemmer.'}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-forest-mid opacity-60">Invitationer</p>
+                      <span className="text-[11px] text-forest-mid opacity-70">{invitedMembers.length}</span>
+                    </div>
+                    {invitedMembers.length > 0 ? (
+                      <div className="space-y-3">
+                        {invitedMembers.map((member) => {
+                          const memberKey = getMemberKey(member);
+                          const canManage = canManageMember(currentRole, member);
+                          const isUpdatingRole = busyKey === `role:${household.id}:${memberKey}`;
+                          const isRemoving = busyKey === `remove:${household.id}:${memberKey}`;
+
+                          return (
+                            <div key={`${household.id}-${memberKey}`} className="rounded-2xl border border-black/5 bg-white/60 p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Invitation uden navn'}</p>
+                                  <p className="text-xs text-forest-mid opacity-75">{member.email || 'Afventer invitation'}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-forest-dark text-white">
+                                    {roleLabel[member.role]}
+                                  </span>
+                                  <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-amber-100 text-amber-800">
+                                    {statusLabel[member.status]}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {canManage ? (
+                                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                  <div className="flex flex-1 gap-2">
+                                    <button
+                                      onClick={() => void handleRoleChange(household.id, member, 'member')}
+                                      disabled={!isOnline || isUpdatingRole || member.role === 'member'}
+                                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
+                                        member.role === 'member'
+                                          ? 'bg-forest-dark text-white shadow-md'
+                                          : 'glass-brushed text-forest-mid'
+                                      } disabled:opacity-50`}
+                                    >
+                                      <Shield size={12} /> Medlem
+                                    </button>
+                                    <button
+                                      onClick={() => void handleRoleChange(household.id, member, 'admin')}
+                                      disabled={!isOnline || isUpdatingRole || member.role === 'admin'}
+                                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
+                                        member.role === 'admin'
+                                          ? 'bg-forest-dark text-white shadow-md'
+                                          : 'glass-brushed text-forest-mid'
+                                      } disabled:opacity-50`}
+                                    >
+                                      <ShieldCheck size={12} /> Admin
+                                    </button>
+                                  </div>
+                                  <button
+                                    onClick={() => void handleRemoveMember(household.id, member)}
+                                    disabled={!isOnline || isRemoving}
+                                    className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-red-700 glass-brushed disabled:opacity-50"
+                                  >
+                                    <Trash2 size={12} /> Fjern
+                                  </button>
+                                </div>
+                              ) : (
+                                <p className="mt-3 text-xs text-forest-mid opacity-70">
+                                  {currentRole === 'admin'
+                                    ? 'Admins kan kun ændre invitationer til almindelige medlemmer.'
+                                    : 'Kun owner eller admin kan ændre invitationer.'}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-black/5 bg-white/45 p-3">
+                        <p className="text-sm text-forest-mid opacity-80">Ingen ventende invitationer lige nu.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {canInvite && (
@@ -218,12 +415,12 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                         className="flex-1 rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
                       />
                       <select
-                        value={inviteRoleByHousehold[household.id] || 'viewer'}
-                        onChange={(event) => setInviteRoleByHousehold((prev) => ({ ...prev, [household.id]: event.target.value as ShareRole }))}
+                        value={inviteRoleByHousehold[household.id] || 'member'}
+                        onChange={(event) => setInviteRoleByHousehold((prev) => ({ ...prev, [household.id]: event.target.value as ManageableHouseholdRole }))}
                         className="rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
                       >
-                        <option value="viewer">Medlem</option>
-                        <option value="editor">Admin</option>
+                        <option value="member">Medlem</option>
+                        <option value="admin">Admin</option>
                       </select>
                       <button
                         onClick={() => void handleInvite(household.id)}

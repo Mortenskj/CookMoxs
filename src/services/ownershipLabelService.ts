@@ -1,7 +1,8 @@
+import { PERMISSION_UI_COPY, type PermissionUiState } from '../config/permissionUiModel';
 import type { Folder, Recipe } from '../types';
 
 export interface OwnershipDisplay {
-  tone: 'private' | 'shared' | 'household';
+  state: PermissionUiState;
   label: string;
   detail: string;
 }
@@ -20,71 +21,104 @@ export const findFolderForRecipe = (recipe: Recipe, allFolders: Folder[]) =>
   allFolders.find((folder) => folder.id === recipe.folderId)
   || allFolders.find((folder) => !recipe.folderId && folder.name === recipe.folder);
 
-export const getFolderOwnershipDisplay = (folder: Folder, currentUser: any): OwnershipDisplay => {
+const isViewerInFolder = (folder: Folder, userId?: string) =>
+  Boolean(
+    userId && (
+      folder.viewerUids?.includes(userId)
+      || folder.sharedWith?.some((share) => share.uid === userId && share.role === 'viewer')
+    ),
+  );
+
+const isEditorInFolder = (folder: Folder, userId?: string) =>
+  Boolean(
+    userId && (
+      folder.editorUids?.includes(userId)
+      || folder.sharedWith?.some((share) => share.uid === userId && share.role === 'editor')
+    ),
+  );
+
+const hasEditorSharing = (folder: Folder | undefined) =>
+  Boolean(folder && ((folder.editorUids && folder.editorUids.length > 0) || folder.sharedWith?.some((share) => share.role === 'editor')));
+
+const hasViewerSharing = (folder: Folder | undefined) =>
+  Boolean(folder && ((folder.viewerUids && folder.viewerUids.length > 0) || folder.sharedWith?.some((share) => share.role === 'viewer')));
+
+const buildOwnershipDisplay = (state: PermissionUiState, isOwnerPerspective: boolean, isMemberPerspective: boolean): OwnershipDisplay => {
+  const copy = PERMISSION_UI_COPY[state];
+  return {
+    state,
+    label: copy.shortLabel,
+    detail: isOwnerPerspective ? copy.ownerDetail : isMemberPerspective ? copy.memberDetail : copy.neutralDetail,
+  };
+};
+
+const getFolderPermissionState = (folder: Folder, currentUser: any): { state: PermissionUiState; isOwnerPerspective: boolean; isMemberPerspective: boolean } => {
   if (folder.ownership?.type === 'household' || folder.householdId) {
     return {
-      tone: 'household',
-      label: 'Husstand',
-      detail: 'Denne mappe tilhoerer en husstand.',
+      state: 'household',
+      isOwnerPerspective: Boolean(currentUser?.uid && folder.ownerUID === currentUser.uid),
+      isMemberPerspective: true,
     };
   }
 
-  const isShared = hasFolderSharing(folder) || Boolean(currentUser?.uid && folder.ownerUID !== currentUser.uid);
-  if (isShared) {
-    const isOwner = Boolean(currentUser?.uid && folder.ownerUID === currentUser.uid);
-    return {
-      tone: 'shared',
-      label: isOwner ? 'Delt af dig' : 'Delt med dig',
-      detail: isOwner ? 'Du deler denne mappe med andre.' : 'Denne mappe er delt med dig.',
-    };
+  const isOwnerPerspective = Boolean(currentUser?.uid && folder.ownerUID === currentUser.uid);
+  const isEditorPerspective = isEditorInFolder(folder, currentUser?.uid);
+  const isViewerPerspective = isViewerInFolder(folder, currentUser?.uid);
+
+  if (isOwnerPerspective) {
+    if (hasEditorSharing(folder)) {
+      return { state: 'shared_edit', isOwnerPerspective: true, isMemberPerspective: false };
+    }
+    if (hasViewerSharing(folder)) {
+      return { state: 'shared_view', isOwnerPerspective: true, isMemberPerspective: false };
+    }
   }
 
-  return {
-    tone: 'private',
-    label: 'Privat',
-    detail: 'Kun dig kan se denne mappe.',
-  };
+  if (isEditorPerspective) {
+    return { state: 'shared_edit', isOwnerPerspective: false, isMemberPerspective: true };
+  }
+
+  if (isViewerPerspective) {
+    return { state: 'shared_view', isOwnerPerspective: false, isMemberPerspective: true };
+  }
+
+  if (hasEditorSharing(folder)) {
+    return { state: 'shared_edit', isOwnerPerspective: false, isMemberPerspective: false };
+  }
+
+  if (hasViewerSharing(folder) || hasFolderSharing(folder)) {
+    return { state: 'shared_view', isOwnerPerspective: false, isMemberPerspective: false };
+  }
+
+  return { state: 'private', isOwnerPerspective, isMemberPerspective: false };
+};
+
+export const getFolderOwnershipDisplay = (folder: Folder, currentUser: any): OwnershipDisplay => {
+  const permission = getFolderPermissionState(folder, currentUser);
+  return buildOwnershipDisplay(permission.state, permission.isOwnerPerspective, permission.isMemberPerspective);
 };
 
 export const getRecipeOwnershipDisplay = (recipe: Recipe, allFolders: Folder[], currentUser: any): OwnershipDisplay => {
   if (recipe.ownership?.type === 'household' || recipe.householdId) {
-    return {
-      tone: 'household',
-      label: 'Husstand',
-      detail: 'Denne opskrift tilhoerer en husstand.',
-    };
+    return buildOwnershipDisplay('household', Boolean(currentUser?.uid && recipe.authorUID === currentUser.uid), true);
   }
 
   const folder = findFolderForRecipe(recipe, allFolders);
   if (folder?.ownership?.type === 'household' || folder?.householdId) {
-    return {
-      tone: 'household',
-      label: 'Husstand',
-      detail: 'Denne opskrift ligger i en husstandsmappe.',
-    };
+    return buildOwnershipDisplay('household', Boolean(currentUser?.uid && folder.ownerUID === currentUser.uid), true);
   }
 
-  const isShared = recipe.ownership?.type === 'shared'
-    || Boolean(currentUser?.uid && recipe.authorUID && recipe.authorUID !== currentUser.uid)
-    || hasFolderSharing(folder)
-    || Boolean(folder && currentUser?.uid && folder.ownerUID !== currentUser.uid);
-
-  if (isShared) {
-    const isOwnedByCurrentUser = Boolean(
-      (currentUser?.uid && recipe.authorUID === currentUser.uid)
-      || (folder && currentUser?.uid && folder.ownerUID === currentUser.uid),
-    );
-
-    return {
-      tone: 'shared',
-      label: isOwnedByCurrentUser ? 'Delt af dig' : 'Delt med dig',
-      detail: isOwnedByCurrentUser ? 'Denne opskrift er delt med andre.' : 'Denne opskrift kommer fra delt indhold.',
-    };
+  if (folder) {
+    const permission = getFolderPermissionState(folder, currentUser);
+    if (permission.state !== 'private') {
+      return buildOwnershipDisplay(permission.state, permission.isOwnerPerspective, permission.isMemberPerspective);
+    }
   }
 
-  return {
-    tone: 'private',
-    label: 'Privat',
-    detail: 'Denne opskrift er kun synlig for dig.',
-  };
+  if (recipe.ownership?.type === 'shared' || Boolean(currentUser?.uid && recipe.authorUID && recipe.authorUID !== currentUser.uid)) {
+    const isOwnerPerspective = Boolean(currentUser?.uid && recipe.authorUID === currentUser.uid);
+    return buildOwnershipDisplay('shared_view', isOwnerPerspective, !isOwnerPerspective);
+  }
+
+  return buildOwnershipDisplay('private', Boolean(currentUser?.uid && recipe.authorUID === currentUser.uid), false);
 };

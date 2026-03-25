@@ -369,4 +369,52 @@ If a new env var is introduced, Codex must explicitly tell the user:
 Codex must keep progress and decision tracking up to date if the current step requires it. If no repo-local docs exist yet, create them in Phase 0.
 
 
+### Phase 3 execution detail (prepared 2026-03-25)
+**Risk:** High
+**Out of scope for the phase:** nutrition/barcode, learning loop, premium logic, public-sharing concepts
+
+#### Step 3.1 â€” Permission state copy and UI model
+**Goal:** define the visible permission vocabulary before adding more controls.
+**Files in scope:**
+- shared permission/ownership helpers
+- small config/docs files for UI copy if needed
+- settings/library metadata components only if wiring is needed
+**Acceptance criteria:**
+- the UI model distinguishes `private`, `shared_view`, `shared_edit`, and `household`
+- labels and helper copy are consistent with existing ownership metadata
+- no hidden behavior change is introduced in this step
+
+#### Step 3.2 â€” Folder permission panel
+**Goal:** show and manage the current permission state for a folder from a focused owner-facing surface.
+**Files in scope:**
+- settings/family-related UI
+- library permission panel/modal components
+- household/share helpers if needed
+**Acceptance criteria:**
+- owner can see current folder permission state clearly
+- owner can understand who currently has access
+- current sharing flow is not broken
+
+#### Step 3.3 â€” Member and invite management
+**Goal:** expose role and membership management in a narrow household control surface.
+**Files in scope:**
+- household settings UI only
+- household services/hooks
+**Acceptance criteria:**
+- owner/admin can see active vs invited members
+- role visibility is clear
+- removal / role changes are available without broad UI sprawl
+
+#### Step 3.4 â€” Permission-aware create and move flows
+**Goal:** make ownership inheritance explicit when saving or moving content into shared or household spaces.
+**Files in scope:**
+- recipe save / folder picker surfaces
+- small ownership helper components
+**Acceptance criteria:**
+- user gets clear feedback before content inherits shared/household visibility
+- labels stay consistent with Phase 2 ownership UI
+- no silent permission escalation is introduced
+
+---
+
 **Deferred note:** Offline edit queue is intentionally deferred and is not part of Phase 1.7 in this plan; it may be reconsidered later after AI-optional import and basic offline queue flows are stable.

@@ -17,13 +17,16 @@ interface LibraryViewProps {
   onDeleteFolder: (folderId: string) => void;
   onRenameFolder: (folderId: string, newName: string) => void;
   onShareFolder: (folderId: string, email: string, role: 'viewer' | 'editor') => void;
+  onUpdateFolderShareRole: (folderId: string, email: string, role: 'viewer' | 'editor') => void;
+  onRemoveFolderShare: (folderId: string, email: string) => void;
+  onSetFolderPermissionState: (folderId: string, state: 'private' | 'shared_view' | 'shared_edit') => void;
   currentUser: any;
 }
 
 type LibrarySection = 'home' | 'favorites' | 'cookbooks' | 'all' | 'categories';
 type SortOrder = 'newest' | 'alphabetical' | 'most_used' | 'category';
 
-export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFolder, onCreateInFolder, onDeleteFolder, onRenameFolder, onShareFolder, currentUser }: LibraryViewProps) {
+export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFolder, onCreateInFolder, onDeleteFolder, onRenameFolder, onShareFolder, onUpdateFolderShareRole, onRemoveFolderShare, onSetFolderPermissionState, currentUser }: LibraryViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState<LibrarySection>('home');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -465,8 +468,12 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         return (
           <ShareFolderModal
             folder={folder}
+            currentUser={currentUser}
             onClose={() => setShowShareModal(null)}
             onShare={onShareFolder}
+            onUpdateRole={onUpdateFolderShareRole}
+            onRemoveShare={onRemoveFolderShare}
+            onSetPermissionState={onSetFolderPermissionState}
           />
         );
       })() : null}

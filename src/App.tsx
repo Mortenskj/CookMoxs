@@ -16,6 +16,7 @@ import {
 } from './services/aiService';
 import { trackEvent } from './services/analyticsService';
 import { normalizeImportError, normalizeSyncError } from './services/errorMessageService';
+import { removeFolderShare, setFolderPermissionState, upsertFolderShare } from './services/folderPermissionService';
 import {
   cacheActiveRecipeForCookMode,
   cacheSavedRecipesForCookMode,
@@ -732,15 +733,12 @@ export default function App() {
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
 
-    // For now, let's just add it to the sharedWith array.
-    const newSharedWith = [...(folder.sharedWith || []), { uid: 'pending_' + email, email, role }];
-    // We don't have the UID yet, so we can't add it to editorUids or viewerUids.
-    // It will be added when the user logs in and the folder listener detects the email match.
-    const updatedFolder = { ...folder, sharedWith: newSharedWith };
+    const updatedFolder = upsertFolderShare(folder, email, role);
 
     try {
       markCloudSyncing('Deler mappe via cloud...');
       await saveFolderInCloud(updatedFolder);
+      setFolders(prev => prev.map(f => f.id === folderId ? updatedFolder : f));
       markCloudSaved('Mappedeling gemt i cloud');
       trackEvent('folder_shared', {
         ...getAnalyticsContext(),
@@ -749,6 +747,63 @@ export default function App() {
       });
     } catch (error) {
       const syncMessage = normalizeSyncError(error, 'Mappedeling kunne ikke gemmes.');
+      markCloudError(syncMessage);
+      setError(syncMessage);
+    }
+  };
+
+  const handleUpdateFolderShareRole = async (folderId: string, email: string, role: 'viewer' | 'editor') => {
+    if (!user) return;
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const updatedFolder = upsertFolderShare(folder, email, role);
+
+    try {
+      markCloudSyncing('Opdaterer mappetilladelser...');
+      await saveFolderInCloud(updatedFolder);
+      setFolders(prev => prev.map(f => f.id === folderId ? updatedFolder : f));
+      markCloudSaved('Mappetilladelser opdateret');
+    } catch (error) {
+      const syncMessage = normalizeSyncError(error, 'Mappetilladelser kunne ikke opdateres.');
+      markCloudError(syncMessage);
+      setError(syncMessage);
+    }
+  };
+
+  const handleRemoveFolderShare = async (folderId: string, email: string) => {
+    if (!user) return;
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const updatedFolder = removeFolderShare(folder, email);
+
+    try {
+      markCloudSyncing('Fjerner adgang til mappe...');
+      await saveFolderInCloud(updatedFolder);
+      setFolders(prev => prev.map(f => f.id === folderId ? updatedFolder : f));
+      markCloudSaved('Adgang fjernet');
+    } catch (error) {
+      const syncMessage = normalizeSyncError(error, 'Adgang kunne ikke fjernes.');
+      markCloudError(syncMessage);
+      setError(syncMessage);
+    }
+  };
+
+  const handleSetFolderPermissionState = async (folderId: string, state: 'private' | 'shared_view' | 'shared_edit') => {
+    if (!user) return;
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const updatedFolder = setFolderPermissionState(folder, state);
+
+    try {
+      markCloudSyncing('Opdaterer permission-mode...');
+      await saveFolderInCloud(updatedFolder);
+      setFolders(prev => prev.map(f => f.id === folderId ? updatedFolder : f));
+      markCloudSaved('Permission-mode opdateret');
+    } catch (error) {
+      const syncMessage = normalizeSyncError(error, 'Permission-mode kunne ikke opdateres.');
       markCloudError(syncMessage);
       setError(syncMessage);
     }
@@ -1413,6 +1468,9 @@ export default function App() {
           onDeleteFolder={handleDeleteFolder}
           onRenameFolder={handleRenameFolder}
           onShareFolder={handleShareFolder}
+          onUpdateFolderShareRole={handleUpdateFolderShareRole}
+          onRemoveFolderShare={handleRemoveFolderShare}
+          onSetFolderPermissionState={handleSetFolderPermissionState}
           currentUser={user}
         />
       )}

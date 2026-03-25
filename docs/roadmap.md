@@ -59,9 +59,20 @@ Expose the smallest useful management surface.
 ### 2.4 Ownership and sharing labels
 Show whether content is private, shared, or household-owned.
 
+## Phase 3
+### 3.1 Permission state copy and UI model
+Define the visible permission vocabulary before behavior-changing controls.
+
+### 3.2 Folder permission panel
+Expose the smallest focused owner-facing permission management surface.
+
+### 3.3 Member and invite management
+Make roles and invitations manageable in the household settings area.
+
+### 3.4 Permission-aware create and move flows
+Make inherited shared or household visibility explicit when saving or moving content.
+
 ## Later phases
-### Phase 3
-Permission model UI after household basics are real.
 
 ### Phase 4
 Nutrition and barcode module behind a stable provider interface.
