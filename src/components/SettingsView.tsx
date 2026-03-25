@@ -23,6 +23,8 @@ interface SettingsViewProps {
   setUserLevel: (level: UserLevel) => void;
   importPreference: ImportPreference;
   setImportPreference: (value: ImportPreference) => void;
+  autoAiImportEnhancement: boolean;
+  setAutoAiImportEnhancement: (value: boolean) => void;
   cookFontSize: CookFontSize;
   setCookFontSize: (size: CookFontSize) => void;
   onExportBackup: () => void;
@@ -50,6 +52,8 @@ export function SettingsView({
   setUserLevel,
   importPreference,
   setImportPreference,
+  autoAiImportEnhancement,
+  setAutoAiImportEnhancement,
   cookFontSize,
   setCookFontSize,
   onExportBackup,
@@ -278,6 +282,37 @@ export function SettingsView({
                   <p className="text-xs text-forest-mid opacity-75">{option.description}</p>
                 </button>
               ))}
+            </div>
+            <div className="mb-8">
+              <div className="flex items-start gap-3 mb-4">
+                <Sparkles size={14} className="text-forest-mid mt-1" />
+                <div>
+                  <p className="font-serif text-lg text-forest-dark italic">AI-tilpas efter linkimport</p>
+                  <p className="text-xs text-forest-mid italic opacity-70">Til test: kør altid en AI-berigelse oven på vellykket grundimport af links.</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/50 p-4">
+                <div>
+                  <p className="font-serif text-lg text-forest-dark italic">{autoAiImportEnhancement ? 'Altid aktiv' : 'Kun grundimport'}</p>
+                  <p className="text-xs text-forest-mid opacity-75">
+                    Når den er slået til, kræver linkimport også en efterfølgende AI-tilpasning, så du kan teste hele importkæden.
+                  </p>
+                </div>
+                <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
+                  <button
+                    onClick={() => setAutoAiImportEnhancement(false)}
+                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${!autoAiImportEnhancement ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+                  >
+                    Fra
+                  </button>
+                  <button
+                    onClick={() => setAutoAiImportEnhancement(true)}
+                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${autoAiImportEnhancement ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+                  >
+                    Til
+                  </button>
+                </div>
+              </div>
             </div>
             {aiDisabledReason && (
               <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">

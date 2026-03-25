@@ -8,6 +8,7 @@ import { OwnershipBadge } from './OwnershipBadge';
 import { FolderVisibilityNotice } from './FolderVisibilityNotice';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
 import { RecipeNutritionAttachmentCard } from './RecipeNutritionAttachmentCard';
+import { formatHeatDisplay, formatHeatGuideEntry } from '../services/cookModeHeuristics';
 import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
@@ -1122,7 +1123,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <div>
                 <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Varmeguide</h4>
                 <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
-                  {recipe.heatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
+                  {recipe.heatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{formatHeatGuideEntry(g)}</li>)}
                 </ul>
               </div>
             </div>
@@ -1170,7 +1171,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <div className="flex flex-wrap gap-2">
                   {step.heat && (
                     <div className="inline-flex items-center gap-2 bg-white/60 dark:bg-black/20 text-heath-mid px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
-                      <Flame size={12} /> {step.heat}
+                      <Flame size={12} /> {formatHeatDisplay(step.heat)}
                     </div>
                   )}
                   {step.timer && (
