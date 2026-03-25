@@ -32,6 +32,7 @@ import { DEFAULT_SEASONAL_THEME, SEASONAL_THEME_IDS } from './config/seasonalThe
 import { STORAGE_KEYS } from './config/storageKeys';
 import { buildRecipeFromImport } from './services/recipeImportService';
 import { createBackupPayload, downloadBackupFile, parseBackupPayload } from './services/backupService';
+import { mergeAutoImportEnhancement } from './services/importEnhancementService';
 import {
   ensureLocalDefaultFolder,
   loadLocalActiveRecipe,
@@ -161,6 +162,10 @@ export default function App() {
       ? raw
       : DEFAULT_IMPORT_PREFERENCE;
   });
+  const [autoAiImportEnhancement, setAutoAiImportEnhancement] = useState<boolean>(() => {
+    const raw = localStorage.getItem(STORAGE_KEYS.autoAiImportEnhancement);
+    return raw === null ? true : raw === 'true';
+  });
   const [activeTimerPopup, setActiveTimerPopup] = useState<string | null>(null);
   const [cookFontSize, setCookFontSize] = useState<CookFontSize>(() => {
     const raw = localStorage.getItem(STORAGE_KEYS.cookFontSize);
@@ -206,6 +211,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.importPreference, importPreference);
   }, [importPreference]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.autoAiImportEnhancement, String(autoAiImportEnhancement));
+  }, [autoAiImportEnhancement]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.cookFontSize, cookFontSize);
@@ -882,11 +891,13 @@ export default function App() {
 
     try {
       let newRecipe: Recipe | null = null;
+      let usedDirectImport = false;
 
       if (type === 'url') {
         try {
           const directRecipe = await requestDirectImport(content as string);
           newRecipe = hydrateDirectImportRecipe(directRecipe, content as string);
+          usedDirectImport = true;
         } catch (directError) {
           if (importPreference === 'basic_only') {
             throw directError;
@@ -967,6 +978,21 @@ export default function App() {
         setAiUnavailableMessage(null);
       }
 
+      if (newRecipe && usedDirectImport && autoAiImportEnhancement) {
+        if (aiDisabledReason) {
+          throw new Error(`${aiDisabledReason} AI-tilpasning efter linkimport er slået til.`);
+        }
+
+        const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
+        setAiUnavailableMessage(null);
+        newRecipe = mergeAutoImportEnhancement(newRecipe, enhancedRecipe);
+        trackEvent('ai_adjust_used', {
+          ...getAnalyticsContext(),
+          recipeId: newRecipe.id,
+          action: 'auto_fill_rest_import',
+        });
+      }
+
       if (user) {
         markCloudSyncing('Gemmer importeret opskrift i cloud...');
         await saveRecipeInCloud(newRecipe);
@@ -1016,7 +1042,7 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [aiDisabledReason, folders, getAnalyticsContext, importPreference, navigateTo, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
+  }, [aiDisabledReason, autoAiImportEnhancement, folders, getAnalyticsContext, importPreference, navigateTo, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
 
   const handleImport = async (content: string | { data: string, mimeType: string }, type: 'url' | 'text' | 'file' | 'image') => {
     await executeImportFlow(content, type);
@@ -1624,6 +1650,8 @@ export default function App() {
           setUserLevel={setUserLevel}
           importPreference={importPreference}
           setImportPreference={setImportPreference}
+          autoAiImportEnhancement={autoAiImportEnhancement}
+          setAutoAiImportEnhancement={setAutoAiImportEnhancement}
           cookFontSize={cookFontSize}
           setCookFontSize={setCookFontSize}
           onExportBackup={handleExportBackup}

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, PlayCircle, PauseCircle, CheckCircle, X, Fla
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
-import { findRelevantIngredientsForStep } from '../services/cookModeHeuristics';
+import { findRelevantIngredientsForStep, formatHeatDisplay } from '../services/cookModeHeuristics';
 
 interface CookViewProps {
   recipe: Recipe | null;
@@ -118,6 +118,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
   const step = steps[currentStep];
   const nextStep = steps[currentStep + 1];
+  const displayHeat = formatHeatDisplay(step.heat);
 
   // Dynamically find ingredients mentioned in this step if relevantIngredients is empty
   const mentionedIngredients = step.relevantIngredients?.length 
@@ -219,12 +220,12 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
       <div className="flex-1 p-4 sm:p-6 flex flex-col relative z-0 gap-4">
         
         {/* Top Row: Heat & Timer */}
-        {(step.heat || (step.timer && !timers.some(t => t.description === step.timer!.description && t.duration === step.timer!.duration * 60))) && (
+        {(displayHeat || (step.timer && !timers.some(t => t.description === step.timer!.description && t.duration === step.timer!.duration * 60))) && (
           <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-            {step.heat && (
+            {displayHeat && (
               <div className="flex-1 bg-red-500/10 text-red-200 px-4 py-3 rounded-2xl border border-red-500/20 flex items-center justify-center gap-3 shadow-sm">
                 <Flame size={18} className="text-red-400 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-[0.2em] truncate">{step.heat}</span>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] truncate">{displayHeat}</span>
               </div>
             )}
             {step.timer && !timers.some(t => t.description === step.timer!.description && t.duration === step.timer!.duration * 60) && (
