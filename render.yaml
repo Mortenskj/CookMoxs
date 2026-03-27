@@ -8,17 +8,9 @@ services:
       npm run build
     startCommand: npm start
     envVars:
-      # Gemini API key for Google GenAI. This must be configured in your
-      # Render dashboard or via secrets for production. It is never
-      # exposed to the frontend.
+      # Server-side Gemini key. Configure this in Render before using AI routes.
       - key: GEMINI_API_KEY
         sync: false
-      # Supabase configuration for cloud sync. Only required if you
-      # enable shared storage. See README for setup instructions.
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      # Set NODE_ENV=production so Express serves the built frontend from dist/
+      # Express serves the built frontend from dist/ in production.
       - key: NODE_ENV
         value: production

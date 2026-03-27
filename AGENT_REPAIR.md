@@ -69,7 +69,6 @@ Unless a repair explicitly says otherwise:
 - `DESIGN_PLAN.md`
 - `CookMoxs_Art_Direction_Spec.md`
 - `docs/*` (except adding repair log entries if needed)
-- `supabase/*`
 - `public/manifest.webmanifest`
 - `render.yaml`
 - Seasonal theme token values in `src/index.css`

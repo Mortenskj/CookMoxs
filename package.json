@@ -4,10 +4,19 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "sync:cache-version": "node scripts/sync-cache-version.mjs",
+    "prestart": "npm run sync:cache-version",
     "start": "tsx server.ts",
+    "predev": "npm run sync:cache-version",
     "dev": "NODE_ENV=development tsx server.ts",
+    "pretypecheck": "npm run sync:cache-version",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run sync:cache-version",
     "build": "vite build",
-    "lint": "tsc --noEmit"
+    "build:strict": "npm run typecheck && npm run build",
+    "preverify:parser": "npm run sync:cache-version",
+    "verify:parser": "tsx scripts/verify-direct-parser.ts",
+    "lint": "npm run typecheck"
   },
   "engines": {
     "node": "20.x"

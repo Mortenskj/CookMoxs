@@ -1,13 +1,22 @@
-import type { Ingredient, StepIngredient, StepTimer } from '../types';
+import type { Ingredient, Step, StepIngredient, StepTimer } from '../types';
 
-type InductionHeatLevel = 'low' | 'medium' | 'high' | 'boil';
+export type CanonicalHeatLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
-// Fixed induction mapping so cook mode can show explicit levels instead of vague labels.
-const INDUCTION_HEAT_LABELS: Record<InductionHeatLevel, string> = {
-  low: 'Induktion 2-3/9 · lav varme',
-  medium: 'Induktion 5-6/9 · middel varme',
-  high: 'Induktion 7-8/9 · høj varme',
-  boil: 'Induktion 9/9 · bring i kog',
+type IngredientMatchConfidence = 'high' | 'medium';
+
+type HeatInference = {
+  heat?: string;
+  heatLevel?: CanonicalHeatLevel;
+  oven?: string;
+};
+
+const HEAT_NOTE_BY_LEVEL: Partial<Record<CanonicalHeatLevel, string>> = {
+  2: 'svag varme',
+  3: 'lav varme',
+  5: 'middel varme',
+  7: 'middel-hoej varme',
+  8: 'hoej varme',
+  9: 'bring i kog',
 };
 
 const INGREDIENT_STOPWORDS = new Set([
@@ -34,7 +43,9 @@ const INGREDIENT_STOPWORDS = new Set([
   'servering',
 ]);
 
-function normalizeForMatch(value: string): string {
+const OVEN_HEAT_PATTERN = /(\d{2,3})\s*(?:grader|°)\s*(varmluft|over\/undervarme|over-?\s*undervarme)?/i;
+
+export function normalizeForMatch(value: string): string {
   return value
     .toLowerCase()
     .replace(/æ/g, 'ae')
@@ -43,9 +54,12 @@ function normalizeForMatch(value: string): string {
     .replace(/Ã¦/g, 'ae')
     .replace(/Ã¸/g, 'oe')
     .replace(/Ã¥/g, 'aa')
+    .replace(/ÃƒÂ¦/g, 'ae')
+    .replace(/ÃƒÂ¸/g, 'oe')
+    .replace(/ÃƒÂ¥/g, 'aa')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/[^a-z0-9/]+/g, ' ')
     .trim();
 }
 
@@ -79,57 +93,169 @@ function getIngredientTerms(name: string): string[] {
   return uniqueStrings([...segments, ...words, ...aliases]);
 }
 
-function hasTermMatch(normalizedStepText: string, stepWords: string[], term: string): boolean {
-  if (!term) return false;
+function getIngredientMatchConfidence(normalizedStepText: string, stepWords: string[], term: string): IngredientMatchConfidence | null {
+  if (!term) return null;
 
   if (term.includes(' ') && normalizedStepText.includes(term)) {
-    return true;
+    return 'high';
   }
 
   if (stepWords.includes(term)) {
-    return true;
+    return 'high';
   }
 
   if (term.length >= 5) {
     const prefixLength = Math.min(6, term.length - 1);
     const prefix = term.slice(0, prefixLength);
     if (prefix.length >= 4 && stepWords.some((word) => word.startsWith(prefix))) {
-      return true;
+      return 'medium';
     }
   }
 
-  return false;
+  return null;
 }
 
-function getInductionHeatLevel(value: string): InductionHeatLevel | undefined {
-  const normalizedValue = normalizeForMatch(value);
+function findIngredientMatchesForStep(text: string, ingredients: Ingredient[]) {
+  const normalizedStepText = normalizeForMatch(text);
+  const stepWords = normalizedStepText.split(/\s+/).filter(Boolean);
 
-  if (normalizedValue.includes('kog op') || normalizedValue.includes('bring i kog')) {
-    return 'boil';
+  return ingredients.flatMap((ingredient) => {
+    const terms = getIngredientTerms(ingredient.name);
+    let confidence: IngredientMatchConfidence | null = null;
+
+    for (const term of terms) {
+      const nextConfidence = getIngredientMatchConfidence(normalizedStepText, stepWords, term);
+      if (nextConfidence === 'high') {
+        confidence = 'high';
+        break;
+      }
+      if (nextConfidence === 'medium') {
+        confidence = 'medium';
+      }
+    }
+
+    return confidence ? [{ ingredient, confidence }] : [];
+  });
+}
+
+export function findRelevantIngredientsForStep(text: string, ingredients: Ingredient[]): StepIngredient[] {
+  return findIngredientMatchesForStep(text, ingredients).map(({ ingredient }) => ({
+    name: ingredient.name,
+    amount: ingredient.amount,
+    unit: ingredient.unit,
+  }));
+}
+
+export function hasRelevantIngredientConfidence(text: string, ingredients: Ingredient[]): boolean {
+  return findIngredientMatchesForStep(text, ingredients).length > 0;
+}
+
+function formatOvenHeat(temperature: string, mode?: string) {
+  const normalizedMode = mode ? ` ${mode.trim().toLowerCase()}` : '';
+  return `${temperature}\u00B0C${normalizedMode}`;
+}
+
+export function extractOvenHeat(value?: string): string | undefined {
+  if (!value) return undefined;
+  const match = value.match(OVEN_HEAT_PATTERN);
+  if (!match) return undefined;
+  return formatOvenHeat(match[1], match[2]);
+}
+
+function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeatLevel | undefined {
+  if (
+    normalizedText.includes('bring i kog')
+    || normalizedText.includes('kog op')
+  ) {
+    return 9;
   }
 
   if (
-    normalizedValue.includes('simr')
-    || normalizedValue.includes('skru ned for varmen')
-    || normalizedValue.includes('lav varme')
-    || normalizedValue.includes('svag varme')
+    normalizedText.includes('svag varme')
+    || normalizedText.includes('meget lav varme')
+    || normalizedText.includes('gentle heat')
   ) {
-    return 'low';
-  }
-
-  if (normalizedValue.includes('hoej varme') || normalizedValue.includes('brun')) {
-    return 'high';
+    return 2;
   }
 
   if (
-    normalizedValue.includes('middelvarme')
-    || normalizedValue.includes('middel varme')
-    || normalizedValue.includes('sauter')
+    normalizedText.includes('skru ned og lad simre')
+    || normalizedText.includes('lad simre')
+    || normalizedText.includes('simr')
+    || normalizedText.includes('lav varme')
+    || normalizedText.includes('skru ned')
   ) {
-    return 'medium';
+    return 3;
+  }
+
+  if (
+    normalizedText.includes('hoej varme')
+    || normalizedText.includes('hard browning')
+    || normalizedText.includes('brun ')
+    || normalizedText.endsWith(' brun')
+    || normalizedText.includes(' afbrun')
+  ) {
+    return 8;
+  }
+
+  if (
+    normalizedText.includes('middel hoej')
+    || normalizedText.includes('middelhoej')
+    || normalizedText.includes('middel hoj')
+    || normalizedText.includes('saute')
+    || normalizedText.includes('sauter')
+    || normalizedText.includes('kraftig stegning')
+  ) {
+    return 7;
+  }
+
+  if (
+    normalizedText.includes('middel varme')
+    || normalizedText.includes('middelvarme')
+    || normalizedText.includes('medium heat')
+  ) {
+    return 5;
+  }
+
+  if (normalizedText.includes('5-6/9') || normalizedText.includes('5 6/9')) {
+    return 5;
+  }
+
+  if (normalizedText.includes('7-8/9') || normalizedText.includes('7 8/9')) {
+    return 7;
+  }
+
+  if (normalizedText.includes('2-3/9') || normalizedText.includes('2 3/9')) {
+    return 3;
+  }
+
+  const explicitMatch = normalizedText.match(/(?:induktion\s*)?([1-9])\s*\/\s*9/);
+  if (explicitMatch) {
+    return Number(explicitMatch[1]) as CanonicalHeatLevel;
   }
 
   return undefined;
+}
+
+export function inferHeatMetadataFromText(value?: string): HeatInference {
+  if (!value) {
+    return {};
+  }
+
+  const oven = extractOvenHeat(value);
+  if (oven) {
+    return { heat: oven, oven };
+  }
+
+  const heatLevel = inferHeatLevelFromNormalizedText(normalizeForMatch(value));
+  if (!heatLevel) {
+    return {};
+  }
+
+  return {
+    heatLevel,
+    heat: HEAT_NOTE_BY_LEVEL[heatLevel],
+  };
 }
 
 export function formatHeatDisplay(heat?: string): string | undefined {
@@ -137,18 +263,25 @@ export function formatHeatDisplay(heat?: string): string | undefined {
     return undefined;
   }
 
-  const ovenMatch = heat.match(/(\d{2,3})\s*(?:grader|\u00B0)\s*(varmluft|over\/undervarme|over-?\s*undervarme)?/i);
-  if (ovenMatch) {
-    const mode = ovenMatch[2] ? ` ${ovenMatch[2].trim().toLowerCase()}` : '';
-    return `${ovenMatch[1]}\u00B0C${mode}`;
+  const oven = extractOvenHeat(heat);
+  if (oven) {
+    return oven;
   }
 
-  const level = getInductionHeatLevel(heat);
-  if (level) {
-    return INDUCTION_HEAT_LABELS[level];
+  const inference = inferHeatMetadataFromText(heat);
+  if (inference.heatLevel) {
+    return `Induktion ${inference.heatLevel}/9`;
   }
 
   return heat;
+}
+
+export function formatStepHeatDisplay(step: Pick<Step, 'heat' | 'heatLevel'>): string | undefined {
+  if (step.heatLevel) {
+    return `Induktion ${step.heatLevel}/9`;
+  }
+
+  return formatHeatDisplay(step.heat);
 }
 
 export function formatHeatGuideEntry(entry: string): string {
@@ -164,28 +297,12 @@ export function formatHeatGuideEntry(entry: string): string {
   return text ? `${formattedHeat}: ${text}` : formattedHeat;
 }
 
-export function findRelevantIngredientsForStep(text: string, ingredients: Ingredient[]): StepIngredient[] {
-  const normalizedStepText = normalizeForMatch(text);
-  const stepWords = normalizedStepText.split(/\s+/).filter(Boolean);
-
-  return ingredients
-    .filter((ingredient) => {
-      const terms = getIngredientTerms(ingredient.name);
-      return terms.some((term) => hasTermMatch(normalizedStepText, stepWords, term));
-    })
-    .map((ingredient) => ({
-      name: ingredient.name,
-      amount: ingredient.amount,
-      unit: ingredient.unit,
-    }));
-}
-
 function detectTimerLabel(normalizedText: string): string {
   if (normalizedText.includes('bag') || normalizedText.includes('ovn')) return 'Bagetid';
   if (normalizedText.includes('simr') || normalizedText.includes('kog')) return 'Kogetid';
   if (normalizedText.includes('steg') || normalizedText.includes('brun') || normalizedText.includes('sauter')) return 'Stegetid';
   if (normalizedText.includes('hvile')) return 'Hviletid';
-  if (normalizedText.includes('haev')) return 'Hævetid';
+  if (normalizedText.includes('haev')) return 'Haevetid';
   return 'Timer';
 }
 
@@ -217,22 +334,15 @@ export function inferTimerFromStepText(text: string): StepTimer | undefined {
 }
 
 export function inferHeatFromStepText(text: string): string | undefined {
-  const ovenMatch = text.match(/(\d{2,3})\s*(?:grader|\u00B0)\s*(varmluft|over\/undervarme|over-?\s*undervarme)?/i);
-  if (ovenMatch) {
-    const mode = ovenMatch[2] ? ` ${ovenMatch[2].trim().toLowerCase()}` : '';
-    return `${ovenMatch[1]}\u00B0C${mode}`;
-  }
-
-  const level = getInductionHeatLevel(text);
-  return level ? INDUCTION_HEAT_LABELS[level] : undefined;
+  return inferHeatMetadataFromText(text).heat;
 }
 
-export function buildHeatAndOvenGuides(steps: Array<{ text: string; heat?: string }>): { heatGuide: string[]; ovenGuide: string[] } {
+export function buildHeatAndOvenGuides(steps: Array<Pick<Step, 'text' | 'heat' | 'heatLevel'>>): { heatGuide: string[]; ovenGuide: string[] } {
   const heatGuide: string[] = [];
   const ovenGuide: string[] = [];
 
   for (const step of steps) {
-    const formattedHeat = formatHeatDisplay(step.heat);
+    const formattedHeat = formatStepHeatDisplay(step);
     if (!formattedHeat) continue;
 
     const entry = `${formattedHeat}: ${step.text}`;

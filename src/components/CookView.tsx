@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, PlayCircle, PauseCircle, CheckCircle, X, Fla
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
-import { findRelevantIngredientsForStep, formatHeatDisplay } from '../services/cookModeHeuristics';
+import { formatStepHeatDisplay } from '../services/cookModeHeuristics';
 
 interface CookViewProps {
   recipe: Recipe | null;
@@ -118,12 +118,10 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
   const step = steps[currentStep];
   const nextStep = steps[currentStep + 1];
-  const displayHeat = formatHeatDisplay(step.heat);
-
-  // Dynamically find ingredients mentioned in this step if relevantIngredients is empty
-  const mentionedIngredients = step.relevantIngredients?.length 
-    ? step.relevantIngredients 
-    : findRelevantIngredientsForStep(step.text, recipe.ingredients || []);
+  const displayHeat = formatStepHeatDisplay(step);
+  const mentionedIngredients = step.relevantIngredients?.length
+    ? step.relevantIngredients
+    : [];
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);

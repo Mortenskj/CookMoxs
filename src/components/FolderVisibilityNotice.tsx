@@ -9,9 +9,9 @@ interface FolderVisibilityNoticeProps {
 }
 
 const visibilityCopy = {
-  shared_view: 'Når du gemmer i denne mappe, får alle med visningsadgang også adgang til opskriften.',
-  shared_edit: 'Når du gemmer i denne mappe, får alle med redigeringsadgang også adgang til opskriften og kan ændre den.',
-  household: 'Når du gemmer i denne mappe, arver opskriften husstandens synlighed og medlemsadgang.',
+  shared_view: 'Naar du gemmer i denne mappe, faar alle med visningsadgang ogsaa adgang til opskriften.',
+  shared_edit: 'Naar du gemmer i denne mappe, faar alle med visningsadgang ogsaa adgang til opskriften.',
+  household: 'Naar du gemmer i denne mappe, arver opskriften husstandens synlighed og medlemsadgang.',
 } as const;
 
 export function FolderVisibilityNotice({ folder, currentUser }: FolderVisibilityNoticeProps) {

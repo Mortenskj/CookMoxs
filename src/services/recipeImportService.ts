@@ -1,4 +1,6 @@
 import { Folder, Recipe } from '../types';
+import { DEFAULT_FOLDER_NAME, findDefaultFolder, getCanonicalDefaultFolderId } from './defaultFolderService';
+import { normalizeRecipeForCookMode } from './recipeStepNormalization';
 
 interface BuildRecipeOptions {
   parsedData: any;
@@ -9,16 +11,16 @@ interface BuildRecipeOptions {
 }
 
 export function buildRecipeFromImport({ parsedData, sourceType, originalContent, folders, userId }: BuildRecipeOptions): Recipe {
-  const defaultFolder = folders.find(f => f.isDefault || f.name === 'Ikke gemte') || folders[0];
+  const defaultFolder = findDefaultFolder(folders, userId || 'local') || folders[0];
 
-  return {
+  return normalizeRecipeForCookMode({
     id: Date.now().toString(),
     title: parsedData.title || 'Uden navn',
     summary: parsedData.summary || '',
     recipeType: parsedData.recipeType || '',
     categories: parsedData.categories || [],
-    folder: defaultFolder?.name || 'Ikke gemte',
-    folderId: defaultFolder?.id || `default-un-saved-${userId}`,
+    folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
+    folderId: defaultFolder?.id || getCanonicalDefaultFolderId(userId || 'local'),
     isSaved: false,
     notes: '',
     servings: parsedData.servings || 4,
@@ -35,6 +37,8 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
       id: `step-${i}`,
       text: step.text || '',
       heat: step.heat,
+      heatLevel: step.heatLevel,
+      heatSource: step.heatSource,
       timer: step.timer,
       reminder: step.reminder,
       relevantIngredients: step.relevantIngredients || [],
@@ -51,5 +55,5 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     authorUID: userId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  });
 }

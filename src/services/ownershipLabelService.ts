@@ -65,28 +65,15 @@ const getFolderPermissionState = (folder: Folder, currentUser: any): { state: Pe
   const isEditorPerspective = isEditorInFolder(folder, currentUser?.uid);
   const isViewerPerspective = isViewerInFolder(folder, currentUser?.uid);
 
-  if (isOwnerPerspective) {
-    if (hasEditorSharing(folder)) {
-      return { state: 'shared_edit', isOwnerPerspective: true, isMemberPerspective: false };
-    }
-    if (hasViewerSharing(folder)) {
-      return { state: 'shared_view', isOwnerPerspective: true, isMemberPerspective: false };
-    }
+  if (isOwnerPerspective && (hasEditorSharing(folder) || hasViewerSharing(folder) || hasFolderSharing(folder))) {
+    return { state: 'shared_view', isOwnerPerspective: true, isMemberPerspective: false };
   }
 
-  if (isEditorPerspective) {
-    return { state: 'shared_edit', isOwnerPerspective: false, isMemberPerspective: true };
-  }
-
-  if (isViewerPerspective) {
+  if (isEditorPerspective || isViewerPerspective) {
     return { state: 'shared_view', isOwnerPerspective: false, isMemberPerspective: true };
   }
 
-  if (hasEditorSharing(folder)) {
-    return { state: 'shared_edit', isOwnerPerspective: false, isMemberPerspective: false };
-  }
-
-  if (hasViewerSharing(folder) || hasFolderSharing(folder)) {
+  if (hasEditorSharing(folder) || hasViewerSharing(folder) || hasFolderSharing(folder)) {
     return { state: 'shared_view', isOwnerPerspective: false, isMemberPerspective: false };
   }
 

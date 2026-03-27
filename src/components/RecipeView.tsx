@@ -8,7 +8,8 @@ import { OwnershipBadge } from './OwnershipBadge';
 import { FolderVisibilityNotice } from './FolderVisibilityNotice';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
 import { RecipeNutritionAttachmentCard } from './RecipeNutritionAttachmentCard';
-import { formatHeatDisplay, formatHeatGuideEntry } from '../services/cookModeHeuristics';
+import { formatHeatGuideEntry, formatStepHeatDisplay } from '../services/cookModeHeuristics';
+import { DEFAULT_FOLDER_NAME } from '../services/defaultFolderService';
 import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
@@ -30,12 +31,13 @@ interface RecipeViewProps {
   onApplyPrefix?: (recipe: Recipe, prefix: string) => void;
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
+  error?: string | null;
   aiDisabledReason?: string | null;
   initialEditMode?: boolean;
   currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [includePrep, setIncludePrep] = useState(true);
   const [isEditing, setIsEditing] = useState(initialEditMode);
@@ -88,6 +90,15 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const currentFolder = findFolderForRecipe(recipe, allFolders);
   const selectedEditFolder = findFolderForRecipe(editData, allFolders);
   const pendingFolderSave = pendingFolderSaveId ? allFolders.find((folder) => folder.id === pendingFolderSaveId) || null : null;
+  const mutableFolders = currentUser?.uid
+    ? allFolders.filter((folder) => folder.ownerUID === currentUser.uid)
+    : allFolders;
+  const canMutateRecipe = !currentUser?.uid
+    || (!recipe.isSaved && (!recipe.authorUID || recipe.authorUID === currentUser.uid))
+    || (
+      recipe.authorUID === currentUser.uid
+      && (!currentFolder || currentFolder.ownerUID === currentUser.uid)
+    );
 
   const requiresPermissionConfirmation = (targetFolder?: FolderType) => {
     if (!targetFolder) return false;
@@ -110,10 +121,18 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     setFolderConfirmationError(null);
   }, [isEditing, selectedEditFolder?.id, recipe.id]);
 
+  useEffect(() => {
+    if (!canMutateRecipe && isEditing) {
+      setIsEditing(false);
+    }
+  }, [canMutateRecipe, isEditing]);
+
   const mergedCategories = Array.from(new Set([...DEFAULT_RECIPE_CATEGORIES, ...allCategories])).sort();
 
 
   const toggleLock = (ingId: string) => {
+    if (!canMutateRecipe) return;
+
     const updatedRecipe = {
       ...recipe,
       ingredients: (recipe.ingredients || []).map(ing => 
@@ -172,6 +191,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
 
   const handleSaveEdit = () => {
+    if (!canMutateRecipe) {
+      return;
+    }
+
     if (editRequiresPermissionConfirmation && !editPermissionConfirmed) {
       setFolderConfirmationError('Bekræft at opskriften maa arve synligheden fra den valgte mappe.');
       return;
@@ -193,6 +216,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
 
   const commitFolderSave = (targetFolder?: FolderType | null) => {
+    if (!canMutateRecipe) {
+      return;
+    }
+
     if (targetFolder) {
       onSave({ ...recipe, folder: targetFolder.name, folderId: targetFolder.id });
     } else {
@@ -203,6 +230,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
 
   const openFolderPickerForSave = () => {
+    if (!canMutateRecipe) {
+      return;
+    }
+
     setPendingFolderSaveId(requiresPermissionConfirmation(currentFolder) ? currentFolder?.id || null : null);
     setShowFolderPicker(true);
   };
@@ -241,16 +272,20 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <button onClick={() => updateEditData(recipe)} className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/70 hover:text-forest-dark dark:hover:text-white transition-colors">
               Nulstil
             </button>
-            <button 
-              onClick={() => setShowSmartModal(true)} 
-              className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
-              title="Smart Justering"
-            >
-              {isAdjusting ? <Loader2 size={22} className="animate-spin" /> : <Wand2 size={22} />}
-            </button>
-            <button onClick={onDelete} className="p-2 text-[#DC2626] hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
-              <Trash2 size={22} />
-            </button>
+            {canMutateRecipe && (
+              <button 
+                onClick={() => setShowSmartModal(true)} 
+                className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
+                title="Smart Justering"
+              >
+                {isAdjusting ? <Loader2 size={22} className="animate-spin" /> : <Wand2 size={22} />}
+              </button>
+            )}
+            {canMutateRecipe && (
+              <button onClick={onDelete} className="p-2 text-[#DC2626] hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+                <Trash2 size={22} />
+              </button>
+            )}
             <button onClick={handleSaveEdit} className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
               <Save size={22} />
             </button>
@@ -349,8 +384,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232D4F39%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0 top 50%', backgroundSize: '.65rem auto' }}
                   >
                     <option value="" disabled>Vælg mappe</option>
-                    {allFolders?.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    {editData.folder && !allFolders?.some(f => f.name === editData.folder) && (
+                    {mutableFolders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    {editData.folder && !mutableFolders.some(f => f.name === editData.folder) && (
                       <option value={editData.folder}>{editData.folder}</option>
                     )}
                     <option value="__NEW__">+ Opret ny mappe...</option>
@@ -795,6 +830,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {onFillRest && (
             <button
               onClick={() => onFillRest(editData)}
@@ -826,7 +867,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           )}
         </div>
         <div className="flex gap-2 flex-wrap justify-end">
-          {(recipe.folder === 'Ikke gemte' || !recipe.isSaved) && (
+          {canMutateRecipe && (recipe.folder === DEFAULT_FOLDER_NAME || !recipe.isSaved) && (
             <button 
               onClick={openFolderPickerForSave} 
               className="flex items-center gap-2 px-6 py-2 bg-heath-mid text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-lg hover:bg-heath-dark transition-all scale-105 animate-pulse hover:animate-none"
@@ -835,13 +876,17 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               Gem Opskrift
             </button>
           )}
-          <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
-            <Edit3 size={18} />
-            <span className="text-sm font-medium hidden sm:inline">Rediger</span>
-          </button>
-          <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
-            <Heart size={22} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} />
-          </button>
+          {canMutateRecipe && (
+            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+              <Edit3 size={18} />
+              <span className="text-sm font-medium hidden sm:inline">Rediger</span>
+            </button>
+          )}
+          {canMutateRecipe && (
+            <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+              <Heart size={22} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} />
+            </button>
+          )}
           <button onClick={() => window.print()} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <Printer size={22} />
           </button>
@@ -874,8 +919,14 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <OwnershipBadge ownership={ownership} />
             <p className="text-xs text-forest-mid dark:text-white/70 opacity-80">{ownership.detail}</p>
           </div>
+          {!canMutateRecipe && (
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+              Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult i denne stabiliserings-pass.
+            </div>
+          )}
           
           <div className="flex flex-wrap gap-2 mb-6">
+            {canMutateRecipe && (
             <div className="relative">
               <select 
                 onChange={(e) => {
@@ -898,8 +949,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <option value="Spice it up">Spice it up</option>
               </select>
             </div>
+            )}
 
-            {onGenerateTips && (
+            {canMutateRecipe && onGenerateTips && (
               <button 
                 onClick={() => setShowTipsModal(true)}
                 disabled={isAdjusting || aiDisabled}
@@ -927,6 +979,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           )}
 
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           {recipe.notes && (
             <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 mt-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
@@ -939,7 +996,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       <RecipeNutritionAttachmentCard
         attachment={recipe.nutritionAttachment}
-        canAttach={Boolean(recipe.isSaved)}
+        canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
+        canClear={canMutateRecipe}
+        readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke aendres for delte opskrifter i denne stabiliserings-pass.'}
         onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
         onClear={() => onSave({ ...recipe, nutritionAttachment: undefined })}
       />
@@ -966,6 +1025,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 Fortryd
               </button>
             )}
+            {canMutateRecipe && (
             <button 
               onClick={() => {
                 const recipeToSave = { ...recipe, aiRationale: undefined };
@@ -975,6 +1035,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             >
               Fortsæt med denne opskrift?
             </button>
+            )}
           </div>
         </div>
       )}
@@ -1031,7 +1092,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </div>
             )}
             
-            {onGenerateTips && (
+            {canMutateRecipe && onGenerateTips && (
               <button 
                 onClick={() => {
                   onGenerateTips(recipe);
@@ -1057,6 +1118,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               Ingredienser
             </h2>
             <div className="flex items-center gap-2 print:hidden">
+              {canMutateRecipe && (
               <button 
                 onClick={() => setShowSmartModal(true)} 
                 disabled={isAdjusting || aiDisabled}
@@ -1066,6 +1128,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 {isAdjusting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
                 {isAdjusting ? 'Tilpasser...' : 'AI Tilpas'}
               </button>
+              )}
+              {canMutateRecipe && (
               <button 
                 onClick={() => {
                   setIsEditing(true);
@@ -1079,6 +1143,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <Plus size={14} />
                 Tilføj
               </button>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-4 bg-white/60 dark:bg-black/20 rounded-2xl px-4 py-2 border border-black/5 dark:border-white/10 shadow-sm w-full justify-center print:border-none print:shadow-none print:bg-transparent print:p-0">
@@ -1171,7 +1236,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <div className="flex flex-wrap gap-2">
                   {step.heat && (
                     <div className="inline-flex items-center gap-2 bg-white/60 dark:bg-black/20 text-heath-mid px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
-                      <Flame size={12} /> {formatHeatDisplay(step.heat)}
+                      <Flame size={12} /> {formatStepHeatDisplay(step)}
                     </div>
                   )}
                   {step.timer && (
@@ -1312,7 +1377,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Smart Adjust Modal */}
-      {showSmartModal && (
+      {showSmartModal && canMutateRecipe && (
         <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic mb-4 flex items-center gap-3 text-engraved">
@@ -1360,7 +1425,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             />
             <span className="font-medium tracking-wide">Inkludér "Forbered ingredienser" trin</span>
           </label>
-          {!recipe.isSaved && (
+          {canMutateRecipe && !recipe.isSaved && (
             <button 
               onClick={openFolderPickerForSave}
               className="btn-botanical w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
@@ -1395,7 +1460,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <p className="text-sm text-forest-mid dark:text-white/70 italic mb-6">Vælg hvor du vil gemme din opskrift.</p>
 
             <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar mb-6">
-              {allFolders.filter(f => !f.isDefault).map(folder => (
+              {mutableFolders.filter(f => !f.isDefault).map(folder => (
                 <button
                   key={folder.id}
                   onClick={() => {

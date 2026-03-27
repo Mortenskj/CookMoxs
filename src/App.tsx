@@ -16,7 +16,7 @@ import {
 } from './services/aiService';
 import { trackEvent } from './services/analyticsService';
 import { normalizeAuthError } from './services/authErrorMessageService';
-import { normalizeImportError, normalizeSyncError } from './services/errorMessageService';
+import { normalizeAiActionError, normalizeImportError, normalizeSyncError } from './services/errorMessageService';
 import { removeFolderShare, setFolderPermissionState, upsertFolderShare } from './services/folderPermissionService';
 import {
   cacheActiveRecipeForCookMode,
@@ -30,7 +30,18 @@ import { COOK_FONT_META, DEFAULT_COOK_FONT_SIZE, type CookFontSize } from './con
 import { DEFAULT_IMPORT_PREFERENCE, type ImportPreference } from './config/importPreferences';
 import { DEFAULT_SEASONAL_THEME, SEASONAL_THEME_IDS } from './config/seasonalThemes';
 import { STORAGE_KEYS } from './config/storageKeys';
+import { APP_BUILD_VERSION } from './generated/buildInfo';
 import { buildRecipeFromImport } from './services/recipeImportService';
+import { createCloudSyncStatusHelpers } from './services/cloudSyncStatusService';
+import {
+  createCanonicalDefaultFolder,
+  DEFAULT_FOLDER_NAME,
+  findDefaultFolder,
+  getCanonicalDefaultFolderId,
+  reconcileDefaultFolderState,
+} from './services/defaultFolderService';
+import { normalizeRecipeForCookMode, normalizeRecipesForCookMode } from './services/recipeStepNormalization';
+import { hasRecipeBeenRemoved } from './services/recipeStateCleanup';
 import { createBackupPayload, downloadBackupFile, parseBackupPayload } from './services/backupService';
 import { mergeAutoImportEnhancement } from './services/importEnhancementService';
 import {
@@ -88,6 +99,7 @@ const getTimerIcon = (description: string) => {
 };
 
 const parseAIError = (err: any, defaultMsg: string) => {
+  return normalizeAiActionError(err).message || defaultMsg;
   let msg = err.message || defaultMsg;
   try {
     const parsed = JSON.parse(msg);
@@ -114,6 +126,11 @@ const parseAIError = (err: any, defaultMsg: string) => {
 };
 
 const getPersistentAIDisabledReason = (err: unknown): string | null => {
+  const normalized = normalizeAiActionError(err);
+  if (normalized.category === 'invalid_model') {
+    return 'AI er ikke tilgaengelig lige nu. Grundimport, manuel oprettelse og cook mode virker stadig.';
+  }
+
   const msg = err instanceof Error ? err.message : String(err ?? '');
 
   if (msg.includes('GEMINI_API_KEY is not configured') || msg.includes('API_KEY_INVALID')) {
@@ -249,25 +266,17 @@ export default function App() {
     setCurrentView(view);
   };
 
-  const markCloudSyncing = (message = 'Synkroniserer til cloud...') => {
-    setCloudSyncStatus('syncing');
-    setCloudSyncMessage(message);
-  };
+  const {
+    markCloudSyncing,
+    markCloudSaved,
+    markCloudError,
+  } = createCloudSyncStatusHelpers({
+    setStatus: setCloudSyncStatus,
+    setMessage: setCloudSyncMessage,
+    setLastSyncAt: setCloudLastSyncAt,
+  });
 
-  const markCloudSaved = (message = 'Synkroniseret til cloud') => {
-    const now = new Date().toISOString();
-    setCloudSyncStatus('saved');
-    setCloudSyncMessage(message);
-    setCloudLastSyncAt(now);
-    localStorage.setItem(STORAGE_KEYS.lastCloudSyncAt, now);
-  };
-
-  const markCloudError = (message = 'Cloud-sync fejlede') => {
-    setCloudSyncStatus('error');
-    setCloudSyncMessage(message);
-  };
-
-  const appVersion = (typeof __APP_VERSION__ !== 'undefined' && __APP_VERSION__) ? __APP_VERSION__ : 'dev';
+  const appVersion = APP_BUILD_VERSION;
 
   const finalizeRecipeDeletion = async (recipeId: string) => {
     if (!user) return;
@@ -364,7 +373,8 @@ export default function App() {
           return;
         }
 
-        setSavedRecipes((prev) => (prev.length > 0 ? prev : cachedRecipes));
+        const normalizedCachedRecipes = normalizeRecipesForCookMode(cachedRecipes);
+        setSavedRecipes((prev) => (prev.length > 0 ? prev : normalizedCachedRecipes));
         setIsSavedRecipeCacheReady(true);
       });
 
@@ -379,12 +389,9 @@ export default function App() {
 
       const unsubFoldersSync = listenToAccessibleFolders(user.uid, (snapshotFolders) => {
         const allFolders: Folder[] = [];
-        let hasUnsavedFolder = false;
         const sharedFolderIds: string[] = [];
 
         snapshotFolders.forEach((data) => {
-          if (data.name === 'Ikke gemte' && data.ownerUID === user.uid) hasUnsavedFolder = true;
-
           if (data.ownerUID !== user.uid) {
             sharedFolderIds.push(data.id);
           }
@@ -415,21 +422,21 @@ export default function App() {
           allFolders.push(data);
         });
 
-        if (!hasUnsavedFolder) {
-          saveFolderInCloud({
-            id: `unsaved_${user.uid}`,
-            name: 'Ikke gemte',
-            ownerUID: user.uid,
-            isDefault: true,
-            sharedWith: [],
-            editorUids: [],
-            viewerUids: [],
-          }).catch((error) => {
+        const reconciled = reconcileDefaultFolderState(allFolders, savedRecipes, user.uid);
+        const hadCanonicalDefault = allFolders.some((folder) => folder.id === getCanonicalDefaultFolderId(user.uid));
+
+        if (!hadCanonicalDefault) {
+          saveFolderInCloud(reconciled.defaultFolder).catch((error) => {
             markCloudError(normalizeSyncError(error, 'Standardmappen kunne ikke synkroniseres.'));
           });
         }
 
-        setFolders(allFolders);
+        setFolders(reconciled.folders);
+        setSavedRecipes((prev) => {
+          const myRecipes = reconciled.recipes.filter((recipe) => recipe.authorUID === user.uid);
+          const shared = prev.filter((recipe) => recipe.authorUID !== user.uid);
+          return [...myRecipes, ...shared];
+        });
 
         if (unsubSharedRecipes) {
           unsubSharedRecipes();
@@ -456,7 +463,7 @@ export default function App() {
       void (async () => {
         const localRecipes = loadLocalRecipes();
         const cachedRecipes = localRecipes.length > 0 ? null : await loadCachedSavedRecipesForCookMode();
-        const nextRecipes = localRecipes.length > 0 ? localRecipes : cachedRecipes || [];
+        const nextRecipes = localRecipes.length > 0 ? localRecipes : normalizeRecipesForCookMode(cachedRecipes || []);
 
         if (cancelled) return;
 
@@ -480,7 +487,7 @@ export default function App() {
 
       if (cancelled) return;
 
-      setActiveRecipe(localActiveRecipe || cachedActiveRecipe);
+      setActiveRecipe(localActiveRecipe || (cachedActiveRecipe ? normalizeRecipeForCookMode(cachedActiveRecipe) : null));
       setIsActiveRecipeCacheReady(true);
     })();
 
@@ -498,6 +505,22 @@ export default function App() {
     if (!isActiveRecipeCacheReady) return;
     void cacheActiveRecipeForCookMode(activeRecipe);
   }, [activeRecipe, isActiveRecipeCacheReady]);
+
+  useEffect(() => {
+    if (hasRecipeBeenRemoved(viewingRecipe, savedRecipes)) {
+      setViewingRecipe(null);
+      if (currentView === 'recipe') {
+        setCurrentView('home');
+      }
+    }
+
+    if (hasRecipeBeenRemoved(activeRecipe, savedRecipes)) {
+      saveActiveRecipe(null);
+      if (currentView === 'cook' || currentView === 'active') {
+        setCurrentView('home');
+      }
+    }
+  }, [activeRecipe, currentView, savedRecipes, viewingRecipe]);
 
   useEffect(() => {
     let interval: number;
@@ -531,28 +554,21 @@ export default function App() {
       return;
     }
 
-    const hasDefault = folders.some(f => f.name === 'Ikke gemte' || f.isDefault);
+    const hasDefault = folders.some(f => f.id === getCanonicalDefaultFolderId(user.uid));
     if (!hasDefault) {
-      saveFolderInCloud({
-        id: `default-un-saved-${user.uid}`,
-        name: 'Ikke gemte',
-        ownerUID: user.uid,
-        isDefault: true,
-        sharedWith: [],
-        editorUids: [],
-        viewerUids: [],
-      }).catch((error) => {
+      saveFolderInCloud(createCanonicalDefaultFolder(user.uid)).catch((error) => {
         markCloudError(normalizeSyncError(error, 'Standardmappen kunne ikke synkroniseres.'));
       });
     }
   }, [folders, user, isAuthReady]);
 
   const saveToLocalStorage = (newRecipes: Recipe[]) => {
-    saveLocalRecipes(newRecipes);
-    setSavedRecipes(newRecipes);
+    const normalizedRecipes = normalizeRecipesForCookMode(newRecipes);
+    saveLocalRecipes(normalizedRecipes);
+    setSavedRecipes(normalizedRecipes);
     
     if (!user) {
-      const updatedFolders = mergeMissingFoldersFromRecipes(newRecipes, folders);
+      const updatedFolders = mergeMissingFoldersFromRecipes(normalizedRecipes, folders);
       if (updatedFolders !== folders) {
         setFolders(updatedFolders);
         saveLocalFolders(updatedFolders);
@@ -592,9 +608,12 @@ export default function App() {
       const raw = await file.text();
       const backup = parseBackupPayload(raw);
 
-      saveLocalRecipes(backup.recipes);
+      const normalizedRecipes = normalizeRecipesForCookMode(backup.recipes);
+      const normalizedActiveRecipe = backup.activeRecipe ? normalizeRecipeForCookMode(backup.activeRecipe) : null;
+
+      saveLocalRecipes(normalizedRecipes);
       saveLocalFolders(backup.folders);
-      saveLocalActiveRecipe(backup.activeRecipe);
+      saveLocalActiveRecipe(normalizedActiveRecipe);
 
       localStorage.setItem(STORAGE_KEYS.theme, backup.preferences.theme);
       localStorage.setItem(STORAGE_KEYS.darkMode, String(backup.preferences.isDarkMode));
@@ -603,9 +622,9 @@ export default function App() {
         localStorage.setItem(STORAGE_KEYS.importPreference, backup.preferences.importPreference);
       }
 
-      setSavedRecipes(backup.recipes);
+      setSavedRecipes(normalizedRecipes);
       setFolders(backup.folders);
-      setActiveRecipe(backup.activeRecipe);
+      setActiveRecipe(normalizedActiveRecipe);
       setTheme(backup.preferences.theme);
       setIsDarkMode(backup.preferences.isDarkMode);
       setUserLevel(backup.preferences.userLevel);
@@ -623,7 +642,7 @@ export default function App() {
         try {
           await Promise.all([
             ...backup.folders.map(folder => saveFolderInCloud(folder)),
-            ...backup.recipes.map(recipe => saveRecipeInCloud({ ...recipe, authorUID: user.uid })),
+            ...normalizedRecipes.map(recipe => saveRecipeInCloud({ ...recipe, authorUID: user.uid })),
           ]);
           markCloudSaved('Backup gendannet og synkroniseret');
         } catch (error) {
@@ -744,12 +763,12 @@ export default function App() {
     setUndoDeleteFolder({ folder, prevFolders, prevRecipes, movedRecipes, timeoutId });
   };
 
-  const handleShareFolder = async (folderId: string, email: string, role: 'viewer' | 'editor') => {
+  const handleShareFolder = async (folderId: string, email: string) => {
     if (!user) return;
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
 
-    const updatedFolder = upsertFolderShare(folder, email, role);
+    const updatedFolder = upsertFolderShare(folder, email);
 
     try {
       markCloudSyncing('Deler mappe via cloud...');
@@ -759,29 +778,10 @@ export default function App() {
       trackEvent('folder_shared', {
         ...getAnalyticsContext(),
         folderId,
-        role,
+        role: 'viewer',
       });
     } catch (error) {
       const syncMessage = normalizeSyncError(error, 'Mappedeling kunne ikke gemmes.');
-      markCloudError(syncMessage);
-      setError(syncMessage);
-    }
-  };
-
-  const handleUpdateFolderShareRole = async (folderId: string, email: string, role: 'viewer' | 'editor') => {
-    if (!user) return;
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder) return;
-
-    const updatedFolder = upsertFolderShare(folder, email, role);
-
-    try {
-      markCloudSyncing('Opdaterer mappetilladelser...');
-      await saveFolderInCloud(updatedFolder);
-      setFolders(prev => prev.map(f => f.id === folderId ? updatedFolder : f));
-      markCloudSaved('Mappetilladelser opdateret');
-    } catch (error) {
-      const syncMessage = normalizeSyncError(error, 'Mappetilladelser kunne ikke opdateres.');
       markCloudError(syncMessage);
       setError(syncMessage);
     }
@@ -806,7 +806,7 @@ export default function App() {
     }
   };
 
-  const handleSetFolderPermissionState = async (folderId: string, state: 'private' | 'shared_view' | 'shared_edit') => {
+  const handleSetFolderPermissionState = async (folderId: string, state: 'private' | 'shared_view') => {
     if (!user) return;
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
@@ -826,26 +826,27 @@ export default function App() {
   };
 
   const saveActiveRecipe = (recipe: Recipe | null) => {
-    saveLocalActiveRecipe(recipe);
-    setActiveRecipe(recipe);
+    const normalizedRecipe = recipe ? normalizeRecipeForCookMode(recipe) : null;
+    saveLocalActiveRecipe(normalizedRecipe);
+    setActiveRecipe(normalizedRecipe);
   };
 
   const hydrateDirectImportRecipe = (directRecipe: Recipe, sourceUrl: string): Recipe => {
-    const defaultFolder = folders.find(f => f.isDefault || f.name === 'Ikke gemte') || folders[0];
+    const defaultFolder = findDefaultFolder(folders, user?.uid || 'local') || folders[0];
     const now = new Date().toISOString();
 
-    return {
+    return normalizeRecipeForCookMode({
       ...directRecipe,
       id: Date.now().toString(),
-      folder: defaultFolder?.name || 'Ikke gemte',
-      folderId: defaultFolder?.id || `default-un-saved-${user?.uid}`,
+      folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
+      folderId: defaultFolder?.id || getCanonicalDefaultFolderId(user?.uid || 'local'),
       isSaved: false,
       sourceUrl,
       authorUID: user?.uid,
       lastUsed: now,
       createdAt: now,
       updatedAt: now,
-    };
+    });
   };
 
   const requestDirectImport = async (url: string): Promise<Recipe> => {
@@ -975,6 +976,7 @@ export default function App() {
           folders,
           userId: user?.uid,
         });
+        newRecipe = normalizeRecipeForCookMode(newRecipe);
         setAiUnavailableMessage(null);
       }
 
@@ -985,7 +987,7 @@ export default function App() {
 
         const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
         setAiUnavailableMessage(null);
-        newRecipe = mergeAutoImportEnhancement(newRecipe, enhancedRecipe);
+        newRecipe = normalizeRecipeForCookMode(mergeAutoImportEnhancement(newRecipe, enhancedRecipe));
         trackEvent('ai_adjust_used', {
           ...getAnalyticsContext(),
           recipeId: newRecipe.id,
@@ -1094,12 +1096,12 @@ export default function App() {
 
   const handleSaveRecipe = async (recipe: Recipe) => {
     if (!user) {
-      const updatedRecipe: Recipe = {
+      const updatedRecipe: Recipe = normalizeRecipeForCookMode({
         ...recipe,
         isSaved: true,
         createdAt: recipe.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
+      });
 
       setSavedRecipes(prev => {
         const index = prev.findIndex(r => r.id === recipe.id);
@@ -1141,7 +1143,7 @@ export default function App() {
       let finalFolderId = recipe.folderId;
       let finalFolderName = recipe.folder;
 
-      if (finalFolderName === 'Ikke gemte') {
+      if (finalFolderName === DEFAULT_FOLDER_NAME) {
         finalFolderName = 'Opskrifter';
         finalFolderId = undefined;
       }
@@ -1168,14 +1170,14 @@ export default function App() {
         }
       }
 
-      const updatedRecipe: Recipe = { 
+      const updatedRecipe: Recipe = normalizeRecipeForCookMode({ 
         ...recipe, 
         isSaved: true,
         folder: finalFolderName,
         folderId: finalFolderId,
         authorUID: user.uid,
         createdAt: recipe.createdAt || new Date().toISOString()
-      };
+      });
       
       markCloudSyncing('Gemmer opskrift i cloud...');
       await saveRecipeInCloud(updatedRecipe);
@@ -1254,7 +1256,7 @@ export default function App() {
   };
 
   const handleToggleFavorite = (recipe: Recipe) => {
-    const updatedRecipe = { ...recipe, isFavorite: !recipe.isFavorite, updatedAt: new Date().toISOString() };
+    const updatedRecipe = normalizeRecipeForCookMode({ ...recipe, isFavorite: !recipe.isFavorite, updatedAt: new Date().toISOString() });
     setViewingRecipe(updatedRecipe);
     
     const newSaved = savedRecipes.map(r => r.id === recipe.id ? updatedRecipe : r);
@@ -1307,11 +1309,11 @@ export default function App() {
     try {
       const updated = await aiAdjustRecipe(recipe, instruction);
       setAiUnavailableMessage(null);
-      setViewingRecipe({
+      setViewingRecipe(normalizeRecipeForCookMode({
         ...updated,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      });
+      }));
       trackEvent('ai_adjust_used', {
         ...getAnalyticsContext(),
         recipeId: recipe.id,
@@ -1332,11 +1334,11 @@ export default function App() {
     try {
       const updated = await aiGenerateSteps(recipe, userLevel);
       setAiUnavailableMessage(null);
-      setViewingRecipe({
+      setViewingRecipe(normalizeRecipeForCookMode({
         ...updated,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      });
+      }));
       trackEvent('ai_adjust_used', {
         ...getAnalyticsContext(),
         recipeId: recipe.id,
@@ -1357,12 +1359,12 @@ export default function App() {
     try {
       const updated = await aiFillRest(recipe, userLevel);
       setAiUnavailableMessage(null);
-      setViewingRecipe({
+      setViewingRecipe(normalizeRecipeForCookMode({
         ...updated,
         title: recipe.title,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      });
+      }));
       trackEvent('ai_adjust_used', {
         ...getAnalyticsContext(),
         recipeId: recipe.id,
@@ -1383,9 +1385,9 @@ export default function App() {
     try {
       const tipsAndTricks = await aiGenerateTips(recipe);
       setAiUnavailableMessage(null);
-      const updatedRecipe: Recipe = { ...recipe, tipsAndTricks };
+      const updatedRecipe: Recipe = normalizeRecipeForCookMode({ ...recipe, tipsAndTricks });
       setViewingRecipe(updatedRecipe);
-      handleSaveRecipe(updatedRecipe);
+      await handleSaveRecipe(updatedRecipe);
       trackEvent('ai_adjust_used', {
         ...getAnalyticsContext(),
         recipeId: recipe.id,
@@ -1406,12 +1408,12 @@ export default function App() {
     try {
       const updated = await aiApplyPrefix(recipe, prefix);
       setAiUnavailableMessage(null);
-      const newRecipe: Recipe = {
+      const newRecipe: Recipe = normalizeRecipeForCookMode({
         ...updated,
         id: Date.now().toString(),
         originalRecipeId: recipe.originalRecipeId || recipe.id,
         lastUsed: new Date().toISOString(),
-      };
+      });
       setViewingRecipe(newRecipe);
       trackEvent('ai_adjust_used', {
         ...getAnalyticsContext(),
@@ -1501,14 +1503,14 @@ export default function App() {
         <ImportView 
           onImport={handleImport}
           onCreateManual={() => {
-            const defaultFolder = folders.find(f => f.name === 'Ikke gemte' || f.isDefault);
+            const defaultFolder = findDefaultFolder(folders, user?.uid || 'local');
             const newRecipe: Recipe = {
               id: Date.now().toString(),
               title: '',
               summary: '',
               recipeType: '',
               categories: [],
-              folder: defaultFolder?.name || 'Ikke gemte',
+              folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
               folderId: defaultFolder?.id,
               notes: '',
               servings: 4,
@@ -1555,7 +1557,6 @@ export default function App() {
           onDeleteFolder={handleDeleteFolder}
           onRenameFolder={handleRenameFolder}
           onShareFolder={handleShareFolder}
-          onUpdateFolderShareRole={handleUpdateFolderShareRole}
           onRemoveFolderShare={handleRemoveFolderShare}
           onSetFolderPermissionState={handleSetFolderPermissionState}
           currentUser={user}
@@ -1586,6 +1587,7 @@ export default function App() {
             if (original) setViewingRecipe(original);
           }}
           isAdjusting={adjusting}
+          error={error}
           aiDisabledReason={aiDisabledReason}
           initialEditMode={viewingRecipe.title === ''}
         />
