@@ -39,6 +39,42 @@ interface SettingsViewProps {
   aiDisabledReason?: string | null;
 }
 
+interface SettingsToggleProps {
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+  enabledLabel?: string;
+  disabledLabel?: string;
+}
+
+function SettingsToggle({
+  enabled,
+  onChange,
+  enabledLabel = 'Til',
+  disabledLabel = 'Fra',
+}: SettingsToggleProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={enabled ? enabledLabel : disabledLabel}
+      onClick={() => onChange(!enabled)}
+      className={`relative inline-flex h-12 w-28 items-center rounded-full border border-black/5 p-1.5 transition-all glass-brushed shadow-inner ${
+        enabled ? 'bg-forest-dark/90' : 'bg-white/50'
+      }`}
+    >
+      <span
+        className={`absolute top-1/2 h-9 w-9 -translate-y-1/2 rounded-full transition-all ${
+          enabled ? 'left-[calc(100%-2.625rem)] bg-white shadow-md' : 'left-1.5 bg-forest-dark shadow-sm'
+        }`}
+      />
+      <span className={`relative z-10 w-full px-2 text-xs font-bold uppercase tracking-widest ${enabled ? 'text-white text-left' : 'text-forest-mid text-right'}`}>
+        {enabled ? enabledLabel : disabledLabel}
+      </span>
+    </button>
+  );
+}
+
 export function SettingsView({
   onBack,
   user,
@@ -298,20 +334,10 @@ export function SettingsView({
                     Når den er slået til, kræver linkimport også en efterfølgende AI-tilpasning, så du kan teste hele importkæden.
                   </p>
                 </div>
-                <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
-                  <button
-                    onClick={() => setAutoAiImportEnhancement(false)}
-                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${!autoAiImportEnhancement ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
-                  >
-                    Fra
-                  </button>
-                  <button
-                    onClick={() => setAutoAiImportEnhancement(true)}
-                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${autoAiImportEnhancement ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
-                  >
-                    Til
-                  </button>
-                </div>
+                <SettingsToggle
+                  enabled={autoAiImportEnhancement}
+                  onChange={setAutoAiImportEnhancement}
+                />
               </div>
             </div>
             {aiDisabledReason && (
@@ -337,20 +363,10 @@ export function SettingsView({
                     Når modulet er slået fra, skjules nutrition-opslag i Indstillinger og på opskriftssiden.
                   </p>
                 </div>
-                <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
-                  <button
-                    onClick={() => setNutritionToolsEnabled(false)}
-                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${!nutritionToolsEnabled ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
-                  >
-                    Fra
-                  </button>
-                  <button
-                    onClick={() => setNutritionToolsEnabled(true)}
-                    className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${nutritionToolsEnabled ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
-                  >
-                    Til
-                  </button>
-                </div>
+                <SettingsToggle
+                  enabled={nutritionToolsEnabled}
+                  onChange={setNutritionToolsEnabled}
+                />
               </div>
             </div>
 
