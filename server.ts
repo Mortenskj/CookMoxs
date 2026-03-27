@@ -1,12 +1,18 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import axios from 'axios';
 import * as cheerio from 'cheerio';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { GoogleGenAI, Type } from '@google/genai';
+import { ADJUST_MODEL, DEFAULT_STRUCTURED_MODEL, IMPORT_MODEL, MODEL_DOC_COMMENT } from './src/config/serverAiModels.ts';
 import { getNutritionModuleConfig } from './src/config/nutritionModule.ts';
+import {
+  extractTextFromAiResponse,
+  parseAiJsonResponse as parseAiJsonPayload,
+  toAiErrorResponse,
+} from './src/server/utils/aiResponse.ts';
+import { fetchWithSafeRedirects, UnsafeUrlError } from './src/server/utils/urlSafety.ts';
 import { DirectParseError, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
 import {
   NutritionLookupError,
@@ -46,6 +52,8 @@ const RECIPE_SCHEMA = {
         properties: {
           text: { type: Type.STRING },
           heat: { type: Type.STRING },
+          heatLevel: { type: Type.NUMBER },
+          heatSource: { type: Type.STRING },
           reminder: { type: Type.STRING },
           timer: {
             type: Type.OBJECT,
@@ -107,10 +115,12 @@ async function generateAIContent(model: string, prompt: string, responseSchema: 
       responseSchema,
     },
   });
-  return parseAiJsonResponse(result.text, `model ${model}`);
+  const responseText = extractTextFromAiResponse(result, `model ${model}`);
+  return parseAiJsonResponse(responseText, `model ${model}`);
 }
 
 function parseAiJsonResponse(rawText: string, context: string) {
+  return parseAiJsonPayload(rawText, context);
   const candidates = [
     rawText,
     rawText.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1] || '',
@@ -156,20 +166,6 @@ function getLevelStyleInstruction(level: string | undefined, mode: 'steps' | 'fi
   }
 }
 
-function isPrivateHostname(hostname: string) {
-  const host = hostname.toLowerCase();
-  if (['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host)) return true;
-  if (/^10\./.test(host)) return true;
-  if (/^192\.168\./.test(host)) return true;
-  if (/^169\.254\./.test(host)) return true;
-  const match172 = host.match(/^172\.(\d+)\./);
-  if (match172) {
-    const second = Number(match172[1]);
-    if (second >= 16 && second <= 31) return true;
-  }
-  return false;
-}
-
 class HttpError extends Error {
   status: number;
 
@@ -205,29 +201,14 @@ async function fetchRecipeSource(url: string) {
     throw new HttpError(400, 'URL is required');
   }
 
-  let parsedUrl: URL;
   try {
-    parsedUrl = new URL(url);
+    new URL(url);
   } catch {
     throw new HttpError(400, 'URL er ugyldig');
   }
 
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    throw new HttpError(400, 'Kun http og https er tilladt');
-  }
-  if (isPrivateHostname(parsedUrl.hostname)) {
-    throw new HttpError(400, 'Private eller lokale adresser er ikke tilladt');
-  }
-
   try {
-    const response = await axios.get(parsedUrl.toString(), {
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'da-DK,da;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
-      timeout: 10000,
-    });
+    const { response } = await fetchWithSafeRedirects(url);
 
     const $ = cheerio.load(response.data);
     let recipeJson: any = null;
@@ -281,14 +262,12 @@ async function fetchRecipeSource(url: string) {
     contentElement.find('br').replaceWith('\n');
     contentElement.find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
     return { html: contentElement.text().replace(/\s+/g, ' ').trim() };
-  } catch (error: any) {
-    console.error('Error fetching URL:', error.message);
-    if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
-      throw new HttpError(504, 'Kilden brugte for lang tid paa at svare');
+  } catch (error) {
+    if (error instanceof UnsafeUrlError) {
+      throw new HttpError(error.status, error.message);
     }
-    if (axios.isAxiosError(error) && (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN' || error.code === 'ECONNREFUSED')) {
-      throw new HttpError(502, 'Kunne ikke oprette forbindelse til kilden');
-    }
+
+    console.error('Error fetching URL:', error);
     throw new HttpError(502, 'Kilden kunne ikke bruges som opskrift');
   }
 }
@@ -444,11 +423,12 @@ async function startServer() {
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent('gemini-3.1-pro-preview', prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(ADJUST_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
-    } catch (err: any) {
-      console.error('AI Adjust Error:', err);
-      return res.status(500).json({ error: err?.message || 'Kunne ikke tilpasse opskriften' });
+    } catch (error) {
+      console.error('AI Adjust Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/adjust');
+      return res.status(failure.status).json(failure.body);
     }
   });
 
@@ -470,10 +450,13 @@ async function startServer() {
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent('gemini-3-flash-preview', prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
-    } catch (err: any) {
-      console.error('AI Generate Steps Error:', err);
+    } catch (error) {
+      const err = error as any;
+      console.error('AI Generate Steps Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/generate-steps');
+      return res.status(failure.status).json(failure.body);
       return res.status(500).json({ error: err?.message || 'Kunne ikke generere fremgangsmåde' });
     }
   });
@@ -492,10 +475,13 @@ async function startServer() {
         Opskrift JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent('gemini-3-flash-preview', prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData, title: recipe.title, id: recipe.id, lastUsed: new Date().toISOString() } });
-    } catch (err: any) {
-      console.error('AI Fill Rest Error:', err);
+    } catch (error) {
+      const err = error as any;
+      console.error('AI Fill Rest Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/fill-rest');
+      return res.status(failure.status).json(failure.body);
       return res.status(500).json({ error: err?.message || 'Kunne ikke udfylde resten' });
     }
   });
@@ -506,10 +492,13 @@ async function startServer() {
     try {
       const prompt = `Giv mig 3-5 avancerede tips, tricks, teknikker eller overvejelser til denne opskrift: \"${recipe.title}\". Returner et JSON objekt med en enkelt nøgle \"tipsAndTricks\" som er et array af strings.`;
       const schema = { type: Type.OBJECT, properties: { tipsAndTricks: { type: Type.ARRAY, items: { type: Type.STRING } } } };
-      const parsedData = await generateAIContent('gemini-3-flash-preview', prompt, schema);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, schema);
       return res.json({ tipsAndTricks: parsedData.tipsAndTricks });
-    } catch (err: any) {
-      console.error('AI Generate Tips Error:', err);
+    } catch (error) {
+      const err = error as any;
+      console.error('AI Generate Tips Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/generate-tips');
+      return res.status(failure.status).json(failure.body);
       return res.status(500).json({ error: err?.message || 'Kunne ikke generere tips' });
     }
   });
@@ -529,10 +518,13 @@ async function startServer() {
       - [Spice it up] -> Mere smag og krydderi.
       Opskrift JSON:
       ${JSON.stringify(recipe, null, 2)}`;
-      const parsedData = await generateAIContent('gemini-3-flash-preview', prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData } });
-    } catch (err: any) {
-      console.error('AI Apply Prefix Error:', err);
+    } catch (error) {
+      const err = error as any;
+      console.error('AI Apply Prefix Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/apply-prefix');
+      return res.status(failure.status).json(failure.body);
       return res.status(500).json({ error: err?.message || 'Kunne ikke tilpasse opskriften' });
     }
   });
@@ -560,14 +552,14 @@ async function startServer() {
         const prompt = isStructuredData
           ? `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`
           : `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`;
-        const parsedData = await generateAIContent('gemini-3-flash-preview', prompt, RECIPE_SCHEMA);
+        const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA);
         return res.json({ parsedData });
       }
 
       if ((sourceType === 'file' || sourceType === 'image') && fileData?.data && fileData?.mimeType) {
         const prompt = `Extract the recipe from this document or image. ${sharedRules}`;
         const result = await getAiClient().models.generateContent({
-          model: 'gemini-3-flash-preview',
+          model: IMPORT_MODEL,
           contents: [{ parts: [
             { inlineData: { data: fileData.data, mimeType: fileData.mimeType } },
             { text: prompt },
@@ -577,13 +569,17 @@ async function startServer() {
             responseSchema: RECIPE_SCHEMA,
           },
         });
-        const parsedData = parseAiJsonResponse(result.text, `import ${sourceType}`);
+        const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
+        const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
         return res.json({ parsedData });
       }
 
       return res.status(400).json({ error: 'Manglende indhold til import' });
-    } catch (err: any) {
-      console.error('AI Import Error:', err);
+    } catch (error) {
+      const err = error as any;
+      console.error('AI Import Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/import');
+      return res.status(failure.status).json(failure.body);
       return res.status(500).json({ error: err?.message || 'Kunne ikke importere opskriften' });
     }
   });
@@ -642,8 +638,9 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`[startup] GEMINI_API_KEY is ${process.env.GEMINI_API_KEY ? 'configured' : 'MISSING'}`);
+    console.log(`[startup] AI model config: ${MODEL_DOC_COMMENT}`);
   });
 }
 
-console.log(`[startup] GEMINI_API_KEY is ${process.env.GEMINI_API_KEY ? 'configured (' + process.env.GEMINI_API_KEY.slice(0, 6) + '...)' : 'MISSING'}`);
 startServer();

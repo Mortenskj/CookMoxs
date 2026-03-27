@@ -1,4 +1,5 @@
 import { Folder, Recipe } from '../types';
+import { normalizeRecipeForCookMode } from './recipeStepNormalization';
 
 interface BuildRecipeOptions {
   parsedData: any;
@@ -11,7 +12,7 @@ interface BuildRecipeOptions {
 export function buildRecipeFromImport({ parsedData, sourceType, originalContent, folders, userId }: BuildRecipeOptions): Recipe {
   const defaultFolder = folders.find(f => f.isDefault || f.name === 'Ikke gemte') || folders[0];
 
-  return {
+  return normalizeRecipeForCookMode({
     id: Date.now().toString(),
     title: parsedData.title || 'Uden navn',
     summary: parsedData.summary || '',
@@ -35,6 +36,8 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
       id: `step-${i}`,
       text: step.text || '',
       heat: step.heat,
+      heatLevel: step.heatLevel,
+      heatSource: step.heatSource,
       timer: step.timer,
       reminder: step.reminder,
       relevantIngredients: step.relevantIngredients || [],
@@ -51,5 +54,5 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     authorUID: userId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  });
 }

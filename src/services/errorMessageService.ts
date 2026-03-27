@@ -1,4 +1,5 @@
 import type { FirestoreErrorInfo } from '../firebase';
+import { AiRequestError } from './aiService';
 
 export type ImportErrorCategory =
   | 'network'
@@ -6,6 +7,12 @@ export type ImportErrorCategory =
   | 'malformed_response'
   | 'unsupported_source'
   | 'ai_failure';
+
+export type AiActionErrorCategory =
+  | 'ai_unavailable'
+  | 'invalid_model'
+  | 'malformed_response'
+  | 'network';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -30,6 +37,36 @@ function parseFirestoreErrorInfo(error: unknown): FirestoreErrorInfo | null {
 }
 
 export function normalizeImportError(error: unknown): { category: ImportErrorCategory; message: string } {
+  if (error instanceof AiRequestError) {
+    if (error.code === 'offline' || error.code === 'network_error') {
+      return {
+        category: 'network',
+        message: 'Netvaerket drillede, saa opskriften kunne ikke hentes. Tjek forbindelsen og proev igen.',
+      };
+    }
+
+    if (error.code === 'ai_model_error') {
+      return {
+        category: 'ai_failure',
+        message: 'AI er midlertidigt utilgaengelig paa serveren. Importen kan ikke fortsaette, foer modelkonfigurationen er rettet.',
+      };
+    }
+
+    if (error.code === 'ai_parse_error' || error.code === 'ai_empty_response') {
+      return {
+        category: 'malformed_response',
+        message: 'Vi fik et ugyldigt svar tilbage under importen. Proev igen eller brug tekst i stedet.',
+      };
+    }
+
+    if (error.code === 'ai_transport_error') {
+      return {
+        category: 'ai_failure',
+        message: 'AI kunne ikke kontaktes lige nu. Proev igen om lidt.',
+      };
+    }
+  }
+
   const rawMessage = getErrorMessage(error).toLowerCase();
 
   if (rawMessage.includes('blev afbrudt') || rawMessage.includes('ikke blev godkendt')) {
@@ -148,4 +185,80 @@ export function normalizeSyncError(error: unknown, fallbackMessage = 'Cloud-sync
   }
 
   return fallbackMessage;
+}
+
+export function normalizeAiActionError(error: unknown): { category: AiActionErrorCategory; message: string } {
+  if (error instanceof AiRequestError) {
+    if (error.code === 'offline' || error.code === 'network_error') {
+      return {
+        category: 'network',
+        message: 'Netvaerket drillede, saa AI-handlingen kunne ikke gennemfoeres. Tjek forbindelsen og proev igen.',
+      };
+    }
+
+    if (error.code === 'ai_model_error') {
+      return {
+        category: 'invalid_model',
+        message: 'AI er midlertidigt utilgaengelig paa serveren. Modelkonfigurationen eller serveropsaetningen skal rettes.',
+      };
+    }
+
+    if (error.code === 'ai_parse_error' || error.code === 'ai_empty_response') {
+      return {
+        category: 'malformed_response',
+        message: 'AI returnerede et svar, som ikke kunne bruges sikkert. Proev igen om lidt.',
+      };
+    }
+
+    if (error.code === 'ai_transport_error') {
+      return {
+        category: 'ai_unavailable',
+        message: 'AI kunne ikke kontaktes lige nu. Proev igen om lidt.',
+      };
+    }
+  }
+
+  const rawMessage = getErrorMessage(error).toLowerCase();
+
+  if (
+    rawMessage.includes('failed to fetch')
+    || rawMessage.includes('fetch failed')
+    || rawMessage.includes('network')
+    || rawMessage.includes('offline')
+    || rawMessage.includes('netv')
+  ) {
+    return {
+      category: 'network',
+      message: 'Netvaerket drillede, saa AI-handlingen kunne ikke gennemfoeres. Tjek forbindelsen og proev igen.',
+    };
+  }
+
+  if (
+    rawMessage.includes('model')
+    || rawMessage.includes('api_key_invalid')
+    || rawMessage.includes('gemini_api_key')
+    || rawMessage.includes('konfigureret')
+  ) {
+    return {
+      category: 'invalid_model',
+      message: 'AI er midlertidigt utilgaengelig paa serveren. Modelkonfigurationen eller serveropsaetningen skal rettes.',
+    };
+  }
+
+  if (
+    rawMessage.includes('malformed')
+    || rawMessage.includes('unexpected')
+    || rawMessage.includes('json')
+    || rawMessage.includes('empty response')
+  ) {
+    return {
+      category: 'malformed_response',
+      message: 'AI returnerede et svar, som ikke kunne bruges sikkert. Proev igen om lidt.',
+    };
+  }
+
+  return {
+    category: 'ai_unavailable',
+    message: 'AI kunne ikke kontaktes lige nu. Proev igen om lidt.',
+  };
 }

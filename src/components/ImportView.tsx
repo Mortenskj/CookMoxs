@@ -72,9 +72,17 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         return;
       }
 
-      await onImport(url, 'url');
+      try {
+        await onImport(url, 'url');
+      } catch {
+        // Error state is surfaced by the parent view.
+      }
     } else if (activeTab === 'text' && text && !textAndFileDisabledReason) {
-      await onImport(text, 'text');
+      try {
+        await onImport(text, 'text');
+      } catch {
+        // Error state is surfaced by the parent view.
+      }
     }
   };
 
@@ -126,7 +134,11 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
       if (match) {
         const mimeType = match[1];
         const data = match[2];
-        await onImport({ data, mimeType }, type);
+        try {
+          await onImport({ data, mimeType }, type);
+        } catch {
+          // Error state is surfaced by the parent view.
+        }
       }
     };
     reader.readAsDataURL(file);

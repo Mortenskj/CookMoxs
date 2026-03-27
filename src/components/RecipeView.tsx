@@ -8,7 +8,7 @@ import { OwnershipBadge } from './OwnershipBadge';
 import { FolderVisibilityNotice } from './FolderVisibilityNotice';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
 import { RecipeNutritionAttachmentCard } from './RecipeNutritionAttachmentCard';
-import { formatHeatDisplay, formatHeatGuideEntry } from '../services/cookModeHeuristics';
+import { formatHeatGuideEntry, formatStepHeatDisplay } from '../services/cookModeHeuristics';
 import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
@@ -30,12 +30,13 @@ interface RecipeViewProps {
   onApplyPrefix?: (recipe: Recipe, prefix: string) => void;
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
+  error?: string | null;
   aiDisabledReason?: string | null;
   initialEditMode?: boolean;
   currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [includePrep, setIncludePrep] = useState(true);
   const [isEditing, setIsEditing] = useState(initialEditMode);
@@ -795,6 +796,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {onFillRest && (
             <button
               onClick={() => onFillRest(editData)}
@@ -927,6 +934,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           )}
 
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           {recipe.notes && (
             <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 mt-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
@@ -1171,7 +1183,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <div className="flex flex-wrap gap-2">
                   {step.heat && (
                     <div className="inline-flex items-center gap-2 bg-white/60 dark:bg-black/20 text-heath-mid px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
-                      <Flame size={12} /> {formatHeatDisplay(step.heat)}
+                      <Flame size={12} /> {formatStepHeatDisplay(step)}
                     </div>
                   )}
                   {step.timer && (

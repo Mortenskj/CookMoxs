@@ -61,6 +61,8 @@ export interface Step {
   id: string;
   text: string;
   heat?: string;
+  heatLevel?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  heatSource?: 'ai' | 'heuristic' | 'migrated';
   relevantIngredients?: StepIngredient[];
   timer?: StepTimer;
   reminder?: string;

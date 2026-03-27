@@ -1,6 +1,7 @@
 import { collection, deleteDoc, doc as firestoreDoc, onSnapshot, or, query, setDoc, where } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '../config/householdModel';
 import { createFirestoreErrorInfo, db, handleFirestoreError, OperationType, sanitizeData, type FirestoreErrorInfo } from '../firebase';
+import { normalizeRecipeForCookMode, normalizeRecipesForCookMode } from './recipeStepNormalization';
 import type { Folder, Household, Recipe } from '../types';
 
 export type RecipeDocument = Recipe;
@@ -12,7 +13,7 @@ export function listenToUserRecipes(userId: string, onData: (recipes: Recipe[]) 
   return onSnapshot(recipesQuery, (snapshot) => {
     const recipes: Recipe[] = [];
     snapshot.forEach((doc) => recipes.push(doc.data() as Recipe));
-    onData(recipes);
+    onData(normalizeRecipesForCookMode(recipes));
   }, (error) => {
     const errInfo = createFirestoreErrorInfo(error, OperationType.LIST, 'recipes');
     console.error('Firestore Error: ', JSON.stringify(errInfo));
@@ -59,7 +60,7 @@ export function listenToSharedRecipes(folderIds: string[], onData: (recipes: Rec
       }
       snapshot.forEach((doc) => {
         const recipe = doc.data() as Recipe;
-        collected.set(recipe.id, recipe);
+        collected.set(recipe.id, normalizeRecipeForCookMode(recipe));
       });
       emit();
     }, (error) => {
@@ -91,7 +92,10 @@ export async function deleteFolder(folderId: string) {
 
 export async function saveRecipe(recipe: Recipe) {
   try {
-    await setDoc(firestoreDoc(db, FIRESTORE_COLLECTIONS.recipes, recipe.id), sanitizeData(recipe));
+    await setDoc(
+      firestoreDoc(db, FIRESTORE_COLLECTIONS.recipes, recipe.id),
+      sanitizeData(normalizeRecipeForCookMode(recipe)),
+    );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `recipes/${recipe.id}`);
   }

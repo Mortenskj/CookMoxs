@@ -1,11 +1,17 @@
 import type { Folder, Recipe } from '../types';
 import { STORAGE_KEYS } from '../config/storageKeys';
+import { normalizeRecipeForCookMode, normalizeRecipesForCookMode } from './recipeStepNormalization';
 
 export function loadLocalRecipes(): Recipe[] {
   const raw = localStorage.getItem(STORAGE_KEYS.recipes);
   if (!raw) return [];
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Recipe[];
+    const normalized = normalizeRecipesForCookMode(parsed);
+    if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+      localStorage.setItem(STORAGE_KEYS.recipes, JSON.stringify(normalized));
+    }
+    return normalized;
   } catch {
     return [];
   }
@@ -25,14 +31,19 @@ export function loadLocalActiveRecipe(): Recipe | null {
   const raw = localStorage.getItem(STORAGE_KEYS.activeRecipe);
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Recipe;
+    const normalized = normalizeRecipeForCookMode(parsed);
+    if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+      localStorage.setItem(STORAGE_KEYS.activeRecipe, JSON.stringify(normalized));
+    }
+    return normalized;
   } catch {
     return null;
   }
 }
 
 export function saveLocalRecipes(recipes: Recipe[]) {
-  localStorage.setItem(STORAGE_KEYS.recipes, JSON.stringify(recipes));
+  localStorage.setItem(STORAGE_KEYS.recipes, JSON.stringify(normalizeRecipesForCookMode(recipes)));
 }
 
 export function saveLocalFolders(folders: Folder[]) {
@@ -41,7 +52,7 @@ export function saveLocalFolders(folders: Folder[]) {
 
 export function saveLocalActiveRecipe(recipe: Recipe | null) {
   if (recipe) {
-    localStorage.setItem(STORAGE_KEYS.activeRecipe, JSON.stringify(recipe));
+    localStorage.setItem(STORAGE_KEYS.activeRecipe, JSON.stringify(normalizeRecipeForCookMode(recipe)));
   } else {
     localStorage.removeItem(STORAGE_KEYS.activeRecipe);
   }

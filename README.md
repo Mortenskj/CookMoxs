@@ -1,99 +1,78 @@
 # CookMoxs
 
-*En AI-drevet opskriftsassistent og kogebogsapp.*
+CookMoxs is a recipe app with a React + TypeScript frontend, an Express server, and Firebase/Auth + Firestore as the only cloud backend.
+All AI calls stay on the server through Google GenAI.
 
-Dette projekt er en komplet re‑implementering af **CookMoxs** som en moderne
-TypeScript/React frontend med en Express backend. Alle AI-funktioner køres
-på serversiden via Google GenAI (Gemini) for at beskytte API‑nøgler og reducere
-bundle‑størrelsen. Versionen her er den første rene **v1 showcase-build** og samler den tidligere splittede
-kodebase og fokuserer på en strømlinet brugerrejse: **Importer → redigér → kog → gem**.
+## Product flow
 
-## Funktioner
+The main flow is:
 
-- **Opskriftimport** fra URL, rå tekst, PDF/billede eller ved manuel indtastning.  AI‑modellen
-  udtrækker titel, ingredienser, trin, portioner m.m. og normaliserer til
-  danske måleenheder og begyndervenlig tekst.
-- **Automatiske forbedringer**: tilpas eksisterende opskrifter efter brugerens
-  instruktioner (fx dobbelt portion, vegetarisk, konverter til dl/gram), generér eller
-  forbedr fremgangsmåden, udfyld manglende felter og lav små smagsforstærkere.
-- **AI‑profiler**: omskriv opskrifter til forskellige profiler (f.eks. Gourmet,
-  Autentisk, Den hurtige, Begynderen, Babyvenlig) med et enkelt klik.
-- **Kogemodus**: navigér trin for trin med tilpassede timere, induktions‑varme
-  angivet på 1‑9 skala og intelligent ovnforvarmning. Timere kan flyde som widgets
-  og gendannes efter genindlæsning.
-- **Bibliotek og mapper**: gem, organiser og del opskrifter.  Synkroniser dine
-  opskrifter i skyen via Supabase, men appen fungerer fuldt offline med lokal
-  cache hvis du ikke er logget ind.
-- **Dark/light temaer** og sæsonbetonede farveskemaer.
+`Import -> edit -> cook -> save`
 
-## Kodedesign
+Cook mode prefers omission over misinformation.
+Induction guidance is normalized to one exact level on a 1-9 scale.
 
-- **Frontend** lever i `src/` og er skrevet i React med TypeScript.  Store
-  komponenter som `App.tsx` er uddelegeret til views i `src/components/` og
-  hjælpefunktioner i `src/services/`.
-- **Backend** er `server.ts` som kører Express.  Den eksponerer REST‑endpoints
-  under `/api/ai/*` der indkapsler alle kald til Google GenAI.  Ingen
-  API‑nøgler sendes til browseren.  I udvikling bruger serveren Vite som
-  middleware; i produktion serveres den kompilerede `dist/` mappe.
-- **Supabase** SQL ligger i `supabase/` og beskriver strukturen for cloud‑sync
-  (mapper, opskrifter mv.).  Du bestemmer selv om du vil aktivere cloud sync.
-- Projektet er renset ned til de aktive runtime-filer. Historiske mapper og migrationstrin indgår ikke i showcase-pakken.
+## Runtime architecture
 
-## Kom i gang lokalt
+- Frontend: React 19 + TypeScript + Vite
+- Backend: `server.ts` with Express
+- AI: server-side Google GenAI only
+- Cloud data/auth: Firebase Auth + Firestore
+- Offline/local: browser local storage plus the app recipe cache
 
-Appen kræver Node.js 20.x og en API‑nøgle til Google GenAI. Hvis du vil have
-cloud‑synkronisering skal du også oprette et Supabase‑projekt.
+## Firebase files in the repo
 
-1. **Klon repoet og installer afhængigheder**:
+- `firebase-applet-config.json`
+  Client Firebase bootstrap config imported by [src/firebase.ts](/C:/Users/morte/Documents/GitHub/codex%20run/Codex%20Alpha/src/firebase.ts)
+- `firebase-blueprint.json`
+  Removed in this repair pass because it was not part of the active runtime or documentation flow
 
-   ```bash
-   npm install
-   ```
+## Local setup
 
-2. **Kør udviklingsserver** (med hot reload og Vite middleware):
+Requirements:
 
-   ```bash
-   npm run dev
-   ```
+- Node.js 20.x
+- `GEMINI_API_KEY` for AI routes
 
-   Appen er nu tilgængelig på `http://localhost:3000`.  I udvikling kan du
-   undlade API‑nøgler — du vil blot ikke kunne bruge AI‑funktionerne.
+Install and run:
 
-3. **Byg og kør produktion**:
+```bash
+npm install
+npm run dev
+```
 
-   ```bash
-   npm run build
-   NODE_ENV=production npm start
-   ```
+Production build:
 
-   Dette genererer `dist/` via Vite og serverer den med Express.  Sørg for at
-   sætte `GEMINI_API_KEY` i dit miljø hvis du vil bruge AI i produktion.
+```bash
+npm run build
+NODE_ENV=production npm start
+```
 
-## Miljøvariabler
+## Environment variables
 
-| Variable             | Beskrivelse                                                  |
-|----------------------|--------------------------------------------------------------|
-| `GEMINI_API_KEY`     | Din Google GenAI‑nøgle (Gemini).  Kræves for AI‑funktioner. |
-| `SUPABASE_URL`       | (Valgfri) Base URL til dit Supabase‑projekt.                |
-| `SUPABASE_ANON_KEY`  | (Valgfri) Anon/public nøgle til dit Supabase‑projekt.        |
+| Variable | Purpose |
+| --- | --- |
+| `GEMINI_API_KEY` | Required for the server-side Gemini routes |
 
-Disse variabler injiceres aldrig i klientkoden.  Definér dem i din lokale
-terminal eller via Render/Netlify/Heroku–dashboardet afhængigt af din deploy.
+Firebase client configuration is read from `firebase-applet-config.json` in this repository.
+No Supabase environment variables are used.
 
 ## Deploy
 
-Konfiguration til [Render.com](https://render.com) findes i `render.yaml`.  Den
-kører `npm install && npm run build` under build‑fasen og `npm start` under
-run‑fasen.  Husk at sætte miljøvariablerne nævnt ovenfor i Render.  Du kan
-tilpasse `plan`, `name` mv. efter behov.
+[render.yaml](https://render.com/) defines a single Node web service that:
 
-## Showcase-pakke
+- installs dependencies
+- builds the frontend
+- starts `server.ts`
 
-Den endelige showcase-zip indeholder kun de aktive filer til CookMoxs v1: `src/`, `server.ts`, konfigurationsfiler, `public/`, `supabase/`, `dist/` og projektmetadata.
+Set `GEMINI_API_KEY` in Render before using AI features in production.
 
-## Bidrag og licens
+## Verification focus
 
-Projektet er udviklet som et eksempel på en fuldstack app med AI‑genererede
-opskrifter.  Koden er udgivet uden garanti; brug den som inspiration eller
-grundlag for dit eget projekt.  Ændringer og forbedringer er velkomne via
-pull requests.
+This repair pass centers on:
+
+- centralized AI model IDs
+- categorized AI/server failures
+- safer public URL fetching
+- canonical cook-mode normalization for both new and existing recipes
+- Firebase/Firestore-only repo and deploy truth
