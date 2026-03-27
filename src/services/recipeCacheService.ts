@@ -1,6 +1,6 @@
 import type { Recipe } from '../types';
+import { RECIPE_CACHE_NAME } from '../generated/buildInfo';
 
-export const RECIPE_CACHE_NAME = 'cookmoxs-recipes-v1';
 export const SAVED_RECIPES_CACHE_PATH = '/__recipe-cache/saved-recipes.json';
 export const ACTIVE_RECIPE_CACHE_PATH = '/__recipe-cache/active-recipe.json';
 

@@ -1,4 +1,4 @@
-import type { ShareRole, Folder } from '../types';
+import type { Folder } from '../types';
 import type { PermissionUiState } from '../config/permissionUiModel';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -18,12 +18,12 @@ const syncFolderShareIndexes = (folder: Folder): Folder => {
   };
 };
 
-export const upsertFolderShare = (folder: Folder, email: string, role: ShareRole): Folder => {
+export const upsertFolderShare = (folder: Folder, email: string): Folder => {
   const normalizedEmail = normalizeEmail(email);
   const existing = (folder.sharedWith || []).find((share) => normalizeEmail(share.email) === normalizedEmail);
-  const nextSharedWith = existing
-    ? (folder.sharedWith || []).map((share) => normalizeEmail(share.email) === normalizedEmail ? { ...share, email: normalizedEmail, role } : share)
-    : [...(folder.sharedWith || []), { uid: `pending_${normalizedEmail}`, email: normalizedEmail, role }];
+  const nextSharedWith: Folder['sharedWith'] = existing
+    ? (folder.sharedWith || []).map((share) => normalizeEmail(share.email) === normalizedEmail ? { ...share, email: normalizedEmail, role: 'viewer' as const } : share)
+    : [...(folder.sharedWith || []), { uid: `pending_${normalizedEmail}`, email: normalizedEmail, role: 'viewer' as const }];
 
   return syncFolderShareIndexes({
     ...folder,
@@ -39,7 +39,7 @@ export const removeFolderShare = (folder: Folder, email: string): Folder => {
   });
 };
 
-export const setFolderPermissionState = (folder: Folder, state: Exclude<PermissionUiState, 'household'>): Folder => {
+export const setFolderPermissionState = (folder: Folder, state: 'private' | 'shared_view'): Folder => {
   if (state === 'private') {
     return {
       ...folder,
@@ -49,9 +49,8 @@ export const setFolderPermissionState = (folder: Folder, state: Exclude<Permissi
     };
   }
 
-  const nextRole: ShareRole = state === 'shared_edit' ? 'editor' : 'viewer';
   return syncFolderShareIndexes({
     ...folder,
-    sharedWith: (folder.sharedWith || []).map((share) => ({ ...share, role: nextRole })),
+    sharedWith: (folder.sharedWith || []).map((share) => ({ ...share, role: 'viewer' as const })),
   });
 };

@@ -21,10 +21,10 @@ export const PERMISSION_UI_COPY: Record<PermissionUiState, PermissionUiCopy> = {
     neutralDetail: 'Dette indhold deles som læseadgang.',
   },
   shared_edit: {
-    shortLabel: 'Delt redigering',
-    ownerDetail: 'Andre kan se og redigere dette indhold.',
-    memberDetail: 'Du kan se og redigere dette indhold.',
-    neutralDetail: 'Dette indhold deles med redigering.',
+    shortLabel: 'Delt visning',
+    ownerDetail: 'Andre kan se dette indhold, men ikke redigere det i denne repair-pass.',
+    memberDetail: 'Du kan se dette indhold, men ikke redigere det i denne repair-pass.',
+    neutralDetail: 'Dette indhold deles som laeseadgang i denne repair-pass.',
   },
   household: {
     shortLabel: 'Husstand',

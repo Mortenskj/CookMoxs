@@ -1,4 +1,5 @@
 import { Folder, Recipe } from '../types';
+import { DEFAULT_FOLDER_NAME, findDefaultFolder, getCanonicalDefaultFolderId } from './defaultFolderService';
 import { normalizeRecipeForCookMode } from './recipeStepNormalization';
 
 interface BuildRecipeOptions {
@@ -10,7 +11,7 @@ interface BuildRecipeOptions {
 }
 
 export function buildRecipeFromImport({ parsedData, sourceType, originalContent, folders, userId }: BuildRecipeOptions): Recipe {
-  const defaultFolder = folders.find(f => f.isDefault || f.name === 'Ikke gemte') || folders[0];
+  const defaultFolder = findDefaultFolder(folders, userId || 'local') || folders[0];
 
   return normalizeRecipeForCookMode({
     id: Date.now().toString(),
@@ -18,8 +19,8 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     summary: parsedData.summary || '',
     recipeType: parsedData.recipeType || '',
     categories: parsedData.categories || [],
-    folder: defaultFolder?.name || 'Ikke gemte',
-    folderId: defaultFolder?.id || `default-un-saved-${userId}`,
+    folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
+    folderId: defaultFolder?.id || getCanonicalDefaultFolderId(userId || 'local'),
     isSaved: false,
     notes: '',
     servings: parsedData.servings || 4,

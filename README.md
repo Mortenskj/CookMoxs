@@ -48,6 +48,13 @@ npm run build
 NODE_ENV=production npm start
 ```
 
+Verification commands:
+
+```bash
+npm run build:strict
+npm run verify:parser
+```
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -75,4 +82,6 @@ This repair pass centers on:
 - categorized AI/server failures
 - safer public URL fetching
 - canonical cook-mode normalization for both new and existing recipes
+- build-driven cache versioning for both the service worker and recipe cache
+- local parser verification from `tests/fixtures/structuredRecipe.fixture.json`
 - Firebase/Firestore-only repo and deploy truth

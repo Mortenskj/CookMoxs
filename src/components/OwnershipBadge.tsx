@@ -7,9 +7,7 @@ interface OwnershipBadgeProps {
 export function OwnershipBadge({ ownership }: OwnershipBadgeProps) {
   const toneClass = ownership.state === 'household'
     ? 'bg-amber-100 text-amber-900'
-    : ownership.state === 'shared_edit'
-      ? 'bg-emerald-100 text-emerald-900'
-      : ownership.state === 'shared_view'
+    : ownership.state === 'shared_view' || ownership.state === 'shared_edit'
         ? 'bg-sky-100 text-sky-800'
         : 'bg-stone-100 text-stone-700';
 

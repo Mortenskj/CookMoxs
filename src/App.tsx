@@ -30,8 +30,18 @@ import { COOK_FONT_META, DEFAULT_COOK_FONT_SIZE, type CookFontSize } from './con
 import { DEFAULT_IMPORT_PREFERENCE, type ImportPreference } from './config/importPreferences';
 import { DEFAULT_SEASONAL_THEME, SEASONAL_THEME_IDS } from './config/seasonalThemes';
 import { STORAGE_KEYS } from './config/storageKeys';
+import { APP_BUILD_VERSION } from './generated/buildInfo';
 import { buildRecipeFromImport } from './services/recipeImportService';
+import { createCloudSyncStatusHelpers } from './services/cloudSyncStatusService';
+import {
+  createCanonicalDefaultFolder,
+  DEFAULT_FOLDER_NAME,
+  findDefaultFolder,
+  getCanonicalDefaultFolderId,
+  reconcileDefaultFolderState,
+} from './services/defaultFolderService';
 import { normalizeRecipeForCookMode, normalizeRecipesForCookMode } from './services/recipeStepNormalization';
+import { hasRecipeBeenRemoved } from './services/recipeStateCleanup';
 import { createBackupPayload, downloadBackupFile, parseBackupPayload } from './services/backupService';
 import { mergeAutoImportEnhancement } from './services/importEnhancementService';
 import {
@@ -256,25 +266,17 @@ export default function App() {
     setCurrentView(view);
   };
 
-  const markCloudSyncing = (message = 'Synkroniserer til cloud...') => {
-    setCloudSyncStatus('syncing');
-    setCloudSyncMessage(message);
-  };
+  const {
+    markCloudSyncing,
+    markCloudSaved,
+    markCloudError,
+  } = createCloudSyncStatusHelpers({
+    setStatus: setCloudSyncStatus,
+    setMessage: setCloudSyncMessage,
+    setLastSyncAt: setCloudLastSyncAt,
+  });
 
-  const markCloudSaved = (message = 'Synkroniseret til cloud') => {
-    const now = new Date().toISOString();
-    setCloudSyncStatus('saved');
-    setCloudSyncMessage(message);
-    setCloudLastSyncAt(now);
-    localStorage.setItem(STORAGE_KEYS.lastCloudSyncAt, now);
-  };
-
-  const markCloudError = (message = 'Cloud-sync fejlede') => {
-    setCloudSyncStatus('error');
-    setCloudSyncMessage(message);
-  };
-
-  const appVersion = (typeof __APP_VERSION__ !== 'undefined' && __APP_VERSION__) ? __APP_VERSION__ : 'dev';
+  const appVersion = APP_BUILD_VERSION;
 
   const finalizeRecipeDeletion = async (recipeId: string) => {
     if (!user) return;
@@ -387,12 +389,9 @@ export default function App() {
 
       const unsubFoldersSync = listenToAccessibleFolders(user.uid, (snapshotFolders) => {
         const allFolders: Folder[] = [];
-        let hasUnsavedFolder = false;
         const sharedFolderIds: string[] = [];
 
         snapshotFolders.forEach((data) => {
-          if (data.name === 'Ikke gemte' && data.ownerUID === user.uid) hasUnsavedFolder = true;
-
           if (data.ownerUID !== user.uid) {
             sharedFolderIds.push(data.id);
           }
@@ -423,21 +422,21 @@ export default function App() {
           allFolders.push(data);
         });
 
-        if (!hasUnsavedFolder) {
-          saveFolderInCloud({
-            id: `unsaved_${user.uid}`,
-            name: 'Ikke gemte',
-            ownerUID: user.uid,
-            isDefault: true,
-            sharedWith: [],
-            editorUids: [],
-            viewerUids: [],
-          }).catch((error) => {
+        const reconciled = reconcileDefaultFolderState(allFolders, savedRecipes, user.uid);
+        const hadCanonicalDefault = allFolders.some((folder) => folder.id === getCanonicalDefaultFolderId(user.uid));
+
+        if (!hadCanonicalDefault) {
+          saveFolderInCloud(reconciled.defaultFolder).catch((error) => {
             markCloudError(normalizeSyncError(error, 'Standardmappen kunne ikke synkroniseres.'));
           });
         }
 
-        setFolders(allFolders);
+        setFolders(reconciled.folders);
+        setSavedRecipes((prev) => {
+          const myRecipes = reconciled.recipes.filter((recipe) => recipe.authorUID === user.uid);
+          const shared = prev.filter((recipe) => recipe.authorUID !== user.uid);
+          return [...myRecipes, ...shared];
+        });
 
         if (unsubSharedRecipes) {
           unsubSharedRecipes();
@@ -508,6 +507,22 @@ export default function App() {
   }, [activeRecipe, isActiveRecipeCacheReady]);
 
   useEffect(() => {
+    if (hasRecipeBeenRemoved(viewingRecipe, savedRecipes)) {
+      setViewingRecipe(null);
+      if (currentView === 'recipe') {
+        setCurrentView('home');
+      }
+    }
+
+    if (hasRecipeBeenRemoved(activeRecipe, savedRecipes)) {
+      saveActiveRecipe(null);
+      if (currentView === 'cook' || currentView === 'active') {
+        setCurrentView('home');
+      }
+    }
+  }, [activeRecipe, currentView, savedRecipes, viewingRecipe]);
+
+  useEffect(() => {
     let interval: number;
     if (timers.some(t => t.active && t.remaining > 0)) {
       interval = window.setInterval(() => {
@@ -539,17 +554,9 @@ export default function App() {
       return;
     }
 
-    const hasDefault = folders.some(f => f.name === 'Ikke gemte' || f.isDefault);
+    const hasDefault = folders.some(f => f.id === getCanonicalDefaultFolderId(user.uid));
     if (!hasDefault) {
-      saveFolderInCloud({
-        id: `default-un-saved-${user.uid}`,
-        name: 'Ikke gemte',
-        ownerUID: user.uid,
-        isDefault: true,
-        sharedWith: [],
-        editorUids: [],
-        viewerUids: [],
-      }).catch((error) => {
+      saveFolderInCloud(createCanonicalDefaultFolder(user.uid)).catch((error) => {
         markCloudError(normalizeSyncError(error, 'Standardmappen kunne ikke synkroniseres.'));
       });
     }
@@ -756,12 +763,12 @@ export default function App() {
     setUndoDeleteFolder({ folder, prevFolders, prevRecipes, movedRecipes, timeoutId });
   };
 
-  const handleShareFolder = async (folderId: string, email: string, role: 'viewer' | 'editor') => {
+  const handleShareFolder = async (folderId: string, email: string) => {
     if (!user) return;
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
 
-    const updatedFolder = upsertFolderShare(folder, email, role);
+    const updatedFolder = upsertFolderShare(folder, email);
 
     try {
       markCloudSyncing('Deler mappe via cloud...');
@@ -771,29 +778,10 @@ export default function App() {
       trackEvent('folder_shared', {
         ...getAnalyticsContext(),
         folderId,
-        role,
+        role: 'viewer',
       });
     } catch (error) {
       const syncMessage = normalizeSyncError(error, 'Mappedeling kunne ikke gemmes.');
-      markCloudError(syncMessage);
-      setError(syncMessage);
-    }
-  };
-
-  const handleUpdateFolderShareRole = async (folderId: string, email: string, role: 'viewer' | 'editor') => {
-    if (!user) return;
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder) return;
-
-    const updatedFolder = upsertFolderShare(folder, email, role);
-
-    try {
-      markCloudSyncing('Opdaterer mappetilladelser...');
-      await saveFolderInCloud(updatedFolder);
-      setFolders(prev => prev.map(f => f.id === folderId ? updatedFolder : f));
-      markCloudSaved('Mappetilladelser opdateret');
-    } catch (error) {
-      const syncMessage = normalizeSyncError(error, 'Mappetilladelser kunne ikke opdateres.');
       markCloudError(syncMessage);
       setError(syncMessage);
     }
@@ -818,7 +806,7 @@ export default function App() {
     }
   };
 
-  const handleSetFolderPermissionState = async (folderId: string, state: 'private' | 'shared_view' | 'shared_edit') => {
+  const handleSetFolderPermissionState = async (folderId: string, state: 'private' | 'shared_view') => {
     if (!user) return;
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
@@ -844,14 +832,14 @@ export default function App() {
   };
 
   const hydrateDirectImportRecipe = (directRecipe: Recipe, sourceUrl: string): Recipe => {
-    const defaultFolder = folders.find(f => f.isDefault || f.name === 'Ikke gemte') || folders[0];
+    const defaultFolder = findDefaultFolder(folders, user?.uid || 'local') || folders[0];
     const now = new Date().toISOString();
 
     return normalizeRecipeForCookMode({
       ...directRecipe,
       id: Date.now().toString(),
-      folder: defaultFolder?.name || 'Ikke gemte',
-      folderId: defaultFolder?.id || `default-un-saved-${user?.uid}`,
+      folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
+      folderId: defaultFolder?.id || getCanonicalDefaultFolderId(user?.uid || 'local'),
       isSaved: false,
       sourceUrl,
       authorUID: user?.uid,
@@ -1155,7 +1143,7 @@ export default function App() {
       let finalFolderId = recipe.folderId;
       let finalFolderName = recipe.folder;
 
-      if (finalFolderName === 'Ikke gemte') {
+      if (finalFolderName === DEFAULT_FOLDER_NAME) {
         finalFolderName = 'Opskrifter';
         finalFolderId = undefined;
       }
@@ -1515,14 +1503,14 @@ export default function App() {
         <ImportView 
           onImport={handleImport}
           onCreateManual={() => {
-            const defaultFolder = folders.find(f => f.name === 'Ikke gemte' || f.isDefault);
+            const defaultFolder = findDefaultFolder(folders, user?.uid || 'local');
             const newRecipe: Recipe = {
               id: Date.now().toString(),
               title: '',
               summary: '',
               recipeType: '',
               categories: [],
-              folder: defaultFolder?.name || 'Ikke gemte',
+              folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
               folderId: defaultFolder?.id,
               notes: '',
               servings: 4,
@@ -1569,7 +1557,6 @@ export default function App() {
           onDeleteFolder={handleDeleteFolder}
           onRenameFolder={handleRenameFolder}
           onShareFolder={handleShareFolder}
-          onUpdateFolderShareRole={handleUpdateFolderShareRole}
           onRemoveFolderShare={handleRemoveFolderShare}
           onSetFolderPermissionState={handleSetFolderPermissionState}
           currentUser={user}

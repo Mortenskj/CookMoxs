@@ -3,6 +3,7 @@ import { Search, Heart, Book, List, Tag, ChevronRight, ArrowLeft, Folder, Plus, 
 import { useState } from 'react';
 import { OwnershipBadge } from './OwnershipBadge';
 import { getFolderOwnershipDisplay } from '../services/ownershipLabelService';
+import { DEFAULT_FOLDER_NAME, findDefaultFolder } from '../services/defaultFolderService';
 import { LibraryRecipeCard } from './library/LibraryRecipeCard';
 import { LibraryEmptyState } from './library/LibraryEmptyState';
 import { LibrarySortSelect } from './library/LibrarySortSelect';
@@ -16,17 +17,16 @@ interface LibraryViewProps {
   onCreateInFolder: (folder: FolderType) => void;
   onDeleteFolder: (folderId: string) => void;
   onRenameFolder: (folderId: string, newName: string) => void;
-  onShareFolder: (folderId: string, email: string, role: 'viewer' | 'editor') => void;
-  onUpdateFolderShareRole: (folderId: string, email: string, role: 'viewer' | 'editor') => void;
+  onShareFolder: (folderId: string, email: string) => void;
   onRemoveFolderShare: (folderId: string, email: string) => void;
-  onSetFolderPermissionState: (folderId: string, state: 'private' | 'shared_view' | 'shared_edit') => void;
+  onSetFolderPermissionState: (folderId: string, state: 'private' | 'shared_view') => void;
   currentUser: any;
 }
 
 type LibrarySection = 'home' | 'favorites' | 'cookbooks' | 'all' | 'categories';
 type SortOrder = 'newest' | 'alphabetical' | 'most_used' | 'category';
 
-export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFolder, onCreateInFolder, onDeleteFolder, onRenameFolder, onShareFolder, onUpdateFolderShareRole, onRemoveFolderShare, onSetFolderPermissionState, currentUser }: LibraryViewProps) {
+export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFolder, onCreateInFolder, onDeleteFolder, onRenameFolder, onShareFolder, onRemoveFolderShare, onSetFolderPermissionState, currentUser }: LibraryViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSection, setActiveSection] = useState<LibrarySection>('home');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -39,8 +39,6 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
   const [folderIdToDelete, setFolderIdToDelete] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState<string | null>(null);
   const [shareEmail, setShareEmail] = useState('');
-  const [shareRole, setShareRole] = useState<'viewer' | 'editor'>('viewer');
-
   const selectedFolder = allFolders.find(f => f.id === selectedFolderId);
 
 // Remove derived allFolders since it's now passed as prop
@@ -132,10 +130,10 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         </div>
       ) : activeSection === 'home' ? (
         <div className="grid grid-cols-1 gap-4">
-          {savedRecipes.filter(r => r.folder === 'Ikke gemte').length > 0 && (
+          {savedRecipes.filter(r => r.folder === DEFAULT_FOLDER_NAME).length > 0 && (
             <button 
               onClick={() => {
-                const unsavedFolder = allFolders.find(f => f.name === 'Ikke gemte');
+                const unsavedFolder = findDefaultFolder(allFolders, currentUser?.uid || 'local');
                 if (unsavedFolder) {
                   setSelectedFolderId(unsavedFolder.id);
                   setActiveSection('cookbooks');
@@ -148,9 +146,9 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   <Save size={24} />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">Ikke gemte</h3>
+                  <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">{DEFAULT_FOLDER_NAME}</h3>
                   <p className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-widest opacity-70">
-                    {savedRecipes.filter(r => r.folder === 'Ikke gemte').length} nye opskrifter
+                    {savedRecipes.filter(r => r.folder === DEFAULT_FOLDER_NAME).length} nye opskrifter
                   </p>
                 </div>
               </div>
@@ -248,7 +246,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 </div>
               </div>
               <div className="flex gap-2">
-                {(selectedFolder.ownerUID === currentUser?.uid || selectedFolder.sharedWith?.some(s => s.uid === currentUser?.uid && s.role === 'editor')) && (
+                {selectedFolder.ownerUID === currentUser?.uid && (
                   <button 
                     onClick={() => onCreateInFolder(selectedFolder)}
                     className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/60 dark:hover:bg-white/10 glass-brushed rounded-xl transition-colors"
@@ -397,7 +395,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
-              {allFolders.filter(f => f.name !== 'Ikke gemte' || savedRecipes.some(r => r.folder === 'Ikke gemte')).map(folder => {
+              {allFolders.filter(f => f.name !== DEFAULT_FOLDER_NAME || savedRecipes.some(r => r.folder === DEFAULT_FOLDER_NAME)).map(folder => {
                 const count = savedRecipes.filter(r => r.folderId === folder.id || (r.folder === folder.name && !r.folderId)).length;
                 const isShared = folder.ownerUID !== currentUser?.uid;
                 const folderOwnership = getFolderOwnershipDisplay(folder, currentUser);
@@ -471,7 +469,6 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
             currentUser={currentUser}
             onClose={() => setShowShareModal(null)}
             onShare={onShareFolder}
-            onUpdateRole={onUpdateFolderShareRole}
             onRemoveShare={onRemoveFolderShare}
             onSetPermissionState={onSetFolderPermissionState}
           />
