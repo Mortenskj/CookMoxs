@@ -59,8 +59,8 @@ function SettingsToggle({
       aria-checked={enabled}
       aria-label={enabled ? enabledLabel : disabledLabel}
       onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-12 w-28 items-center rounded-full border border-black/5 p-1.5 transition-all glass-brushed shadow-inner ${
-        enabled ? 'bg-forest-dark/90' : 'bg-white/50'
+      className={`relative inline-flex h-12 w-22 items-center rounded-full border border-black/5 p-1.5 transition-all shadow-inner ${
+        enabled ? 'bg-forest-dark/85' : 'bg-white/70'
       }`}
     >
       <span
@@ -68,9 +68,6 @@ function SettingsToggle({
           enabled ? 'left-[calc(100%-2.625rem)] bg-white shadow-md' : 'left-1.5 bg-forest-dark shadow-sm'
         }`}
       />
-      <span className={`relative z-10 w-full px-2 text-xs font-bold uppercase tracking-widest ${enabled ? 'text-white text-left' : 'text-forest-mid text-right'}`}>
-        {enabled ? enabledLabel : disabledLabel}
-      </span>
     </button>
   );
 }
