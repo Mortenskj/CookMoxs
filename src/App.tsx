@@ -195,6 +195,7 @@ export default function App() {
   const [cloudSyncMessage, setCloudSyncMessage] = useState<string | null>('Kun lokal lagring aktiv');
   const [cloudLastSyncAt, setCloudLastSyncAt] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.lastCloudSyncAt));
   const [aiUnavailableMessage, setAiUnavailableMessage] = useState<string | null>(null);
+  const [importNotice, setImportNotice] = useState<{ recipeId: string; message: string } | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
   const [undoDeleteRecipe, setUndoDeleteRecipe] = useState<{ recipe: Recipe; index: number; timeoutId: any } | null>(null);
   const [undoDeleteFolder, setUndoDeleteFolder] = useState<{ folder: Folder; prevFolders: Folder[]; prevRecipes: Recipe[]; movedRecipes: Recipe[]; timeoutId: any } | null>(null);
@@ -881,6 +882,7 @@ export default function App() {
     if (showLoading) {
       setLoading(true);
     }
+    setImportNotice(null);
     if (surfaceErrors) {
       setError(null);
     }
@@ -893,6 +895,7 @@ export default function App() {
     try {
       let newRecipe: Recipe | null = null;
       let usedDirectImport = false;
+      let importNoticeMessage: string | null = null;
 
       if (type === 'url') {
         try {
@@ -982,17 +985,23 @@ export default function App() {
 
       if (newRecipe && usedDirectImport && autoAiImportEnhancement) {
         if (aiDisabledReason) {
-          throw new Error(`${aiDisabledReason} AI-tilpasning efter linkimport er slået til.`);
+          importNoticeMessage = `Grundimport lykkedes, men AI-berigelse blev sprunget over. ${aiDisabledReason}`;
+        } else {
+          try {
+            const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
+            setAiUnavailableMessage(null);
+            newRecipe = normalizeRecipeForCookMode(mergeAutoImportEnhancement(newRecipe, enhancedRecipe));
+            trackEvent('ai_adjust_used', {
+              ...getAnalyticsContext(),
+              recipeId: newRecipe.id,
+              action: 'auto_fill_rest_import',
+            });
+          } catch (enhancementError) {
+            console.error('AI Fill Rest Error:', enhancementError);
+            rememberAIDisabledState(enhancementError);
+            importNoticeMessage = 'Grundimport lykkedes, men AI-berigelse kunne ikke gennemfoeres. Opskriften blev gemt uden ekstra AI-tilpasning.';
+          }
         }
-
-        const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
-        setAiUnavailableMessage(null);
-        newRecipe = normalizeRecipeForCookMode(mergeAutoImportEnhancement(newRecipe, enhancedRecipe));
-        trackEvent('ai_adjust_used', {
-          ...getAnalyticsContext(),
-          recipeId: newRecipe.id,
-          action: 'auto_fill_rest_import',
-        });
       }
 
       if (user) {
@@ -1016,6 +1025,7 @@ export default function App() {
 
       if (navigateOnSuccess) {
         setViewingRecipe(newRecipe);
+        setImportNotice(importNoticeMessage ? { recipeId: newRecipe.id, message: importNoticeMessage } : null);
         navigateTo('recipe');
       }
 
@@ -1023,6 +1033,9 @@ export default function App() {
         ...getAnalyticsContext(),
         sourceType: type,
         recipeId: newRecipe.id,
+        autoAiImportEnhancementAttempted: usedDirectImport && autoAiImportEnhancement,
+        autoAiImportEnhancementApplied: Boolean(usedDirectImport && autoAiImportEnhancement && !importNoticeMessage),
+        autoAiImportEnhancementDeferred: Boolean(importNoticeMessage),
       });
       return newRecipe;
     } catch (err: any) {
@@ -1588,6 +1601,7 @@ export default function App() {
           }}
           isAdjusting={adjusting}
           error={error}
+          notice={importNotice?.recipeId === viewingRecipe.id ? importNotice.message : null}
           aiDisabledReason={aiDisabledReason}
           initialEditMode={viewingRecipe.title === ''}
         />

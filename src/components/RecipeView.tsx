@@ -32,12 +32,13 @@ interface RecipeViewProps {
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
   error?: string | null;
+  notice?: string | null;
   aiDisabledReason?: string | null;
   initialEditMode?: boolean;
   currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, error, notice, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [includePrep, setIncludePrep] = useState(true);
   const [isEditing, setIsEditing] = useState(initialEditMode);
@@ -976,6 +977,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           {aiDisabledReason && (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
               AI-hjælp er midlertidigt slået fra. {aiDisabledReason}
+            </div>
+          )}
+
+          {notice && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+              {notice}
             </div>
           )}
 
