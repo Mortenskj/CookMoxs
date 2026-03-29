@@ -1,7 +1,8 @@
-import { Barcode, Link2, Search, ShieldAlert, Unlink2 } from 'lucide-react';
+import { Barcode, ChevronDown, ChevronUp, Link2, Loader2, Search, ShieldAlert, Unlink2, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
-import type { RecipeNutritionAttachment } from '../types';
+import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
+import type { RecipeNutritionAttachment, RecipeNutritionEstimate } from '../types';
 import {
   getNutritionStatus,
   lookupNutritionBarcode,
@@ -16,9 +17,14 @@ import {
 
 interface RecipeNutritionAttachmentCardProps {
   attachment?: RecipeNutritionAttachment;
+  estimate?: RecipeNutritionEstimate;
   canAttach: boolean;
+  canEstimate: boolean;
   canClear?: boolean;
   readOnlyMessage?: string | null;
+  isEstimating?: boolean;
+  aiDisabledReason?: string | null;
+  onEstimate?: () => void;
   onAttach: (attachment: RecipeNutritionAttachment) => void;
   onClear: () => void;
 }
@@ -27,15 +33,22 @@ type LookupMode = 'barcode' | 'text_search';
 
 export function RecipeNutritionAttachmentCard({
   attachment,
+  estimate,
   canAttach,
+  canEstimate,
   canClear = canAttach,
   readOnlyMessage,
+  isEstimating = false,
+  aiDisabledReason,
+  onEstimate,
   onAttach,
   onClear,
 }: RecipeNutritionAttachmentCardProps) {
   const { enabled: nutritionToolsEnabled } = useNutritionToolsEnabled();
+  const { expandedByDefault } = useRecipeNutritionExpandedByDefault();
   const [enabled, setEnabled] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(expandedByDefault);
   const [mode, setMode] = useState<LookupMode>('barcode');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,9 +80,19 @@ export function RecipeNutritionAttachmentCard({
     };
   }, []);
 
+  useEffect(() => {
+    setIsExpanded(expandedByDefault);
+  }, [expandedByDefault]);
+
   if (loadingStatus || !enabled || !nutritionToolsEnabled) {
     return null;
   }
+
+  const hasAttachment = Boolean(attachment);
+  const summaryLine = hasAttachment
+    ? getRecipeNutritionSummaryLine(attachment)
+    : 'Ingen produktdata er knyttet til denne opskrift endnu.';
+  const canTriggerEstimate = canEstimate && Boolean(onEstimate);
 
   const handleLookup = async () => {
     if (!input.trim()) return;
@@ -92,20 +115,104 @@ export function RecipeNutritionAttachmentCard({
 
   return (
     <section className="mb-8 glass-brushed p-6 sm:p-8 rounded-[2.5rem] border border-black/5 dark:border-white/10">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 bg-white/60 dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/10">
-          <Link2 size={18} className="text-heath-mid" />
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white/60 dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/10">
+            <Link2 size={18} className="text-heath-mid" />
+          </div>
+          <div>
+            <h3 className="font-serif text-xl text-forest-dark dark:text-white italic text-engraved">Produktdata til opskriften</h3>
+            <p className="text-xs text-forest-mid dark:text-white/70 opacity-80">
+              {getRecipeNutritionExplanation(attachment)}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-serif text-xl text-forest-dark dark:text-white italic text-engraved">Produktdata til opskriften</h3>
-          <p className="text-xs text-forest-mid dark:text-white/70 opacity-80">
-            {getRecipeNutritionExplanation(attachment)}
-          </p>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canTriggerEstimate && (
+            <button
+              type="button"
+              onClick={onEstimate}
+              disabled={isEstimating || Boolean(aiDisabledReason)}
+              className="inline-flex items-center gap-2 rounded-full border border-[#3A2A22] bg-[#2A1F1A] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#D4B886] transition-colors hover:bg-[#3A2A22] disabled:opacity-50"
+            >
+              {isEstimating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              {isEstimating ? 'Estimerer...' : 'AI - Estimer macro/kcal'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsExpanded((current) => !current)}
+            className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/55 dark:bg-black/20 px-4 py-2 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/80 transition-colors hover:bg-white/80 dark:hover:bg-white/10"
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {isExpanded ? 'Skjul' : 'Vis'}
+          </button>
         </div>
       </div>
 
-      {attachment ? (
-        <div className="rounded-3xl border border-black/5 dark:border-white/10 bg-white/45 dark:bg-black/20 p-5">
+      {estimate && (
+        <div className="mb-4 rounded-3xl border border-[#D4B886]/40 bg-[#FFF8EA]/80 p-5 text-sm text-forest-mid shadow-sm dark:border-[#D4B886]/20 dark:bg-[#2A1F1A]/50 dark:text-white/80">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-serif text-lg italic text-forest-dark dark:text-white">AI-estimat for opskriften</p>
+              <p className="mt-1 text-xs opacity-75">
+                Vejledende tal ud fra ingredienslisten. Senest opdateret {new Date(estimate.generatedAt).toLocaleString('da-DK')}.
+              </p>
+            </div>
+            <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
+              Sikkerhed: {estimate.confidence}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-black/5 bg-white/60 p-4 dark:border-white/10 dark:bg-black/20">
+              <p className="text-xs font-bold uppercase tracking-widest opacity-60">Pr. 100 g</p>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">kcal: {estimate.per100g.energyKcal ?? '-'}</div>
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Fedt: {estimate.per100g.fatGrams ?? '-'} g</div>
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Kulhydrat: {estimate.per100g.carbsGrams ?? '-'} g</div>
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Protein: {estimate.per100g.proteinGrams ?? '-'} g</div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-black/5 bg-white/60 p-4 dark:border-white/10 dark:bg-black/20">
+              <p className="text-xs font-bold uppercase tracking-widest opacity-60">Pr. portion</p>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">kcal: {estimate.perPortion.energyKcal ?? '-'}</div>
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Fedt: {estimate.perPortion.fatGrams ?? '-'} g</div>
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Kulhydrat: {estimate.perPortion.carbsGrams ?? '-'} g</div>
+                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Protein: {estimate.perPortion.proteinGrams ?? '-'} g</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
+            <p className="font-bold uppercase tracking-widest opacity-60">Antagelser</p>
+            <p className="mt-2">{estimate.rationale}</p>
+            <p className="mt-3 opacity-75">
+              Estimeret samlet vaegt: {estimate.estimatedTotalWeightGrams ?? '-'} g
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!canTriggerEstimate && readOnlyMessage && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+          {readOnlyMessage}
+        </div>
+      )}
+
+      {aiDisabledReason && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+          AI-estimat er midlertidigt slaaet fra. {aiDisabledReason}
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10 px-4 py-3 text-sm text-forest-mid dark:text-white/80">
+        <p className="font-medium">{hasAttachment ? 'Knyttet produktdata' : 'Ingen knyttet produktdata'}</p>
+        <p className="mt-1 text-xs opacity-80">{summaryLine}</p>
+      </div>
+
+      {isExpanded && (attachment ? (
+        <div className="mt-4 rounded-3xl border border-black/5 dark:border-white/10 bg-white/45 dark:bg-black/20 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-serif text-lg text-forest-dark dark:text-white italic">{attachment.title}</p>
@@ -149,18 +256,18 @@ export function RecipeNutritionAttachmentCard({
           )}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-black/10 dark:border-white/10 bg-white/35 dark:bg-black/10 p-5 text-sm text-forest-mid dark:text-white/80">
+        <div className="mt-4 rounded-3xl border border-dashed border-black/10 dark:border-white/10 bg-white/35 dark:bg-black/10 p-5 text-sm text-forest-mid dark:text-white/80">
           Ingen produktdata er knyttet til denne opskrift endnu.
         </div>
-      )}
+      ))}
 
-      {!canAttach && (
+      {isExpanded && !canAttach && !readOnlyMessage && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
           {readOnlyMessage || 'Gem opskriften foerst, hvis du vil knytte produktdata til den.'}
         </div>
       )}
 
-      {canAttach && (
+      {isExpanded && canAttach && (
         <>
           <div className="mt-5 flex bg-white/40 dark:bg-black/10 rounded-2xl p-1.5 border border-black/5 dark:border-white/10">
             <button

@@ -1,3 +1,5 @@
+import type { Recipe, RecipeNutritionEstimate } from '../types';
+
 export type AiRequestErrorCode =
   | 'ai_model_error'
   | 'ai_transport_error'
@@ -98,6 +100,11 @@ export async function generateTips(recipe: any): Promise<string[]> {
 export async function applyPrefix(recipe: any, prefix: string): Promise<any> {
   const data = await request<{ recipe: any }>('/api/ai/apply-prefix', { recipe, prefix });
   return data.recipe;
+}
+
+export async function estimateRecipeNutrition(recipe: Recipe, level?: string): Promise<RecipeNutritionEstimate> {
+  const data = await request<{ estimate: RecipeNutritionEstimate }>('/api/ai/estimate-nutrition', { recipe, level });
+  return data.estimate;
 }
 
 export interface ImportRecipePayload {

@@ -11,6 +11,7 @@ import {
   generateSteps as aiGenerateSteps,
   fillRest as aiFillRest,
   generateTips as aiGenerateTips,
+  estimateRecipeNutrition as aiEstimateRecipeNutrition,
   applyPrefix as aiApplyPrefix,
   importRecipe as aiImportRecipe,
 } from './services/aiService';
@@ -1381,6 +1382,32 @@ export default function App() {
     }
   };
 
+  const handleEstimateNutrition = async (recipe: Recipe) => {
+    setAdjusting(true);
+    setError(null);
+    try {
+      const nutritionEstimate = await aiEstimateRecipeNutrition(recipe, userLevel);
+      setAiUnavailableMessage(null);
+      const updatedRecipe: Recipe = normalizeRecipeForCookMode({
+        ...recipe,
+        nutritionEstimate,
+      });
+      setViewingRecipe(updatedRecipe);
+      await handleSaveRecipe(updatedRecipe);
+      trackEvent('ai_adjust_used', {
+        ...getAnalyticsContext(),
+        recipeId: recipe.id,
+        action: 'estimate_nutrition',
+      });
+    } catch (err: any) {
+      console.error('AI Nutrition Estimate Error:', err);
+      rememberAIDisabledState(err);
+      setError(parseAIError(err, 'Kunne ikke estimere macro og kcal'));
+    } finally {
+      setAdjusting(false);
+    }
+  };
+
   const handleApplyPrefix = async (recipe: Recipe, prefix: string) => {
     setAdjusting(true);
     setError(null);
@@ -1562,6 +1589,7 @@ export default function App() {
           onGenerateSteps={handleGenerateSteps}
           onFillRest={handleFillRest}
           onGenerateTips={handleGenerateTips}
+          onEstimateNutrition={handleEstimateNutrition}
           onApplyPrefix={handleApplyPrefix}
           onUndoAI={(originalId) => {
             const original = savedRecipes.find(r => r.id === originalId);

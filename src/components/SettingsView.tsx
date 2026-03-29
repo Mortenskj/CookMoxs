@@ -4,6 +4,7 @@ import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/co
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
 import { SEASONAL_THEME_OPTIONS } from '../config/seasonalThemes';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
+import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
 import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 import { LearningFeedbackCard } from './LearningFeedbackCard';
@@ -101,6 +102,10 @@ export function SettingsView({
   aiDisabledReason,
 }: SettingsViewProps) {
   const { enabled: nutritionToolsEnabled, setEnabled: setNutritionToolsEnabled } = useNutritionToolsEnabled();
+  const {
+    expandedByDefault: recipeNutritionExpandedByDefault,
+    setExpandedByDefault: setRecipeNutritionExpandedByDefault,
+  } = useRecipeNutritionExpandedByDefault();
 
   return (
     <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
@@ -363,6 +368,20 @@ export function SettingsView({
                 <SettingsToggle
                   enabled={nutritionToolsEnabled}
                   onChange={setNutritionToolsEnabled}
+                />
+              </div>
+              <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
+                <div>
+                  <p className="font-serif text-lg text-forest-dark italic">
+                    {recipeNutritionExpandedByDefault ? 'Produktdata vises aabent' : 'Produktdata skjules som standard'}
+                  </p>
+                  <p className="text-xs text-forest-mid opacity-75">
+                    Styr om sektionen for produktdata nederst i opskriften er foldet ud, naar du aabner en opskrift.
+                  </p>
+                </div>
+                <SettingsToggle
+                  enabled={recipeNutritionExpandedByDefault}
+                  onChange={setRecipeNutritionExpandedByDefault}
                 />
               </div>
             </div>

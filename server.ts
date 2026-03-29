@@ -99,6 +99,36 @@ const RECIPE_SCHEMA = {
   required: ['title', 'ingredients', 'steps', 'servings'],
 };
 
+const NUTRITION_ESTIMATE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    per100g: {
+      type: Type.OBJECT,
+      properties: {
+        energyKcal: { type: Type.NUMBER },
+        fatGrams: { type: Type.NUMBER },
+        carbsGrams: { type: Type.NUMBER },
+        proteinGrams: { type: Type.NUMBER },
+      },
+      required: ['energyKcal', 'fatGrams', 'carbsGrams', 'proteinGrams'],
+    },
+    perPortion: {
+      type: Type.OBJECT,
+      properties: {
+        energyKcal: { type: Type.NUMBER },
+        fatGrams: { type: Type.NUMBER },
+        carbsGrams: { type: Type.NUMBER },
+        proteinGrams: { type: Type.NUMBER },
+      },
+      required: ['energyKcal', 'fatGrams', 'carbsGrams', 'proteinGrams'],
+    },
+    estimatedTotalWeightGrams: { type: Type.NUMBER },
+    confidence: { type: Type.STRING },
+    rationale: { type: Type.STRING },
+  },
+  required: ['per100g', 'perPortion', 'confidence', 'rationale'],
+};
+
 function getAiClient() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not configured on the server');
@@ -143,6 +173,43 @@ function getLevelStyleInstruction(level: string | undefined, mode: 'steps' | 'fi
         ? 'Use practical, natural Danish for a competent home cook. Keep the tone direct and useful.'
         : 'Brug praktisk, naturligt dansk til en almindelig hjemmekok. Vær tydelig uden at overforklare.';
   }
+}
+
+function normalizeNutritionEstimateValue(value: unknown) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return Math.round(numeric * 10) / 10;
+}
+
+function normalizeNutritionEstimateConfidence(value: unknown): 'high' | 'medium' | 'low' {
+  if (value === 'high' || value === 'medium' || value === 'low') {
+    return value;
+  }
+
+  return 'medium';
+}
+
+function normalizeNutritionEstimate(estimate: any) {
+  const normalizeSnapshot = (snapshot: any) => ({
+    energyKcal: normalizeNutritionEstimateValue(snapshot?.energyKcal),
+    fatGrams: normalizeNutritionEstimateValue(snapshot?.fatGrams),
+    carbsGrams: normalizeNutritionEstimateValue(snapshot?.carbsGrams),
+    proteinGrams: normalizeNutritionEstimateValue(snapshot?.proteinGrams),
+  });
+
+  return {
+    per100g: normalizeSnapshot(estimate?.per100g),
+    perPortion: normalizeSnapshot(estimate?.perPortion),
+    estimatedTotalWeightGrams: normalizeNutritionEstimateValue(estimate?.estimatedTotalWeightGrams),
+    confidence: normalizeNutritionEstimateConfidence(estimate?.confidence),
+    rationale: typeof estimate?.rationale === 'string' && estimate.rationale.trim()
+      ? estimate.rationale.trim()
+      : 'AI-estimat baseret paa ingredienslisten.',
+    generatedAt: new Date().toISOString(),
+  };
 }
 
 class HttpError extends Error {
@@ -472,6 +539,33 @@ async function startServer() {
     } catch (error) {
       console.error('AI Generate Tips Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/generate-tips');
+      return res.status(failure.status).json(failure.body);
+    }
+  });
+
+  app.post('/api/ai/estimate-nutrition', async (req, res) => {
+    const { recipe, level } = req.body;
+    if (!recipe) return res.status(400).json({ error: 'recipe is required' });
+    try {
+      const styleInstruction = getLevelStyleInstruction(level, 'fill');
+      const prompt = `
+        Du er en noegtern ernæringsassistent.
+        Lav et vejledende makro- og kcal-estimat for hele opskriften ud fra ingredienslisten.
+        Returner kun JSON, som matcher schemaet.
+        Regn per 100 g og per portion.
+        Brug recipe.servings som portionsantal.
+        Hvis enkelte maengder eller enheder er uklare, lav konservative koekkenantagelser og forklar dem kort i rationale.
+        Brug nutritionAttachment kun som ekstra reference, hvis den findes. Ingredienslisten er stadig primaer kilde.
+        Match tonen til denne stilinstruktion: ${styleInstruction}
+        Confidence skal vaere en af: high, medium, low.
+        Opskrift JSON:
+        ${JSON.stringify(recipe)}
+      `;
+      const parsedEstimate = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, NUTRITION_ESTIMATE_SCHEMA);
+      return res.json({ estimate: normalizeNutritionEstimate(parsedEstimate) });
+    } catch (error) {
+      console.error('AI Nutrition Estimate Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/estimate-nutrition');
       return res.status(failure.status).json(failure.body);
     }
   });

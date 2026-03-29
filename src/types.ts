@@ -110,6 +110,22 @@ export interface RecipeNutritionAttachment {
   provenance: RecipeNutritionProvenance;
 }
 
+export interface RecipeNutritionEstimateSnapshot {
+  energyKcal?: number | null;
+  fatGrams?: number | null;
+  carbsGrams?: number | null;
+  proteinGrams?: number | null;
+}
+
+export interface RecipeNutritionEstimate {
+  per100g: RecipeNutritionEstimateSnapshot;
+  perPortion: RecipeNutritionEstimateSnapshot;
+  estimatedTotalWeightGrams?: number | null;
+  confidence: NutritionConfidence;
+  generatedAt: string;
+  rationale?: string;
+}
+
 export interface Timer {
   id: string;
   duration: number;
@@ -163,6 +179,7 @@ export interface Recipe {
   householdId?: string;
   ownership?: OwnershipMetadata;
   nutritionAttachment?: RecipeNutritionAttachment;
+  nutritionEstimate?: RecipeNutritionEstimate;
   createdAt?: string;
   updatedAt?: string;
 }

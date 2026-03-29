@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   lastCloudSyncAt: 'cookmoxs_last_cloud_sync_at',
   cookFontSize: 'cookmoxs_cook_font_size',
   nutritionToolsEnabled: 'cookmoxs_nutrition_tools_enabled',
+  recipeNutritionExpandedByDefault: 'cookmoxs_recipe_nutrition_expanded_by_default',
   learningProfile: 'cookmoxs_learning_profile_v1',
   learningFeedbackEnabled: 'cookmoxs_learning_feedback_enabled',
 } as const;

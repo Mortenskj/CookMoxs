@@ -28,6 +28,7 @@ interface RecipeViewProps {
   onGenerateSteps?: (recipe: Recipe) => void;
   onFillRest?: (recipe: Recipe) => void;
   onGenerateTips?: (recipe: Recipe) => void;
+  onEstimateNutrition?: (recipe: Recipe) => void;
   onApplyPrefix?: (recipe: Recipe, prefix: string) => void;
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
@@ -37,7 +38,7 @@ interface RecipeViewProps {
   currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [includePrep, setIncludePrep] = useState(true);
   const [isEditing, setIsEditing] = useState(initialEditMode);
@@ -846,15 +847,52 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               {isAdjusting ? 'Udfylder...' : 'Udfyld resten med AI'}
             </button>
           )}
+
+          {showSmartModal && canMutateRecipe && (
+            <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic mb-4 flex items-center gap-3 text-engraved">
+                  <div className="p-2 bg-white dark:bg-black/20 rounded-xl shadow-sm border border-black/5 dark:border-white/10">
+                    <Wand2 size={24} className="text-heath-mid"/>
+                  </div>
+                  Smart Tilpasning
+                </h3>
+                <p className="text-sm text-forest-mid dark:text-white/70 mb-6 italic leading-relaxed">
+                  Fortæl AI&apos;en hvordan opskriften skal tilpasses. Den bruger gastronomisk logik til at justere mængder, enheder og tilberedningstid.
+                </p>
+                <textarea
+                  value={smartInstruction}
+                  onChange={e => setSmartInstruction(e.target.value)}
+                  placeholder="F.eks. 'Jeg har 500g oksekød i stedet for 300g', eller 'Lav gram om til dl'."
+                  className="w-full bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-forest-dark dark:text-white text-sm mb-6 focus:outline-none focus:border-heath-mid resize-none h-32 shadow-sm font-serif italic placeholder-forest-mid/50 dark:placeholder-white/30"
+                />
+                <div className="flex gap-3">
+                  <button onClick={() => setShowSmartModal(false)} className="flex-1 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all">Annuller</button>
+                  <button
+                    onClick={() => {
+                      onSmartAdjust(editData, smartInstruction);
+                      setIsEditing(false);
+                      setShowSmartModal(false);
+                      setSmartInstruction('');
+                    }}
+                    disabled={!smartInstruction.trim() || isAdjusting}
+                    className="flex-1 py-4 rounded-2xl bg-forest-mid text-white font-bold text-xs uppercase tracking-widest disabled:opacity-50 flex justify-center items-center gap-2 hover:bg-forest-dark transition-all shadow-md"
+                  >
+                    {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : 'Tilpas'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
+    <div className="recipe-print-root p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
       {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-sand/90 dark:bg-[#121614]/90 backdrop-blur-md py-4 z-10 border-b border-black/5 dark:border-white/10 print:hidden">
+      <div className="recipe-print-header flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-sand/90 dark:bg-[#121614]/90 backdrop-blur-md py-4 z-10 border-b border-black/5 dark:border-white/10 print:hidden">
         <div className="flex gap-2">
           <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <ArrowLeft size={22} />
@@ -994,15 +1032,6 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         </div>
       </div>
 
-      <RecipeNutritionAttachmentCard
-        attachment={recipe.nutritionAttachment}
-        canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
-        canClear={canMutateRecipe}
-        readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke aendres for delte opskrifter i denne stabiliserings-pass.'}
-        onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
-        onClear={() => onSave({ ...recipe, nutritionAttachment: undefined })}
-      />
-
       {/* AI Rationale */}
       {recipe.aiRationale && (
         <div className="mb-8 glass-brushed p-6 sm:p-8 rounded-[2.5rem] border border-heath-mid/20 relative overflow-hidden">
@@ -1120,17 +1149,6 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="flex items-center gap-2 print:hidden">
               {canMutateRecipe && (
               <button 
-                onClick={() => setShowSmartModal(true)} 
-                disabled={isAdjusting || aiDisabled}
-                className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all shadow-sm disabled:opacity-50" 
-                title="Smart Tilpasning"
-              >
-                {isAdjusting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-                {isAdjusting ? 'Tilpasser...' : 'AI Tilpas'}
-              </button>
-              )}
-              {canMutateRecipe && (
-              <button 
                 onClick={() => {
                   setIsEditing(true);
                   const newIng = { id: Date.now().toString(), name: '', amount: null, unit: '', group: 'Andre' };
@@ -1222,10 +1240,28 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       {/* Steps */}
       <section className="mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
-        <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
-          <Flame className="text-heath-mid" size={24} />
-          Fremgangsmåde
-        </h2>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
+              <Flame className="text-heath-mid" size={24} />
+              Fremgangsmåde
+            </h2>
+            <p className="mt-2 text-sm text-forest-mid dark:text-white/70 italic">
+              Brug AI til at gennemgå trin, varme og tider, så opskriften fungerer bedre i cookmode.
+            </p>
+          </div>
+          {canMutateRecipe && onGenerateSteps && (
+            <button
+              onClick={() => onGenerateSteps(recipe)}
+              disabled={isAdjusting || aiDisabled}
+              className="print:hidden inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2A1F1A] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#D4B886] border border-[#3A2A22] transition-colors hover:bg-[#3A2A22] disabled:opacity-50"
+              title="AI - Ret til cookmode"
+            >
+              {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+              {isAdjusting ? 'Retter...' : 'AI - Ret til cookmode'}
+            </button>
+          )}
+        </div>
         <div className="space-y-10">
           {(recipe.steps || []).map((step, i) => (
             <div key={step.id || i} className="flex gap-6 group">
@@ -1264,6 +1300,20 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           ))}
         </div>
       </section>
+
+      <RecipeNutritionAttachmentCard
+        attachment={recipe.nutritionAttachment}
+        estimate={recipe.nutritionEstimate}
+        canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
+        canEstimate={canMutateRecipe}
+        canClear={canMutateRecipe}
+        readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke aendres for delte opskrifter i denne stabiliserings-pass.'}
+        isEstimating={Boolean(isAdjusting)}
+        aiDisabledReason={aiDisabledReason}
+        onEstimate={() => onEstimateNutrition?.(recipe)}
+        onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
+        onClear={() => onSave({ ...recipe, nutritionAttachment: undefined })}
+      />
 
       {/* Add Ingredient Modal */}
       {showAddIngredientModal && (
@@ -1550,3 +1600,5 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     </div>
   );
 }
+
+
