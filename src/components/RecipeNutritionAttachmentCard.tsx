@@ -1,4 +1,4 @@
-import { Barcode, ChevronDown, ChevronUp, Link2, Loader2, Search, ShieldAlert, Unlink2, Wand2 } from 'lucide-react';
+﻿import { Barcode, ChevronDown, ChevronUp, Link2, Loader2, Search, ShieldAlert, Unlink2, Wand2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
 import { useRecipeNutritionEstimateVisible } from '../hooks/useRecipeNutritionEstimateVisible';
@@ -149,9 +149,19 @@ export function RecipeNutritionAttachmentCard({
   const summaryLine = hasAttachment
     ? getRecipeNutritionSummaryLine(attachment)
     : 'Ingen produktdata er knyttet til denne opskrift endnu.';
+  const ingredientBreakdown = Array.isArray(estimate?.ingredientBreakdown) ? estimate.ingredientBreakdown : [];
+  const omittedIngredients = Array.isArray(estimate?.omittedIngredients) ? estimate.omittedIngredients : [];
+  const countedIngredientCount = typeof estimate?.countedIngredientCount === 'number'
+    ? estimate.countedIngredientCount
+    : Math.max(ingredientBreakdown.length - omittedIngredients.length, 0);
+  const totalIngredientCount = typeof estimate?.totalIngredientCount === 'number'
+    ? estimate.totalIngredientCount
+    : Math.max(ingredientBreakdown.length, countedIngredientCount + omittedIngredients.length);
+  const validationWarnings = Array.isArray(estimate?.validationWarnings) ? estimate.validationWarnings : [];
+  const coverageStatus = estimate?.coverageStatus ?? (omittedIngredients.length > 0 ? 'partial' : 'complete');
   const canTriggerEstimate = recipeNutritionEstimateVisible && canEstimate && Boolean(onEstimate);
-  const estimateCoverageLabel = estimate?.coverageStatus === 'complete' ? 'Komplet estimate' : 'Delvist estimate';
-  const canRenderMacroOverview = Boolean(estimate && recipeNutritionEstimateVisible && estimate.coverageStatus === 'complete');
+  const estimateCoverageLabel = coverageStatus === 'complete' ? 'Komplet estimate' : 'Delvist estimate';
+  const canRenderMacroOverview = Boolean(estimate && recipeNutritionEstimateVisible && coverageStatus === 'complete');
   const selectedSnapshot = estimate ? estimate[macroBasis] : null;
   const contributionScale = useMemo(() => {
     if (!estimate) {
@@ -251,7 +261,7 @@ export function RecipeNutritionAttachmentCard({
       return [];
     }
 
-    const items = estimate.ingredientBreakdown
+    const items = ingredientBreakdown
       .map((item) => {
         const wholeRecipeValue = activeMacroTab === 'protein'
           ? item.proteinGrams ?? 0
@@ -361,16 +371,16 @@ export function RecipeNutritionAttachmentCard({
           <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
             <p className="font-bold uppercase tracking-widest opacity-60">Ingrediensdækning</p>
             <p className="mt-2">
-              Medregnet {estimate.countedIngredientCount} af {estimate.totalIngredientCount} ingredienser.
+              Medregnet {countedIngredientCount} af {totalIngredientCount} ingredienser.
             </p>
-            {estimate.omittedIngredients.length > 0 && (
+            {omittedIngredients.length > 0 && (
               <p className="mt-2 text-red-700 dark:text-red-300">
-                Mangler i estimate: {estimate.omittedIngredients.join(', ')}
+                Mangler i estimate: {omittedIngredients.join(', ')}
               </p>
             )}
-            {estimate.validationWarnings.length > 0 && (
+            {validationWarnings.length > 0 && (
               <ul className="mt-3 space-y-1 text-amber-800 dark:text-amber-200">
-                {estimate.validationWarnings.map((warning) => (
+                {validationWarnings.map((warning) => (
                   <li key={warning}>{warning}</li>
                 ))}
               </ul>
@@ -452,7 +462,7 @@ export function RecipeNutritionAttachmentCard({
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-xs opacity-75">
-                    <span>Samlet vaegt: {formatMacroValue(estimate.estimatedTotalWeightGrams)} g</span>
+                    <span>Samlet vægt: {formatMacroValue(estimate.estimatedTotalWeightGrams)} g</span>
                     <span>Visning: {sourceBasisLabel}</span>
                   </div>
                 </div>
@@ -471,9 +481,9 @@ export function RecipeNutritionAttachmentCard({
               <div>Pr. 100 g: {formatMacroValue(estimate.per100g.energyKcal)} kcal, fedt {formatMacroValue(estimate.per100g.fatGrams)} g, kulhydrat {formatMacroValue(estimate.per100g.carbsGrams)} g, protein {formatMacroValue(estimate.per100g.proteinGrams)} g</div>
               <div>Pr. portion: {formatMacroValue(estimate.perPortion.energyKcal)} kcal, fedt {formatMacroValue(estimate.perPortion.fatGrams)} g, kulhydrat {formatMacroValue(estimate.perPortion.carbsGrams)} g, protein {formatMacroValue(estimate.perPortion.proteinGrams)} g</div>
             </div>
-            {estimate.validationWarnings.length > 0 && (
+            {validationWarnings.length > 0 && (
               <ul className="mt-3 text-xs">
-                {estimate.validationWarnings.map((warning) => (
+                {validationWarnings.map((warning) => (
                   <li key={warning}>{warning}</li>
                 ))}
               </ul>
@@ -483,10 +493,10 @@ export function RecipeNutritionAttachmentCard({
             <p className="font-bold uppercase tracking-widest opacity-60">Antagelser</p>
             <p className="mt-2">{estimate.rationale}</p>
             <p className="mt-3 opacity-75">
-              Estimeret samlet vaegt: {estimate.estimatedTotalWeightGrams ?? '-'} g
+              Estimeret samlet vægt: {estimate.estimatedTotalWeightGrams ?? '-'} g
             </p>
           </div>
-          {estimate.ingredientBreakdown.length > 0 && (
+          {ingredientBreakdown.length > 0 && (
             <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -548,7 +558,7 @@ export function RecipeNutritionAttachmentCard({
                     ))}
                   </ul>
 
-                  {estimate.ingredientBreakdown.length > 5 && (
+                  {ingredientBreakdown.length > 5 && (
                     <button
                       type="button"
                       onClick={() => setShowAllMacroSources((current) => !current)}
@@ -723,3 +733,4 @@ export function RecipeNutritionAttachmentCard({
     </section>
   );
 }
+
