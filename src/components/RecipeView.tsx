@@ -1,4 +1,4 @@
-import { Recipe, Ingredient, Step, Folder as FolderType } from '../types';
+﻿import { Recipe, Ingredient, Step, Folder as FolderType } from '../types';
 import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -90,6 +90,17 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const currentFolder = findFolderForRecipe(recipe, allFolders);
   const selectedEditFolder = findFolderForRecipe(editData, allFolders);
   const pendingFolderSave = pendingFolderSaveId ? allFolders.find((folder) => folder.id === pendingFolderSaveId) || null : null;
+  const recipeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const recipeSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
+  const recipeCategories = Array.isArray(recipe.categories) ? recipe.categories : [];
+  const recipeTips = Array.isArray(recipe.tipsAndTricks) ? recipe.tipsAndTricks : [];
+  const recipeHeatGuide = Array.isArray(recipe.heatGuide) ? recipe.heatGuide : [];
+  const recipeFlavorBoosts = Array.isArray(recipe.flavorBoosts) ? recipe.flavorBoosts : [];
+  const recipePitfalls = Array.isArray(recipe.pitfalls) ? recipe.pitfalls : [];
+  const recipeHints = Array.isArray(recipe.hints) ? recipe.hints : [];
+  const editIngredients = Array.isArray(editData.ingredients) ? editData.ingredients : [];
+  const editSteps = Array.isArray(editData.steps) ? editData.steps : [];
+  const editCategories = Array.isArray(editData.categories) ? editData.categories : [];
   const mutableFolders = currentUser?.uid
     ? allFolders.filter((folder) => folder.ownerUID === currentUser.uid)
     : allFolders;
@@ -135,7 +146,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
     const updatedRecipe = {
       ...recipe,
-      ingredients: (recipe.ingredients || []).map(ing => 
+      ingredients: recipeIngredients.map(ing => 
         ing.id === ingId ? { ...ing, locked: !ing.locked } : ing
       )
     };
@@ -143,8 +154,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
 
   const convertUnit = (index: number) => {
-    if (!editData.ingredients) return;
-    const ing = editData.ingredients[index];
+    const ing = editIngredients[index];
     if (!ing || !ing.amount) return;
     
     const name = ing.name.toLowerCase();
@@ -186,7 +196,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     }
 
     if (newAmount !== ing.amount || newUnit !== ing.unit) {
-      const newIngs = [...(editData.ingredients || [])];
+        const newIngs = [...editIngredients];
       newIngs[index] = { ...ing, amount: newAmount, unit: newUnit };
       updateEditData({ ...editData, ingredients: newIngs });
     }
@@ -244,12 +254,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     setShowFolderPicker(true);
   };
 
-  const groupedIngredients = (recipe.ingredients || []).reduce((acc, ing) => {
+  const groupedIngredients = recipeIngredients.reduce((acc, ing) => {
     const group = ing.group || 'Andre';
     if (!acc[group]) acc[group] = [];
     acc[group].push(ing);
     return acc;
-  }, {} as Record<string, typeof recipe.ingredients>);
+  }, {} as Record<string, typeof recipeIngredients>);
 
   if (isEditing) {
     return (
@@ -441,10 +451,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="relative">
               <label className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] block mb-3 opacity-60 dark:opacity-100">Kategorier</label>
               <div className="flex flex-wrap gap-2 mb-3">
-                {editData.categories?.map(cat => (
+                {editCategories.map(cat => (
                   <span key={cat} className="bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/70 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 border border-black/5 dark:border-white/10">
                     {cat}
-                    <button onClick={() => updateEditData({...editData, categories: editData.categories?.filter(c => c !== cat)})} className="hover:text-heath-mid transition-colors"><X size={12}/></button>
+                    <button onClick={() => updateEditData({...editData, categories: editCategories.filter(c => c !== cat)})} className="hover:text-heath-mid transition-colors"><X size={12}/></button>
                   </span>
                 ))}
               </div>
@@ -459,7 +469,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && categorySearch.trim()) {
-                    updateEditData({...editData, categories: [...(editData.categories || []), categorySearch.trim()]});
+                    updateEditData({...editData, categories: [...editCategories, categorySearch.trim()]});
                     setCategorySearch('');
                     setShowCategoryDropdown(false);
                   }
@@ -469,12 +479,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               />
               {showCategoryDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-2 glass-brushed rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto">
-                  {mergedCategories.filter(c => c.toLowerCase().includes(categorySearch.toLowerCase()) && !editData.categories?.includes(c)).map(cat => (
+                  {mergedCategories.filter(c => c.toLowerCase().includes(categorySearch.toLowerCase()) && !editCategories.includes(c)).map(cat => (
                     <button
                       key={cat}
                       onMouseDown={(e) => e.preventDefault()} // Prevent blur before click
                       onClick={() => {
-                        updateEditData({...editData, categories: [...(editData.categories || []), cat]});
+                        updateEditData({...editData, categories: [...editCategories, cat]});
                         setCategorySearch('');
                         setShowCategoryDropdown(false);
                       }}
@@ -487,7 +497,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     <button
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
-                        updateEditData({...editData, categories: [...(editData.categories || []), categorySearch.trim()]});
+                        updateEditData({...editData, categories: [...editCategories, categorySearch.trim()]});
                         setCategorySearch('');
                         setShowCategoryDropdown(false);
                       }}
@@ -521,7 +531,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
             
             <div className="space-y-4">
-              {(editData.ingredients || []).map((ing, i) => {
+              {editIngredients.map((ing, i) => {
                 const isConfirmed = confirmedIngredients[ing.id] !== false;
                 return (
                 <div key={ing.id || i} className="flex flex-col gap-4 bg-white/40 dark:bg-black/20 p-5 rounded-2xl border border-black/5 dark:border-white/10 relative group">
@@ -531,7 +541,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         type="text" 
                         value={ing.name}
                         onChange={e => {
-                          const newIngs = [...(editData.ingredients || [])];
+                          const newIngs = [...editIngredients];
                           newIngs[i].name = e.target.value;
                           updateEditData({...editData, ingredients: newIngs});
                         }}
@@ -555,7 +565,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                               key={cat}
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
-                                const newIngs = [...(editData.ingredients || [])];
+                                const newIngs = [...editIngredients];
                                 newIngs[i].name = cat;
                                 const lowerCat = cat.toLowerCase();
                                 if (lowerCat.includes('mælk') || lowerCat.includes('vand') || lowerCat.includes('fløde') || lowerCat.includes('bouillon')) newIngs[i].unit = 'dl';
@@ -594,7 +604,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         <button 
                           onClick={(e) => {
                             e.preventDefault();
-                            const newIngs = editData.ingredients.filter((_, idx) => idx !== i);
+                            const newIngs = editIngredients.filter((_, idx) => idx !== i);
                             setEditData({...editData, ingredients: newIngs});
                           }}
                           className="p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors"
@@ -615,7 +625,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             list="units-list"
                             value={ing.unit}
                             onChange={e => {
-                              const newIngs = [...(editData.ingredients || [])];
+                              const newIngs = [...editIngredients];
                               newIngs[i].unit = e.target.value;
                               updateEditData({...editData, ingredients: newIngs});
                             }}
@@ -639,7 +649,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                           type="number" 
                           value={ing.amount || ''}
                           onChange={e => {
-                            const newIngs = [...(editData.ingredients || [])];
+                            const newIngs = [...editIngredients];
                             newIngs[i].amount = e.target.value ? Number(e.target.value) : null;
                             updateEditData({...editData, ingredients: newIngs});
                           }}
@@ -651,7 +661,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         <button 
                           onClick={(e) => {
                             e.preventDefault();
-                            const newIngs = [...(editData.ingredients || [])];
+                            const newIngs = [...editIngredients];
                             newIngs[i].locked = !newIngs[i].locked;
                             updateEditData({...editData, ingredients: newIngs});
                           }}
@@ -663,7 +673,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         <button 
                           onClick={(e) => {
                             e.preventDefault();
-                            const newIngs = editData.ingredients.filter((_, idx) => idx !== i);
+                            const newIngs = editIngredients.filter((_, idx) => idx !== i);
                             setEditData({...editData, ingredients: newIngs});
                           }}
                           className="p-2 rounded-lg bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors flex-1 sm:flex-none flex justify-center"
@@ -680,7 +690,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <button 
                 onClick={() => {
                   const newIng = { id: Date.now().toString(), name: '', amount: null, unit: '', group: 'Andre' };
-                  updateEditData({...editData, ingredients: [...(editData.ingredients || []), newIng]});
+                  updateEditData({...editData, ingredients: [...editIngredients, newIng]});
                   setConfirmedIngredients({...confirmedIngredients, [newIng.id]: false});
                 }}
                 className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-2 glass-brushed px-6 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10"
@@ -708,7 +718,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </h2>
             </div>
             <div className="space-y-6">
-              {(editData.steps || []).map((step, i) => (
+              {editSteps.map((step, i) => (
                 <div key={step.id || i} className="flex gap-4 items-start bg-white/40 dark:bg-black/20 p-5 rounded-2xl border border-black/5 dark:border-white/10 w-full overflow-hidden box-border relative group">
                   <div className="w-8 h-8 rounded-full bg-forest-mid flex items-center justify-center text-xs shrink-0 mt-1 text-white font-bold shadow-sm">
                     {i + 1}
@@ -717,7 +727,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     <textarea 
                       value={step.text}
                       onChange={e => {
-                        const newSteps = [...(editData.steps || [])];
+                        const newSteps = [...editSteps];
                         newSteps[i].text = e.target.value;
                         updateEditData({...editData, steps: newSteps});
                       }}
@@ -733,7 +743,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                           type="text" 
                           value={step.heat || ''}
                           onChange={e => {
-                            const newSteps = [...(editData.steps || [])];
+                            const newSteps = [...editSteps];
                             newSteps[i].heat = e.target.value;
                             updateEditData({...editData, steps: newSteps});
                           }}
@@ -747,7 +757,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                           type="text" 
                           value={step.reminder || ''}
                           onChange={e => {
-                            const newSteps = [...(editData.steps || [])];
+                            const newSteps = [...editSteps];
                             newSteps[i].reminder = e.target.value;
                             updateEditData({...editData, steps: newSteps});
                           }}
@@ -763,7 +773,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             type="number" 
                             value={step.timer?.duration || ''}
                             onChange={e => {
-                              const newSteps = [...(editData.steps || [])];
+                              const newSteps = [...editSteps];
                               const duration = e.target.value ? Number(e.target.value) : undefined;
                               if (duration) {
                                 newSteps[i].timer = { duration, description: step.timer?.description || 'Timer' };
@@ -781,7 +791,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                               list="timer-descriptions"
                               value={step.timer?.description || ''}
                               onChange={e => {
-                                const newSteps = [...(editData.steps || [])];
+                                const newSteps = [...editSteps];
                                 if (step.timer) {
                                   newSteps[i].timer = { ...step.timer, description: e.target.value };
                                 } else if (e.target.value) {
@@ -806,7 +816,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     </div>
                   <button 
                     onClick={() => {
-                      const newSteps = (editData.steps || []).filter((_, idx) => idx !== i);
+                      const newSteps = editSteps.filter((_, idx) => idx !== i);
                       updateEditData({...editData, steps: newSteps});
                     }}
                     className="p-2 rounded-lg bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors shrink-0 mt-1"
@@ -818,7 +828,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
             <div className="pt-2 flex justify-center">
               <button 
-                onClick={() => updateEditData({...editData, steps: [...(editData.steps || []), { id: Date.now().toString(), text: '' }]})}
+                onClick={() => updateEditData({...editData, steps: [...editSteps, { id: Date.now().toString(), text: '' }]})}
                 className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-2 glass-brushed px-6 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10"
                 title="Tilføj trin"
               >
@@ -1010,7 +1020,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 📁 {recipe.folder}
               </span>
             )}
-            {recipe.categories?.map((cat, i) => (
+            {recipeCategories.map((cat, i) => (
               <span key={i} className="bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/80 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
                 {cat}
               </span>
@@ -1075,7 +1085,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Floating Tips Button */}
-      {recipe.tipsAndTricks && recipe.tipsAndTricks.length > 0 && (
+      {recipeTips.length > 0 && (
         <motion.div
           drag
           dragConstraints={{ left: -window.innerWidth + 80, right: 0, top: -window.innerHeight/2 + 80, bottom: window.innerHeight/2 - 80 }}
@@ -1110,9 +1120,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <h3 className="font-serif text-2xl text-forest-dark dark:text-white italic text-engraved">Tips & Tricks</h3>
             </div>
             
-            {Array.isArray(recipe.tipsAndTricks) && recipe.tipsAndTricks.length > 0 ? (
+            {recipeTips.length > 0 ? (
               <ul className="space-y-5 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                {recipe.tipsAndTricks.map((tip, idx) => (
+                {recipeTips.map((tip, idx) => (
                   <li key={idx} className="flex gap-4 text-sm text-forest-mid dark:text-white/80 leading-relaxed italic">
                     <span className="text-heath-mid font-bold mt-1 shrink-0">•</span>
                     <span>{tip}</span>
@@ -1136,7 +1146,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 className="mt-8 w-full py-4 bg-forest-mid text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-forest-dark transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                {recipe.tipsAndTricks && recipe.tipsAndTricks.length > 0 ? 'Generer nye tips' : 'Generer tips'}
+                {recipeTips.length > 0 ? 'Generer nye tips' : 'Generer tips'}
               </button>
             )}
           </div>
@@ -1202,40 +1212,40 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       </section>
 
       {/* Guides */}
-      {(recipe.heatGuide || recipe.ovenGuide || recipe.flavorBoosts || recipe.pitfalls || recipe.hints) && (
+      {(recipeHeatGuide.length > 0 || recipe.ovenGuide || recipeFlavorBoosts.length > 0 || recipePitfalls.length > 0 || recipeHints.length > 0) && (
         <section className="mb-10 space-y-4">
-          {Array.isArray(recipe.heatGuide) && recipe.heatGuide.length > 0 && (
+          {recipeHeatGuide.length > 0 && (
             <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 flex gap-4 relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
               <Flame className="text-heath-mid shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Varmeguide</h4>
                 <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
-                  {recipe.heatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{formatHeatGuideEntry(g)}</li>)}
+                  {recipeHeatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{formatHeatGuideEntry(g)}</li>)}
                 </ul>
               </div>
             </div>
           )}
-          {Array.isArray(recipe.flavorBoosts) && recipe.flavorBoosts.length > 0 && (
+          {recipeFlavorBoosts.length > 0 && (
             <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 flex gap-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-forest-mid/20" />
               <Lightbulb className="text-heath-mid shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Smagsboostere</h4>
                 <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
-                  {recipe.flavorBoosts.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
+                  {recipeFlavorBoosts.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
             </div>
           )}
-          {Array.isArray(recipe.pitfalls) && recipe.pitfalls.length > 0 && (
+          {recipePitfalls.length > 0 && (
             <div className="bg-[#DC2626]/5 dark:bg-[#DC2626]/10 p-6 rounded-3xl border border-[#DC2626]/10 flex gap-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#DC2626]/20" />
               <AlertTriangle className="text-[#DC2626] shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-[#DC2626] uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Faldgruber</h4>
                 <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
-                  {recipe.pitfalls.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
+                  {recipePitfalls.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
             </div>
@@ -1268,7 +1278,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           )}
         </div>
         <div className="space-y-10">
-          {(recipe.steps || []).map((step, i) => (
+          {recipeSteps.map((step, i) => (
             <div key={step.id || i} className="flex gap-6 group">
               <div className="w-10 h-10 rounded-full bg-forest-mid text-white flex items-center justify-center font-bold shrink-0 mt-1 shadow-md transition-transform group-hover:scale-110">
                 {i + 1}
@@ -1403,7 +1413,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <button 
                   onClick={() => {
                     if (newIngredient.name.trim()) {
-                      setEditData({...editData, ingredients: [...(editData.ingredients || []), newIngredient]});
+                      setEditData({...editData, ingredients: [...editIngredients, newIngredient]});
                       setConfirmedIngredients({...confirmedIngredients, [newIngredient.id]: true});
                       setNewIngredient({ id: Math.random().toString(36).substr(2, 9), name: '', amount: null, unit: '', group: 'Andre' });
                     }
@@ -1416,7 +1426,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <button 
                   onClick={() => {
                     if (newIngredient.name.trim()) {
-                      setEditData({...editData, ingredients: [...(editData.ingredients || []), newIngredient]});
+                        setEditData({...editData, ingredients: [...editIngredients, newIngredient]});
                       setConfirmedIngredients({...confirmedIngredients, [newIngredient.id]: true});
                       setShowAddIngredientModal(false);
                     }
@@ -1597,5 +1607,6 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     </div>
   );
 }
+
 
 
