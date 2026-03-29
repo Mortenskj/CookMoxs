@@ -2,9 +2,11 @@ import { STORAGE_KEYS } from '../config/storageKeys';
 
 export const NUTRITION_TOOLS_CHANGED_EVENT = 'cookmoxs:nutrition-tools-changed';
 export const RECIPE_NUTRITION_VISIBLE_CHANGED_EVENT = 'cookmoxs:recipe-nutrition-visible-changed';
+export const RECIPE_NUTRITION_ESTIMATE_VISIBLE_CHANGED_EVENT = 'cookmoxs:recipe-nutrition-estimate-visible-changed';
 export const RECIPE_NUTRITION_EXPANDED_BY_DEFAULT_CHANGED_EVENT = 'cookmoxs:recipe-nutrition-expanded-by-default-changed';
 export const DEFAULT_NUTRITION_TOOLS_ENABLED = true;
 export const DEFAULT_RECIPE_NUTRITION_VISIBLE = true;
+export const DEFAULT_RECIPE_NUTRITION_ESTIMATE_VISIBLE = true;
 export const DEFAULT_RECIPE_NUTRITION_EXPANDED_BY_DEFAULT = false;
 
 export function getNutritionToolsEnabled() {
@@ -49,6 +51,28 @@ export function setRecipeNutritionVisible(visible: boolean) {
 
   window.localStorage.setItem(STORAGE_KEYS.recipeNutritionVisible, String(visible));
   window.dispatchEvent(new CustomEvent(RECIPE_NUTRITION_VISIBLE_CHANGED_EVENT, { detail: visible }));
+}
+
+export function getRecipeNutritionEstimateVisible() {
+  if (typeof window === 'undefined') {
+    return DEFAULT_RECIPE_NUTRITION_ESTIMATE_VISIBLE;
+  }
+
+  const stored = window.localStorage.getItem(STORAGE_KEYS.recipeNutritionEstimateVisible);
+  if (stored === null) {
+    return DEFAULT_RECIPE_NUTRITION_ESTIMATE_VISIBLE;
+  }
+
+  return stored === 'true';
+}
+
+export function setRecipeNutritionEstimateVisible(visible: boolean) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(STORAGE_KEYS.recipeNutritionEstimateVisible, String(visible));
+  window.dispatchEvent(new CustomEvent(RECIPE_NUTRITION_ESTIMATE_VISIBLE_CHANGED_EVENT, { detail: visible }));
 }
 
 export function getRecipeNutritionExpandedByDefault() {

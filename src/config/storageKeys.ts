@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   cookModeIncludePrep: 'cookmoxs_cook_mode_include_prep',
   nutritionToolsEnabled: 'cookmoxs_nutrition_tools_enabled',
   recipeNutritionVisible: 'cookmoxs_recipe_nutrition_visible',
+  recipeNutritionEstimateVisible: 'cookmoxs_recipe_nutrition_estimate_visible',
   recipeNutritionExpandedByDefault: 'cookmoxs_recipe_nutrition_expanded_by_default',
   learningProfile: 'cookmoxs_learning_profile_v1',
   learningFeedbackEnabled: 'cookmoxs_learning_feedback_enabled',

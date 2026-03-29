@@ -4,6 +4,7 @@ import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/co
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
 import { SEASONAL_THEME_OPTIONS } from '../config/seasonalThemes';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
+import { useRecipeNutritionEstimateVisible } from '../hooks/useRecipeNutritionEstimateVisible';
 import { useRecipeNutritionVisible } from '../hooks/useRecipeNutritionVisible';
 import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
 import { NutritionLookupCard } from './NutritionLookupCard';
@@ -111,6 +112,10 @@ export function SettingsView({
     visible: recipeNutritionVisible,
     setVisible: setRecipeNutritionVisible,
   } = useRecipeNutritionVisible();
+  const {
+    visible: recipeNutritionEstimateVisible,
+    setVisible: setRecipeNutritionEstimateVisible,
+  } = useRecipeNutritionEstimateVisible();
   const {
     expandedByDefault: recipeNutritionExpandedByDefault,
     setExpandedByDefault: setRecipeNutritionExpandedByDefault,
@@ -393,6 +398,22 @@ export function SettingsView({
                   onChange={setRecipeNutritionVisible}
                 />
               </div>
+              {recipeNutritionVisible && (
+                <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
+                  <div>
+                    <p className="font-serif text-lg text-forest-dark italic">
+                      {recipeNutritionEstimateVisible ? 'AI-makroestimat vises' : 'AI-makroestimat skjules'}
+                    </p>
+                    <p className="text-xs text-forest-mid opacity-75">
+                      Styr om AI-kortet med kcal og makrofordeling overhovedet vises i opskriften i denne browser.
+                    </p>
+                  </div>
+                  <SettingsToggle
+                    enabled={recipeNutritionEstimateVisible}
+                    onChange={setRecipeNutritionEstimateVisible}
+                  />
+                </div>
+              )}
               {recipeNutritionVisible && (
                 <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
                   <div>

@@ -1309,6 +1309,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       <RecipeNutritionAttachmentCard
         attachment={recipe.nutritionAttachment}
         estimate={recipe.nutritionEstimate}
+        servings={recipe.servings}
         canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
         canEstimate={canMutateRecipe}
         canClear={canMutateRecipe}

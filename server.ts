@@ -122,11 +122,27 @@ const NUTRITION_ESTIMATE_SCHEMA = {
       },
       required: ['energyKcal', 'fatGrams', 'carbsGrams', 'proteinGrams'],
     },
+    ingredientBreakdown: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          ingredientName: { type: Type.STRING },
+          estimatedWeightGrams: { type: Type.NUMBER },
+          estimatedEnergyKcal: { type: Type.NUMBER },
+          proteinGrams: { type: Type.NUMBER },
+          fatGrams: { type: Type.NUMBER },
+          carbsGrams: { type: Type.NUMBER },
+          note: { type: Type.STRING },
+        },
+        required: ['ingredientName', 'proteinGrams', 'fatGrams', 'carbsGrams'],
+      },
+    },
     estimatedTotalWeightGrams: { type: Type.NUMBER },
     confidence: { type: Type.STRING },
     rationale: { type: Type.STRING },
   },
-  required: ['per100g', 'perPortion', 'confidence', 'rationale'],
+  required: ['per100g', 'perPortion', 'ingredientBreakdown', 'confidence', 'rationale'],
 };
 
 function getAiClient() {
@@ -192,7 +208,145 @@ function normalizeNutritionEstimateConfidence(value: unknown): 'high' | 'medium'
   return 'medium';
 }
 
-function normalizeNutritionEstimate(estimate: any) {
+function normalizeIngredientNameForCoverage(value: unknown) {
+  return String(value ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function normalizeNutritionEstimateIngredient(item: any) {
+  return {
+    ingredientName: typeof item?.ingredientName === 'string' ? item.ingredientName.trim() : '',
+    estimatedWeightGrams: normalizeNutritionEstimateValue(item?.estimatedWeightGrams),
+    estimatedEnergyKcal: normalizeNutritionEstimateValue(item?.estimatedEnergyKcal),
+    proteinGrams: normalizeNutritionEstimateValue(item?.proteinGrams),
+    fatGrams: normalizeNutritionEstimateValue(item?.fatGrams),
+    carbsGrams: normalizeNutritionEstimateValue(item?.carbsGrams),
+    note: typeof item?.note === 'string' && item.note.trim() ? item.note.trim() : undefined,
+  };
+}
+
+function validateNutritionEstimateCoverage(recipe: any, ingredientBreakdown: Array<{ ingredientName: string }>) {
+  const recipeIngredientNames = Array.isArray(recipe?.ingredients)
+    ? recipe.ingredients
+        .map((ingredient: any) => (typeof ingredient?.name === 'string' ? ingredient.name.trim() : ''))
+        .filter(Boolean)
+    : [];
+
+  const breakdownByName = new Map(
+    ingredientBreakdown
+      .map((item) => [normalizeIngredientNameForCoverage(item.ingredientName), item] as const)
+      .filter(([name]) => Boolean(name)),
+  );
+
+  const omittedIngredients = recipeIngredientNames.filter((name) => !breakdownByName.has(normalizeIngredientNameForCoverage(name)));
+
+  return {
+    totalIngredientCount: recipeIngredientNames.length,
+    countedIngredientCount: recipeIngredientNames.length - omittedIngredients.length,
+    omittedIngredients,
+  };
+}
+
+function getWholeRecipeMacroTotals(ingredientBreakdown: Array<{
+  estimatedEnergyKcal?: number | null;
+  proteinGrams?: number | null;
+  fatGrams?: number | null;
+  carbsGrams?: number | null;
+}>) {
+  return ingredientBreakdown.reduce<{
+    energyKcal: number;
+    proteinGrams: number;
+    fatGrams: number;
+    carbsGrams: number;
+  }>(
+    (totals, item) => ({
+      energyKcal: totals.energyKcal + (item.estimatedEnergyKcal ?? 0),
+      proteinGrams: totals.proteinGrams + (item.proteinGrams ?? 0),
+      fatGrams: totals.fatGrams + (item.fatGrams ?? 0),
+      carbsGrams: totals.carbsGrams + (item.carbsGrams ?? 0),
+    }),
+    { energyKcal: 0, proteinGrams: 0, fatGrams: 0, carbsGrams: 0 },
+  );
+}
+
+function validateNutritionEstimateSanity(recipe: any, estimate: any, ingredientBreakdown: Array<{
+  estimatedEnergyKcal?: number | null;
+  proteinGrams?: number | null;
+  fatGrams?: number | null;
+  carbsGrams?: number | null;
+}>) {
+  const servings = Number(recipe?.servings);
+  const hasServings = Number.isFinite(servings) && servings > 0;
+  const breakdownTotals = getWholeRecipeMacroTotals(ingredientBreakdown);
+  const warnings: string[] = [];
+
+  const compareTotals = (
+    label: string,
+    breakdownValue: number,
+    expectedValue: number | null | undefined,
+    absoluteTolerance: number,
+    relativeTolerance: number,
+  ) => {
+    if (!Number.isFinite(breakdownValue) || !Number.isFinite(Number(expectedValue))) {
+      return;
+    }
+
+    const expected = Number(expectedValue);
+    const delta = Math.abs(breakdownValue - expected);
+    const relativeDelta = expected > 0 ? delta / expected : 0;
+
+    if (delta > absoluteTolerance && relativeDelta > relativeTolerance) {
+      warnings.push(`${label} summer ikke rent mellem ingredientBreakdown og totals.`);
+    }
+  };
+
+  if (hasServings) {
+    compareTotals(
+      'kcal',
+      breakdownTotals.energyKcal,
+      normalizeNutritionEstimateValue(estimate?.perPortion?.energyKcal) != null
+        ? Number(normalizeNutritionEstimateValue(estimate?.perPortion?.energyKcal)) * servings
+        : null,
+      80,
+      0.2,
+    );
+    compareTotals(
+      'protein',
+      breakdownTotals.proteinGrams,
+      normalizeNutritionEstimateValue(estimate?.perPortion?.proteinGrams) != null
+        ? Number(normalizeNutritionEstimateValue(estimate?.perPortion?.proteinGrams)) * servings
+        : null,
+      8,
+      0.2,
+    );
+    compareTotals(
+      'fedt',
+      breakdownTotals.fatGrams,
+      normalizeNutritionEstimateValue(estimate?.perPortion?.fatGrams) != null
+        ? Number(normalizeNutritionEstimateValue(estimate?.perPortion?.fatGrams)) * servings
+        : null,
+      8,
+      0.2,
+    );
+    compareTotals(
+      'kulhydrat',
+      breakdownTotals.carbsGrams,
+      normalizeNutritionEstimateValue(estimate?.perPortion?.carbsGrams) != null
+        ? Number(normalizeNutritionEstimateValue(estimate?.perPortion?.carbsGrams)) * servings
+        : null,
+      10,
+      0.2,
+    );
+  }
+
+  return warnings;
+}
+
+function normalizeNutritionEstimate(estimate: any, recipe: any) {
   const normalizeSnapshot = (snapshot: any) => ({
     energyKcal: normalizeNutritionEstimateValue(snapshot?.energyKcal),
     fatGrams: normalizeNutritionEstimateValue(snapshot?.fatGrams),
@@ -200,11 +354,25 @@ function normalizeNutritionEstimate(estimate: any) {
     proteinGrams: normalizeNutritionEstimateValue(snapshot?.proteinGrams),
   });
 
+  const ingredientBreakdown = Array.isArray(estimate?.ingredientBreakdown)
+    ? estimate.ingredientBreakdown.map(normalizeNutritionEstimateIngredient).filter((item) => item.ingredientName)
+    : [];
+  const coverage = validateNutritionEstimateCoverage(recipe, ingredientBreakdown);
+  const validationWarnings = validateNutritionEstimateSanity(recipe, estimate, ingredientBreakdown);
+
   return {
     per100g: normalizeSnapshot(estimate?.per100g),
     perPortion: normalizeSnapshot(estimate?.perPortion),
+    ingredientBreakdown,
+    countedIngredientCount: coverage.countedIngredientCount,
+    totalIngredientCount: coverage.totalIngredientCount,
+    omittedIngredients: coverage.omittedIngredients,
+    coverageStatus: coverage.omittedIngredients.length > 0 ? 'partial' : 'complete',
+    validationWarnings,
     estimatedTotalWeightGrams: normalizeNutritionEstimateValue(estimate?.estimatedTotalWeightGrams),
-    confidence: normalizeNutritionEstimateConfidence(estimate?.confidence),
+    confidence: coverage.omittedIngredients.length > 0 || validationWarnings.length > 0
+      ? 'low'
+      : normalizeNutritionEstimateConfidence(estimate?.confidence),
     rationale: typeof estimate?.rationale === 'string' && estimate.rationale.trim()
       ? estimate.rationale.trim()
       : 'AI-estimat baseret paa ingredienslisten.',
@@ -564,7 +732,7 @@ async function startServer() {
     if (!recipe) return res.status(400).json({ error: 'recipe is required' });
     try {
       const styleInstruction = getLevelStyleInstruction(level, 'fill');
-      const prompt = `
+      const buildPrompt = (missingIngredients: string[] = []) => `
         Du er en noegtern ernæringsassistent.
         Lav et vejledende makro- og kcal-estimat for hele opskriften ud fra ingredienslisten.
         Returner kun JSON, som matcher schemaet.
@@ -574,11 +742,34 @@ async function startServer() {
         Brug nutritionAttachment kun som ekstra reference, hvis den findes. Ingredienslisten er stadig primaer kilde.
         Match tonen til denne stilinstruktion: ${styleInstruction}
         Confidence skal vaere en af: high, medium, low.
+        ingredientBreakdown skal indeholde ALLE ingredienser fra recipe.ingredients noejagtigt en gang hver.
+        ingredientName skal kopieres direkte fra recipe.ingredients[].name og maa ikke omskrives eller grupperes.
+        proteinGrams, fatGrams og carbsGrams i ingredientBreakdown skal vaere hele ingrediensens bidrag i hele opskriften, ikke per 100 g.
+        Summen af ingredientBreakdown skal passe nogenlunde med totals for hele opskriften.
+        Medregn ogsaa smaa ingredienser som olie, smør, løg, hvidløg, bouillon, mel, sukker, krydderier, fløde, smørklatter og lignende.
+        Hvis noget er uklart, skal ingrediensen stadig med i ingredientBreakdown med et konservativt estimat og en note.
+        ${missingIngredients.length > 0 ? `Du mangler specifikt at medregne disse ingredienser fra forrige forsøg: ${missingIngredients.join(', ')}.` : ''}
         Opskrift JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedEstimate = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, NUTRITION_ESTIMATE_SCHEMA);
-      return res.json({ estimate: normalizeNutritionEstimate(parsedEstimate) });
+
+      let normalizedEstimate = normalizeNutritionEstimate(
+        await generateAIContent(DEFAULT_STRUCTURED_MODEL, buildPrompt(), NUTRITION_ESTIMATE_SCHEMA),
+        recipe,
+      );
+
+      if (normalizedEstimate.omittedIngredients.length > 0) {
+        normalizedEstimate = normalizeNutritionEstimate(
+          await generateAIContent(DEFAULT_STRUCTURED_MODEL, buildPrompt(normalizedEstimate.omittedIngredients), NUTRITION_ESTIMATE_SCHEMA),
+          recipe,
+        );
+      }
+
+      if (normalizedEstimate.omittedIngredients.length > 0) {
+        throw new Error(`Nutrition estimate omitted ingredients: ${normalizedEstimate.omittedIngredients.join(', ')}`);
+      }
+
+      return res.json({ estimate: normalizedEstimate });
     } catch (error) {
       console.error('AI Nutrition Estimate Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/estimate-nutrition');

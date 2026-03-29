@@ -1,6 +1,7 @@
 import { Barcode, ChevronDown, ChevronUp, Link2, Loader2, Search, ShieldAlert, Unlink2, Wand2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
+import { useRecipeNutritionEstimateVisible } from '../hooks/useRecipeNutritionEstimateVisible';
 import { useRecipeNutritionVisible } from '../hooks/useRecipeNutritionVisible';
 import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
 import type { RecipeNutritionAttachment, RecipeNutritionEstimate } from '../types';
@@ -19,6 +20,7 @@ import {
 interface RecipeNutritionAttachmentCardProps {
   attachment?: RecipeNutritionAttachment;
   estimate?: RecipeNutritionEstimate;
+  servings?: number;
   canAttach: boolean;
   canEstimate: boolean;
   canClear?: boolean;
@@ -31,10 +33,58 @@ interface RecipeNutritionAttachmentCardProps {
 }
 
 type LookupMode = 'barcode' | 'text_search';
+type MacroBasis = 'perPortion' | 'per100g';
+type MacroTab = 'protein' | 'fat' | 'carbs';
+
+const MACRO_META: Record<MacroTab, { label: string; stroke: string; softBg: string; pillText: string }> = {
+  protein: {
+    label: 'Protein',
+    stroke: '#315649',
+    softBg: 'bg-[#E0ECE5] dark:bg-[#21362D]',
+    pillText: 'text-[#315649] dark:text-[#DDEBE3]',
+  },
+  fat: {
+    label: 'Fedt',
+    stroke: '#B17A2C',
+    softBg: 'bg-[#F8E8C6] dark:bg-[#4A3720]',
+    pillText: 'text-[#8B5F1F] dark:text-[#F6D998]',
+  },
+  carbs: {
+    label: 'Kulhydrat',
+    stroke: '#C96C46',
+    softBg: 'bg-[#F7DCCF] dark:bg-[#4A2E24]',
+    pillText: 'text-[#9B4E2F] dark:text-[#F5D2C4]',
+  },
+};
+
+function formatIngredientMacroLine(estimate: RecipeNutritionEstimate['ingredientBreakdown'][number]) {
+  const parts: string[] = [];
+
+  if (estimate.proteinGrams != null) {
+    parts.push(`Protein ${estimate.proteinGrams} g`);
+  }
+  if (estimate.fatGrams != null) {
+    parts.push(`Fedt ${estimate.fatGrams} g`);
+  }
+  if (estimate.carbsGrams != null) {
+    parts.push(`Kulhydrat ${estimate.carbsGrams} g`);
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : 'Makrofordeling ikke oplyst';
+}
+
+function formatMacroValue(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return '-';
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 export function RecipeNutritionAttachmentCard({
   attachment,
   estimate,
+  servings,
   canAttach,
   canEstimate,
   canClear = canAttach,
@@ -46,6 +96,7 @@ export function RecipeNutritionAttachmentCard({
   onClear,
 }: RecipeNutritionAttachmentCardProps) {
   const { enabled: nutritionToolsEnabled } = useNutritionToolsEnabled();
+  const { visible: recipeNutritionEstimateVisible } = useRecipeNutritionEstimateVisible();
   const { visible: recipeNutritionVisible } = useRecipeNutritionVisible();
   const { expandedByDefault } = useRecipeNutritionExpandedByDefault();
   const [enabled, setEnabled] = useState(false);
@@ -56,6 +107,10 @@ export function RecipeNutritionAttachmentCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<NutritionLookupResult | null>(null);
+  const [macroBasis, setMacroBasis] = useState<MacroBasis>('perPortion');
+  const [showMacroSources, setShowMacroSources] = useState(false);
+  const [activeMacroTab, setActiveMacroTab] = useState<MacroTab>('protein');
+  const [showAllMacroSources, setShowAllMacroSources] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,7 +149,134 @@ export function RecipeNutritionAttachmentCard({
   const summaryLine = hasAttachment
     ? getRecipeNutritionSummaryLine(attachment)
     : 'Ingen produktdata er knyttet til denne opskrift endnu.';
-  const canTriggerEstimate = canEstimate && Boolean(onEstimate);
+  const canTriggerEstimate = recipeNutritionEstimateVisible && canEstimate && Boolean(onEstimate);
+  const estimateCoverageLabel = estimate?.coverageStatus === 'complete' ? 'Komplet estimate' : 'Delvist estimate';
+  const canRenderMacroOverview = Boolean(estimate && recipeNutritionEstimateVisible && estimate.coverageStatus === 'complete');
+  const selectedSnapshot = estimate ? estimate[macroBasis] : null;
+  const contributionScale = useMemo(() => {
+    if (!estimate) {
+      return null;
+    }
+
+    if (macroBasis === 'perPortion') {
+      return Number.isFinite(servings) && Number(servings) > 0 ? 1 / Number(servings) : 1;
+    }
+
+    return estimate.estimatedTotalWeightGrams && estimate.estimatedTotalWeightGrams > 0
+      ? 100 / estimate.estimatedTotalWeightGrams
+      : 1;
+  }, [estimate, macroBasis, servings]);
+  const sourceBasisLabel = macroBasis === 'perPortion'
+    ? 'pr. portion'
+    : estimate?.estimatedTotalWeightGrams && estimate.estimatedTotalWeightGrams > 0
+      ? 'pr. 100 g'
+      : 'for hele opskriften';
+  const macroOverview = useMemo(() => {
+    if (!selectedSnapshot) {
+      return null;
+    }
+
+    const macros: Array<{
+      key: MacroTab;
+      label: string;
+      grams: number;
+      macroKcal: number;
+      share: number;
+      stroke: string;
+      softBg: string;
+      pillText: string;
+    }> = [
+      {
+        key: 'fat',
+        label: MACRO_META.fat.label,
+        grams: selectedSnapshot.fatGrams ?? 0,
+        macroKcal: (selectedSnapshot.fatGrams ?? 0) * 9,
+        share: 0,
+        stroke: MACRO_META.fat.stroke,
+        softBg: MACRO_META.fat.softBg,
+        pillText: MACRO_META.fat.pillText,
+      },
+      {
+        key: 'protein',
+        label: MACRO_META.protein.label,
+        grams: selectedSnapshot.proteinGrams ?? 0,
+        macroKcal: (selectedSnapshot.proteinGrams ?? 0) * 4,
+        share: 0,
+        stroke: MACRO_META.protein.stroke,
+        softBg: MACRO_META.protein.softBg,
+        pillText: MACRO_META.protein.pillText,
+      },
+      {
+        key: 'carbs',
+        label: MACRO_META.carbs.label,
+        grams: selectedSnapshot.carbsGrams ?? 0,
+        macroKcal: (selectedSnapshot.carbsGrams ?? 0) * 4,
+        share: 0,
+        stroke: MACRO_META.carbs.stroke,
+        softBg: MACRO_META.carbs.softBg,
+        pillText: MACRO_META.carbs.pillText,
+      },
+    ];
+
+    const totalMacroKcal = macros.reduce((sum, macro) => sum + macro.macroKcal, 0);
+    return macros.map((macro) => ({
+      ...macro,
+      share: totalMacroKcal > 0 ? macro.macroKcal / totalMacroKcal : 0,
+    }));
+  }, [selectedSnapshot]);
+  const donutSegments = useMemo(() => {
+    if (!macroOverview) {
+      return [];
+    }
+
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius;
+    let offset = 0;
+
+    return macroOverview.map((macro) => {
+      const dashLength = macro.share * circumference;
+      const segment = {
+        ...macro,
+        radius,
+        circumference,
+        dashArray: `${dashLength} ${circumference - dashLength}`,
+        dashOffset: -offset,
+      };
+      offset += dashLength;
+      return segment;
+    });
+  }, [macroOverview]);
+  const macroSourceItems = useMemo(() => {
+    if (!estimate || !contributionScale) {
+      return [];
+    }
+
+    const items = estimate.ingredientBreakdown
+      .map((item) => {
+        const wholeRecipeValue = activeMacroTab === 'protein'
+          ? item.proteinGrams ?? 0
+          : activeMacroTab === 'fat'
+            ? item.fatGrams ?? 0
+            : item.carbsGrams ?? 0;
+
+        const scaledValue = wholeRecipeValue * contributionScale;
+        const scaledWeight = item.estimatedWeightGrams != null ? item.estimatedWeightGrams * contributionScale : null;
+
+        return {
+          ...item,
+          scaledValue,
+          scaledWeight,
+        };
+      })
+      .filter((item) => item.scaledValue > 0)
+      .sort((a, b) => b.scaledValue - a.scaledValue);
+
+    return showAllMacroSources ? items : items.slice(0, 5);
+  }, [activeMacroTab, contributionScale, estimate, showAllMacroSources]);
+
+  useEffect(() => {
+    setShowAllMacroSources(false);
+  }, [activeMacroTab, macroBasis, showMacroSources]);
 
   const handleLookup = async () => {
     if (!input.trim()) return;
@@ -153,38 +335,149 @@ export function RecipeNutritionAttachmentCard({
         </div>
       </div>
 
-      {estimate && (
+      {estimate && recipeNutritionEstimateVisible && (
         <div className="mb-4 rounded-3xl border border-[#D4B886]/40 bg-[#FFF8EA]/80 p-5 text-sm text-forest-mid shadow-sm dark:border-[#D4B886]/20 dark:bg-[#2A1F1A]/50 dark:text-white/80">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-serif text-lg italic text-forest-dark dark:text-white">AI-estimat for opskriften</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-serif text-lg italic text-forest-dark dark:text-white">AI-estimat for opskriften</p>
+                <span className="rounded-full bg-[#2A1F1A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#D4B886]">
+                  AI-estimat
+                </span>
+              </div>
               <p className="mt-1 text-xs opacity-75">
-                Vejledende tal ud fra ingredienslisten. Senest opdateret {new Date(estimate.generatedAt).toLocaleString('da-DK')}.
+                Vejledende beregning ud fra ingredienslisten. Ikke producentdata. Senest opdateret {new Date(estimate.generatedAt).toLocaleString('da-DK')}.
               </p>
             </div>
-            <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
-              Sikkerhed: {estimate.confidence}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
+                {estimateCoverageLabel}
+              </span>
+              <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
+                Sikkerhed: {estimate.confidence}
+              </span>
+            </div>
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-black/5 bg-white/60 p-4 dark:border-white/10 dark:bg-black/20">
-              <p className="text-xs font-bold uppercase tracking-widest opacity-60">Pr. 100 g</p>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">kcal: {estimate.per100g.energyKcal ?? '-'}</div>
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Fedt: {estimate.per100g.fatGrams ?? '-'} g</div>
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Kulhydrat: {estimate.per100g.carbsGrams ?? '-'} g</div>
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Protein: {estimate.per100g.proteinGrams ?? '-'} g</div>
+          <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
+            <p className="font-bold uppercase tracking-widest opacity-60">Ingrediensdækning</p>
+            <p className="mt-2">
+              Medregnet {estimate.countedIngredientCount} af {estimate.totalIngredientCount} ingredienser.
+            </p>
+            {estimate.omittedIngredients.length > 0 && (
+              <p className="mt-2 text-red-700 dark:text-red-300">
+                Mangler i estimate: {estimate.omittedIngredients.join(', ')}
+              </p>
+            )}
+            {estimate.validationWarnings.length > 0 && (
+              <ul className="mt-3 space-y-1 text-amber-800 dark:text-amber-200">
+                {estimate.validationWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="mt-4 rounded-[2rem] border border-black/5 bg-[linear-gradient(135deg,rgba(255,255,255,0.85),rgba(255,248,234,0.92))] p-5 shadow-sm print:hidden dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(28,22,19,0.92),rgba(42,31,26,0.88))]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] opacity-60">Makrofordeling</p>
+                <p className="mt-1 text-xs opacity-75">Diagrammet viser kaloriefordelingen mellem fedt, protein og kulhydrat.</p>
+              </div>
+              <div className="flex rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
+                <button
+                  type="button"
+                  onClick={() => setMacroBasis('perPortion')}
+                  className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'perPortion' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
+                >
+                  Pr. portion
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMacroBasis('per100g')}
+                  className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'per100g' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
+                >
+                  Pr. 100 g
+                </button>
               </div>
             </div>
-            <div className="rounded-2xl border border-black/5 bg-white/60 p-4 dark:border-white/10 dark:bg-black/20">
-              <p className="text-xs font-bold uppercase tracking-widest opacity-60">Pr. portion</p>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">kcal: {estimate.perPortion.energyKcal ?? '-'}</div>
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Fedt: {estimate.perPortion.fatGrams ?? '-'} g</div>
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Kulhydrat: {estimate.perPortion.carbsGrams ?? '-'} g</div>
-                <div className="rounded-2xl bg-white/70 px-3 py-3 dark:bg-black/20">Protein: {estimate.perPortion.proteinGrams ?? '-'} g</div>
+
+            {canRenderMacroOverview && selectedSnapshot && macroOverview ? (
+              <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,240px)_1fr] lg:items-center">
+                <div className="mx-auto flex w-full max-w-[240px] flex-col items-center">
+                  <div className="relative flex h-[220px] w-[220px] items-center justify-center">
+                    <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r="54"
+                        fill="none"
+                        stroke="rgba(49,86,73,0.12)"
+                        strokeWidth="18"
+                      />
+                      {donutSegments.map((segment) => (
+                        <circle
+                          key={segment.key}
+                          cx="70"
+                          cy="70"
+                          r={segment.radius}
+                          fill="none"
+                          stroke={segment.stroke}
+                          strokeWidth="18"
+                          strokeLinecap="round"
+                          strokeDasharray={segment.dashArray}
+                          strokeDashoffset={segment.dashOffset}
+                        />
+                      ))}
+                    </svg>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-forest-mid/70 dark:text-white/60">
+                        {macroBasis === 'perPortion' ? 'Pr. portion' : 'Pr. 100 g'}
+                      </span>
+                      <span className="mt-2 font-serif text-4xl italic text-forest-dark dark:text-white">
+                        {formatMacroValue(selectedSnapshot.energyKcal)}
+                      </span>
+                      <span className="text-sm text-forest-mid/75 dark:text-white/70">kcal</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {macroOverview.map((macro) => (
+                      <div key={macro.key} className={`rounded-[1.5rem] border border-black/5 px-4 py-4 dark:border-white/10 ${macro.softBg}`}>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.24em] opacity-60">{macro.label}</p>
+                        <p className={`mt-3 text-2xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
+                        <p className="mt-1 text-xs opacity-75">{Math.round(macro.share * 100)}% af makro-kalorierne</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs opacity-75">
+                    <span>Samlet vaegt: {formatMacroValue(estimate.estimatedTotalWeightGrams)} g</span>
+                    <span>Visning: {sourceBasisLabel}</span>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-950/30 dark:text-amber-100">
+                Makrodiagrammet vises kun, naar estimate er komplet og uden manglende ingrediensdaekning.
+              </div>
+            )}
+          </div>
+
+          <div className="hidden print:block mt-4 rounded-2xl border border-black/10 bg-white p-4 text-black">
+            <p className="text-sm font-bold uppercase tracking-widest">AI-makroestimat</p>
+            <p className="mt-2 text-xs">Vejledende beregning ud fra ingredienslisten. {estimateCoverageLabel}. Sikkerhed: {estimate.confidence}.</p>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+              <div>Pr. 100 g: {formatMacroValue(estimate.per100g.energyKcal)} kcal, fedt {formatMacroValue(estimate.per100g.fatGrams)} g, kulhydrat {formatMacroValue(estimate.per100g.carbsGrams)} g, protein {formatMacroValue(estimate.per100g.proteinGrams)} g</div>
+              <div>Pr. portion: {formatMacroValue(estimate.perPortion.energyKcal)} kcal, fedt {formatMacroValue(estimate.perPortion.fatGrams)} g, kulhydrat {formatMacroValue(estimate.perPortion.carbsGrams)} g, protein {formatMacroValue(estimate.perPortion.proteinGrams)} g</div>
             </div>
+            {estimate.validationWarnings.length > 0 && (
+              <ul className="mt-3 text-xs">
+                {estimate.validationWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
             <p className="font-bold uppercase tracking-widest opacity-60">Antagelser</p>
@@ -193,6 +486,81 @@ export function RecipeNutritionAttachmentCard({
               Estimeret samlet vaegt: {estimate.estimatedTotalWeightGrams ?? '-'} g
             </p>
           </div>
+          {estimate.ingredientBreakdown.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold uppercase tracking-widest opacity-60">Makrokilder</p>
+                  <p className="mt-1 opacity-75">Se hvor {MACRO_META[activeMacroTab].label.toLowerCase()} kommer fra i estimatet.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMacroSources((current) => !current)}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-forest-mid transition-colors hover:bg-white/90 dark:bg-black/20 dark:text-white/80 dark:hover:bg-black/30"
+                  aria-expanded={showMacroSources}
+                >
+                  {showMacroSources ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {showMacroSources ? 'Skjul kilder' : 'Se hvor macroene kommer fra'}
+                </button>
+              </div>
+
+              {showMacroSources && (
+                <>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(['protein', 'fat', 'carbs'] as MacroTab[]).map((tab) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setActiveMacroTab(tab)}
+                        className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                          activeMacroTab === tab
+                            ? 'bg-[#2A1F1A] text-[#F5E7C6]'
+                            : 'bg-white/70 text-forest-mid hover:bg-white/90 dark:bg-black/20 dark:text-white/75 dark:hover:bg-black/30'
+                        }`}
+                      >
+                        {MACRO_META[tab].label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mt-4 opacity-75">
+                    Viser bidrag {sourceBasisLabel}. Ingredienserne er sorteret efter stoerste bidrag.
+                  </p>
+
+                  <ul className="mt-3 space-y-2">
+                    {macroSourceItems.map((item) => (
+                      <li key={`${activeMacroTab}-${item.ingredientName}`} className="rounded-2xl bg-white/60 px-3 py-3 dark:bg-black/20">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-forest-dark dark:text-white">{item.ingredientName}</p>
+                            <p className="mt-1 opacity-80">
+                              {MACRO_META[activeMacroTab].label} {formatMacroValue(item.scaledValue)} g
+                              {item.scaledWeight != null ? ` fra ca. ${formatMacroValue(item.scaledWeight)} g` : ''}
+                            </p>
+                            <p className="mt-1 opacity-75">{formatIngredientMacroLine(item)}</p>
+                            {item.note && <p className="mt-1 opacity-75">{item.note}</p>}
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${MACRO_META[activeMacroTab].softBg} ${MACRO_META[activeMacroTab].pillText}`}>
+                            {formatMacroValue(item.scaledValue)} g
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {estimate.ingredientBreakdown.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllMacroSources((current) => !current)}
+                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-forest-mid transition-colors hover:bg-white/90 dark:bg-black/20 dark:text-white/80 dark:hover:bg-black/30"
+                    >
+                      {showAllMacroSources ? 'Vis faerre' : 'Vis flere'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -117,9 +117,27 @@ export interface RecipeNutritionEstimateSnapshot {
   proteinGrams?: number | null;
 }
 
+export interface RecipeNutritionEstimateIngredient {
+  ingredientName: string;
+  estimatedWeightGrams?: number | null;
+  estimatedEnergyKcal?: number | null;
+  proteinGrams?: number | null;
+  fatGrams?: number | null;
+  carbsGrams?: number | null;
+  note?: string;
+}
+
+export type RecipeNutritionEstimateCoverageStatus = 'complete' | 'partial';
+
 export interface RecipeNutritionEstimate {
   per100g: RecipeNutritionEstimateSnapshot;
   perPortion: RecipeNutritionEstimateSnapshot;
+  ingredientBreakdown: RecipeNutritionEstimateIngredient[];
+  countedIngredientCount: number;
+  totalIngredientCount: number;
+  omittedIngredients: string[];
+  coverageStatus: RecipeNutritionEstimateCoverageStatus;
+  validationWarnings: string[];
   estimatedTotalWeightGrams?: number | null;
   confidence: NutritionConfidence;
   generatedAt: string;
