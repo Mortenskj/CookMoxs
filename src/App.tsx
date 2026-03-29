@@ -100,29 +100,6 @@ const getTimerIcon = (description: string) => {
 
 const parseAIError = (err: any, defaultMsg: string) => {
   return normalizeAiActionError(err).message || defaultMsg;
-  let msg = err.message || defaultMsg;
-  try {
-    const parsed = JSON.parse(msg);
-    if (parsed.error && parsed.error.message) {
-      msg = parsed.error.message;
-    }
-  } catch (e) {
-    // Not JSON, ignore
-  }
-
-  if (msg.includes("API_KEY_INVALID")) {
-    return "Ugyldig API-nøgle på serveren.";
-  } else if (msg.includes("GEMINI_API_KEY is not configured")) {
-    return "AI er ikke sat op på serveren endnu. Grundimport virker stadig, men AI-forbedring er midlertidigt utilgængelig.";
-  } else if (msg.includes("spending cap") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("Quota exceeded")) {
-    return "Du har nået grænsen for brug af AI. Prøv igen senere eller opgrader din plan.";
-  } else if (msg.includes("fetch failed")) {
-    return "Netværksfejl. Tjek din internetforbindelse og prøv igen.";
-  }
-  if (msg.includes('__MALFORMED_RESPONSE__') || msg.includes('Unexpected end of JSON input') || msg.includes('Unexpected token')) {
-    return 'Vi fik et ugyldigt svar tilbage. Prøv igen om lidt.';
-  }
-  return defaultMsg + ": " + msg;
 };
 
 const getPersistentAIDisabledReason = (err: unknown): string | null => {
@@ -257,14 +234,14 @@ export default function App() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [activeTimerPopup]);
 
-  const navigateTo = (view: ViewState) => {
+  const navigateTo = useCallback((view: ViewState) => {
     setActiveTimerPopup(null);
     const newHistory = viewHistory.slice(0, historyIndex + 1);
     newHistory.push(view);
     setViewHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setCurrentView(view);
-  };
+  }, [historyIndex, viewHistory]);
 
   const {
     markCloudSyncing,
@@ -327,13 +304,16 @@ export default function App() {
   const [adjusting, setAdjusting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timers, setTimers] = useState<Timer[]>([]);
+  const timersRef = useRef<Timer[]>(timers);
   const [isSavedRecipeCacheReady, setIsSavedRecipeCacheReady] = useState(false);
   const [isActiveRecipeCacheReady, setIsActiveRecipeCacheReady] = useState(false);
+  timersRef.current = timers;
+  const hasActiveTimers = timers.some((timer) => timer.active && timer.remaining > 0);
 
-  const getAnalyticsContext = () => ({
+  const getAnalyticsContext = useCallback(() => ({
     userState: user ? 'authenticated' : 'guest',
     view: currentView,
-  });
+  }), [currentView, user]);
 
   const handleDarkModeChange = (nextIsDarkMode: boolean) => {
     if (nextIsDarkMode === isDarkMode) return;
@@ -524,23 +504,27 @@ export default function App() {
 
   useEffect(() => {
     let interval: number;
-    if (timers.some(t => t.active && t.remaining > 0)) {
+    if (hasActiveTimers) {
       interval = window.setInterval(() => {
-        setTimers(prev => prev.map(t => {
-          if (t.active && t.remaining > 0) {
-            const newRemaining = t.remaining - 1;
-            if (newRemaining === 0) {
-              if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
-              return { ...t, remaining: 0, active: false };
+        setTimers(() => {
+          const nextTimers = timersRef.current.map((t) => {
+            if (t.active && t.remaining > 0) {
+              const newRemaining = t.remaining - 1;
+              if (newRemaining === 0) {
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
+                return { ...t, remaining: 0, active: false };
+              }
+              return { ...t, remaining: newRemaining };
             }
-            return { ...t, remaining: newRemaining };
-          }
-          return t;
-        }));
+            return t;
+          });
+          timersRef.current = nextTimers;
+          return nextTimers;
+        });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [timers]);
+  }, [hasActiveTimers]);
 
   useEffect(() => {
     if (!isAuthReady) return;
@@ -1133,11 +1117,6 @@ export default function App() {
       });
       return;
     }
-    if (false && !user) {
-      setError("Du skal være logget ind for at gemme opskrifter.");
-      navigateTo('settings');
-      return;
-    }
 
     try {
       let finalFolderId = recipe.folderId;
@@ -1504,8 +1483,9 @@ export default function App() {
           onImport={handleImport}
           onCreateManual={() => {
             const defaultFolder = findDefaultFolder(folders, user?.uid || 'local');
+            const baseId = Date.now().toString();
             const newRecipe: Recipe = {
-              id: Date.now().toString(),
+              id: baseId,
               title: '',
               summary: '',
               recipeType: '',
@@ -1514,8 +1494,8 @@ export default function App() {
               folderId: defaultFolder?.id,
               notes: '',
               servings: 4,
-              ingredients: [{ id: Date.now().toString(), name: '', amount: null, unit: '', group: 'Andre' }],
-              steps: [{ id: Date.now().toString(), text: '', heat: '', timer: undefined, relevantIngredients: [] }],
+              ingredients: [{ id: `${baseId}-ingredient`, name: '', amount: null, unit: '', group: 'Andre' }],
+              steps: [{ id: `${baseId}-step`, text: '', heat: '', timer: undefined, relevantIngredients: [] }],
               kitchenTimeline: [],
               lastUsed: new Date().toISOString()
             };
@@ -1536,8 +1516,9 @@ export default function App() {
           onOpenRecipe={(r) => { setViewingRecipe(r); navigateTo('recipe'); }}
           onCreateFolder={handleCreateFolder}
           onCreateInFolder={(folder) => {
+            const baseId = Date.now().toString();
             const newRecipe: Recipe = {
-              id: Date.now().toString(),
+              id: baseId,
               title: '',
               summary: '',
               recipeType: '',
@@ -1546,8 +1527,8 @@ export default function App() {
               folderId: folder.id,
               notes: '',
               servings: 4,
-              ingredients: [{ id: Date.now().toString(), name: '', amount: null, unit: '', group: 'Andre' }],
-              steps: [{ id: Date.now().toString(), text: '', heat: '', timer: undefined, relevantIngredients: [] }],
+              ingredients: [{ id: `${baseId}-ingredient`, name: '', amount: null, unit: '', group: 'Andre' }],
+              steps: [{ id: `${baseId}-step`, text: '', heat: '', timer: undefined, relevantIngredients: [] }],
               kitchenTimeline: [],
               lastUsed: new Date().toISOString()
             };
@@ -1836,7 +1817,7 @@ export default function App() {
 
       {/* Bottom Navigation */}
       {currentView !== 'cook' && currentView !== 'settings' && (
-        <nav className="relative w-full glass-brushed border-t border-white/20 pb-[env(safe-area-inset-bottom)] z-50 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] print:hidden">
+        <nav className="relative w-full glass-brushed bg-white/70 dark:bg-black/70 border-t border-white/20 pb-[env(safe-area-inset-bottom)] z-50 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] print:hidden">
           <div className="flex justify-around items-center h-20 px-2 sm:px-4 max-w-md mx-auto">
             <NavItem icon={<Home size={22} />} label="Hjem" active={currentView === 'home'} onClick={() => navigateTo('home')} />
             <NavItem icon={<CookingPot size={22} />} label="I gang" active={currentView === 'active'} onClick={() => navigateTo('active')} />
@@ -1849,3 +1830,4 @@ export default function App() {
     </SeasonalScene>
   );
 }
+

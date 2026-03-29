@@ -73,7 +73,7 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
             </button>
 
             <button 
-              onClick={() => onSave(null as any)}
+              onClick={() => onNavigate('home')}
               className="flex-1 bg-red-50/50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-[#DC2626] dark:text-red-400 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-100/50 dark:hover:bg-red-900/30 transition-all text-xs font-bold uppercase tracking-widest"
             >
               <X size={16} />

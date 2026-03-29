@@ -121,27 +121,6 @@ async function generateAIContent(model: string, prompt: string, responseSchema: 
 
 function parseAiJsonResponse(rawText: string, context: string) {
   return parseAiJsonPayload(rawText, context);
-  const candidates = [
-    rawText,
-    rawText.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1] || '',
-  ].filter(Boolean);
-
-  const firstBrace = rawText.indexOf('{');
-  const lastBrace = rawText.lastIndexOf('}');
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    candidates.push(rawText.slice(firstBrace, lastBrace + 1));
-  }
-
-  for (const candidate of candidates) {
-    try {
-      return JSON.parse(candidate);
-    } catch {
-      // Try next candidate
-    }
-  }
-
-  console.error(`[AI Parse Error] ${context}:`, rawText.slice(0, 200));
-  throw new Error('AI returnerede ugyldig JSON. Prøv igen.');
 }
 
 function getLevelStyleInstruction(level: string | undefined, mode: 'steps' | 'fill' | 'import') {
@@ -453,11 +432,9 @@ async function startServer() {
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
-      const err = error as any;
       console.error('AI Generate Steps Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/generate-steps');
       return res.status(failure.status).json(failure.body);
-      return res.status(500).json({ error: err?.message || 'Kunne ikke generere fremgangsmåde' });
     }
   });
 
@@ -478,11 +455,9 @@ async function startServer() {
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData, title: recipe.title, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
-      const err = error as any;
       console.error('AI Fill Rest Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/fill-rest');
       return res.status(failure.status).json(failure.body);
-      return res.status(500).json({ error: err?.message || 'Kunne ikke udfylde resten' });
     }
   });
 
@@ -495,11 +470,9 @@ async function startServer() {
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, schema);
       return res.json({ tipsAndTricks: parsedData.tipsAndTricks });
     } catch (error) {
-      const err = error as any;
       console.error('AI Generate Tips Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/generate-tips');
       return res.status(failure.status).json(failure.body);
-      return res.status(500).json({ error: err?.message || 'Kunne ikke generere tips' });
     }
   });
 
@@ -521,11 +494,9 @@ async function startServer() {
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
       return res.json({ recipe: { ...recipe, ...parsedData } });
     } catch (error) {
-      const err = error as any;
       console.error('AI Apply Prefix Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/apply-prefix');
       return res.status(failure.status).json(failure.body);
-      return res.status(500).json({ error: err?.message || 'Kunne ikke tilpasse opskriften' });
     }
   });
 
@@ -576,11 +547,9 @@ async function startServer() {
 
       return res.status(400).json({ error: 'Manglende indhold til import' });
     } catch (error) {
-      const err = error as any;
       console.error('AI Import Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/import');
       return res.status(failure.status).json(failure.body);
-      return res.status(500).json({ error: err?.message || 'Kunne ikke importere opskriften' });
     }
   });
 
@@ -644,3 +613,4 @@ async function startServer() {
 }
 
 startServer();
+

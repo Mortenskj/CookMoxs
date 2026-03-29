@@ -60,6 +60,10 @@ export function normalizeRecipeDefaultFolder(recipe: Recipe, ownerUID = LOCAL_DE
   };
 }
 
+function areFoldersEquivalent(left: Folder, right: Folder) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function reconcileDefaultFolderState(
   folders: Folder[],
   recipes: Recipe[],
@@ -96,6 +100,23 @@ export function reconcileDefaultFolderState(
     }
     return recipe;
   });
+
+  const foldersUnchanged = nextFolders.length === folders.length
+    && nextFolders.every((folder, index) => folder === folders[index] || areFoldersEquivalent(folder, folders[index]));
+  const recipesUnchanged = nextRecipes.length === recipes.length
+    && nextRecipes.every((recipe, index) => recipe === recipes[index]);
+
+  if (foldersUnchanged && recipesUnchanged) {
+    const existingCanonicalFolder = folders.find((folder) => folder.ownerUID === ownerUID && folder.id === defaultFolder.id)
+      || folders.find((folder) => folder.id === defaultFolder.id)
+      || defaultFolder;
+
+    return {
+      folders,
+      recipes,
+      defaultFolder: existingCanonicalFolder,
+    };
+  }
 
   return {
     folders: nextFolders,

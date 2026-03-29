@@ -49,7 +49,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newData);
     // Limit history to 20 steps
-    if (newHistory.length > 20) newHistory.shift();
+    if (newHistory.length > 20) newHistory.splice(1, 1);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setEditData(newData);
