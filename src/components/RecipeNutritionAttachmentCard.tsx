@@ -161,10 +161,6 @@ export function RecipeNutritionAttachmentCard({
     setIsExpanded(expandedByDefault);
   }, [expandedByDefault]);
 
-  if (loadingStatus || !enabled || !nutritionToolsEnabled || !recipeNutritionVisible) {
-    return null;
-  }
-
   const hasAttachment = Boolean(attachment);
   const summaryLine = hasAttachment
     ? getRecipeNutritionSummaryLine(attachment)
@@ -303,6 +299,10 @@ export function RecipeNutritionAttachmentCard({
   useEffect(() => {
     setShowAllMacroSources(false);
   }, [activeMacroTab, macroBasis, showMacroSources]);
+
+  if (loadingStatus || !enabled || !nutritionToolsEnabled || !recipeNutritionVisible) {
+    return null;
+  }
 
   const handleLookup = async () => {
     if (!input.trim()) return;
