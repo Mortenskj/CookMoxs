@@ -10,6 +10,10 @@ import { RecipeImportedNotice } from './RecipeImportedNotice';
 import { RecipeNutritionAttachmentCard } from './RecipeNutritionAttachmentCard';
 import { formatHeatGuideEntry, formatStepHeatDisplay } from '../services/cookModeHeuristics';
 import { DEFAULT_FOLDER_NAME } from '../services/defaultFolderService';
+import {
+  canConvertIngredientBetweenGramsAndDeciliters,
+  convertIngredientBetweenGramsAndDeciliters,
+} from '../services/ingredientUnitConversionService';
 import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
 
 interface RecipeViewProps {
@@ -32,13 +36,14 @@ interface RecipeViewProps {
   onApplyPrefix?: (recipe: Recipe, prefix: string) => void;
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
+  activeAiAction?: 'smart_adjust' | 'generate_steps' | 'fill_rest' | 'generate_tips' | 'estimate_nutrition' | 'apply_prefix' | null;
   error?: string | null;
   aiDisabledReason?: string | null;
   initialEditMode?: boolean;
   currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, activeAiAction, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [editData, setEditData] = useState<Recipe>(recipe);
@@ -83,6 +88,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [editPermissionConfirmed, setEditPermissionConfirmed] = useState(false);
   const [folderConfirmationError, setFolderConfirmationError] = useState<string | null>(null);
+  const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   const [pendingFolderSaveId, setPendingFolderSaveId] = useState<string | null>(null);
   const [confirmedIngredients, setConfirmedIngredients] = useState<Record<string, boolean>>({});
   const aiDisabled = Boolean(aiDisabledReason);
@@ -118,6 +124,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
 
   const editRequiresPermissionConfirmation = requiresPermissionConfirmation(selectedEditFolder);
+  const isSmartAdjusting = activeAiAction === 'smart_adjust';
+  const isGeneratingSteps = activeAiAction === 'generate_steps';
+  const isFillingRest = activeAiAction === 'fill_rest';
+  const isGeneratingTips = activeAiAction === 'generate_tips';
+  const isEstimatingNutrition = activeAiAction === 'estimate_nutrition';
 
   useEffect(() => {
     if (!isEditing || isAdjusting) {
@@ -138,6 +149,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     }
   }, [canMutateRecipe, isEditing]);
 
+  useEffect(() => {
+    setConversionMessage(null);
+  }, [recipe.id, isEditing]);
+
   const mergedCategories = Array.from(new Set([...DEFAULT_RECIPE_CATEGORIES, ...allCategories])).sort();
 
 
@@ -153,51 +168,36 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     onSave(updatedRecipe);
   };
 
-  const convertUnit = (index: number) => {
-    const ing = editIngredients[index];
-    if (!ing || !ing.amount) return;
-    
-    const name = ing.name.toLowerCase();
-    let newAmount = ing.amount;
-    let newUnit = ing.unit;
+  const applyRecipeIngredientConversion = (ingredientIndex: number) => {
+    const ingredient = recipeIngredients[ingredientIndex];
+    if (!ingredient || !canMutateRecipe) return;
 
-    // Very basic conversion logic for common ingredients
-    const gToDl: Record<string, number> = {
-      'havregryn': 35,
-      'hvedemel': 60,
-      'mel': 60,
-      'sukker': 85,
-      'mælk': 100,
-      'vand': 100,
-      'olie': 90,
-      'smør': 95,
-      'kakao': 40,
-      'flormelis': 50,
-      'fløde': 100,
-      'ris': 80,
-      'pasta': 35
-    };
-
-    const matchedKey = Object.keys(gToDl).find(k => name.includes(k));
-    if (!matchedKey) {
-      setFolderConfirmationError(`Kan ikke konvertere ${ing.name || 'denne ingrediens'} sikkert mellem g og dl uden kendt tæthed.`);
+    const conversion = convertIngredientBetweenGramsAndDeciliters(ingredient);
+    if ('message' in conversion) {
+      setConversionMessage(conversion.message);
       return;
     }
 
-    const conversionRate = gToDl[matchedKey];
-    setFolderConfirmationError(null);
+    const nextIngredients = [...recipeIngredients];
+    nextIngredients[ingredientIndex] = conversion.ingredient;
+    setConversionMessage(null);
+    onSave({ ...recipe, ingredients: nextIngredients });
+  };
 
-    if (ing.unit.toLowerCase() === 'g') {
-      newAmount = Number((ing.amount / conversionRate).toFixed(1));
-      newUnit = 'dl';
-    } else if (ing.unit.toLowerCase() === 'dl') {
-      newAmount = Math.round(ing.amount * conversionRate);
-      newUnit = 'g';
+  const convertUnit = (index: number) => {
+    const ing = editIngredients[index];
+    if (!ing) return;
+
+    const conversion = convertIngredientBetweenGramsAndDeciliters(ing);
+    if ('message' in conversion) {
+      setConversionMessage(conversion.message);
+      return;
     }
 
-    if (newAmount !== ing.amount || newUnit !== ing.unit) {
-        const newIngs = [...editIngredients];
-      newIngs[index] = { ...ing, amount: newAmount, unit: newUnit };
+    setConversionMessage(null);
+    if (conversion.ingredient.amount !== ing.amount || conversion.ingredient.unit !== ing.unit) {
+      const newIngs = [...editIngredients];
+      newIngs[index] = conversion.ingredient;
       updateEditData({ ...editData, ingredients: newIngs });
     }
   };
@@ -294,7 +294,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
                 title="Smart Justering"
               >
-                {isAdjusting ? <Loader2 size={22} className="animate-spin" /> : <Wand2 size={22} />}
+                {isSmartAdjusting ? <Loader2 size={22} className="animate-spin" /> : <Wand2 size={22} />}
               </button>
             )}
             {canMutateRecipe && (
@@ -635,7 +635,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                           <datalist id="units-list">
                             {COMMON_RECIPE_UNITS.map(u => <option key={u} value={u} />)}
                           </datalist>
-                          {(ing.unit.toLowerCase() === 'g' || ing.unit.toLowerCase() === 'dl') && (
+                          {canConvertIngredientBetweenGramsAndDeciliters(ing) && (
                             <button 
                               onClick={(e) => { e.preventDefault(); convertUnit(i); }}
                               className="absolute top-1/2 -translate-y-1/2 right-1 bg-heath-mid text-white rounded-lg p-1 shadow-sm hover:bg-heath-dark transition-colors z-10"
@@ -858,8 +858,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               disabled={isAdjusting || aiDisabled}
               className="w-full py-4 bg-[#2A1F1A] text-[#D4B886] rounded-2xl font-serif text-lg border border-[#3A2A22] hover:bg-[#3A2A22] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isAdjusting ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
-              {isAdjusting ? 'Udfylder...' : 'Udfyld resten med AI'}
+              {isFillingRest ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
+              {isFillingRest ? 'Udfylder...' : 'Udfyld resten med AI'}
             </button>
           )}
 
@@ -893,7 +893,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     disabled={!smartInstruction.trim() || isAdjusting}
                     className="flex-1 py-4 rounded-2xl bg-forest-mid text-white font-bold text-xs uppercase tracking-widest disabled:opacity-50 flex justify-center items-center gap-2 hover:bg-forest-dark transition-all shadow-md"
                   >
-                    {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : 'Tilpas'}
+                    {isSmartAdjusting ? <Loader2 size={16} className="animate-spin" /> : 'Tilpas'}
                   </button>
                 </div>
               </div>
@@ -950,7 +950,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       {!recipe.isSaved && (
         <RecipeImportedNotice
-          isAdjusting={isAdjusting}
+          isAdjusting={isSmartAdjusting}
           aiDisabledReason={aiDisabledReason}
           onSimplify={() => onSmartAdjust(recipe, 'Gør fremgangsmåden enklere, kortere og mere overskuelig uden at ændre retten eller ingredienslisten unødigt.')}
           onTighten={() => onSmartAdjust(recipe, 'Gennemgå opskriften og fjern gentagelser, upræcise formuleringer og uklare gruppenavne. Bevar retten, men gør den skarpere og mere konsekvent.')}
@@ -1010,7 +1010,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 disabled={isAdjusting || aiDisabled}
                 className="flex items-center gap-2 bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/80 hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 transition-all shadow-sm hover:bg-white dark:hover:bg-white/10"
               >
-                {isAdjusting ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
+                {isGeneratingTips ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
                 Tips & Tricks
               </button>
             )}
@@ -1098,7 +1098,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             disabled={isAdjusting}
             className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-colors disabled:opacity-50 glass-brushed border border-black/5 dark:border-white/10 ${showTipsModal ? 'bg-heath-mid text-white' : 'bg-sand/90 dark:bg-forest-dark/90 text-heath-mid hover:bg-white dark:hover:bg-forest-mid'}`}
           >
-            {isAdjusting ? <Loader2 size={24} className="animate-spin" /> : <Lightbulb size={24} />}
+            {isGeneratingTips ? <Loader2 size={24} className="animate-spin" /> : <Lightbulb size={24} />}
           </button>
         </motion.div>
       )}
@@ -1115,7 +1115,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </button>
             <div className="flex items-center gap-4 mb-8">
               <div className="p-4 bg-white dark:bg-black/20 rounded-2xl shadow-sm border border-black/5 dark:border-white/10">
-                {isAdjusting ? <Loader2 size={28} className="text-heath-mid animate-spin" /> : <Lightbulb size={28} className="text-heath-mid" />}
+                {isGeneratingTips ? <Loader2 size={28} className="text-heath-mid animate-spin" /> : <Lightbulb size={28} className="text-heath-mid" />}
               </div>
               <h3 className="font-serif text-2xl text-forest-dark dark:text-white italic text-engraved">Tips & Tricks</h3>
             </div>
@@ -1145,7 +1145,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 disabled={isAdjusting || aiDisabled}
                 className="mt-8 w-full py-4 bg-forest-mid text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-forest-dark transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                {isGeneratingTips ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                 {recipeTips.length > 0 ? 'Generer nye tips' : 'Generer tips'}
               </button>
             )}
@@ -1186,6 +1186,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           </div>
         </div>
 
+        {conversionMessage && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
+            {conversionMessage}
+          </div>
+        )}
+
         {Object.entries(groupedIngredients).map(([group, ingredients]) => (
           <div key={group} className="space-y-4">
             <h3 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] opacity-60 dark:opacity-100 flex items-center gap-3">
@@ -1194,16 +1200,28 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </h3>
             <ul className="space-y-3">
               {ingredients.map((ing, i) => (
-                <li key={ing.id || i} className="flex justify-between items-center group/item">
+                <li key={ing.id || i} className="flex justify-between items-center gap-4 group/item">
                   <div className="flex items-center gap-3">
                     <button onClick={() => toggleLock(ing.id)} className="p-1.5 hover:bg-white/60 dark:hover:bg-white/10 rounded-lg transition-all text-forest-mid dark:text-white/70 opacity-40 group-hover/item:opacity-100" title={ing.locked ? "Lås op" : "Lås mængde"}>
                       {ing.locked ? <Lock size={14} className="text-heath-mid" /> : <Unlock size={14} />}
                     </button>
                     <span className="text-forest-dark dark:text-white font-serif italic">{ing.name}</span>
                   </div>
-                  <span className="font-bold text-heath-mid text-sm tracking-tight">
-                    {ing.amount ? (ing.locked ? ing.amount : Number((ing.amount * scale).toFixed(2))) : ''} {ing.unit}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-heath-mid text-sm tracking-tight">
+                      {ing.amount ? (ing.locked ? ing.amount : Number((ing.amount * scale).toFixed(2))) : ''} {ing.unit}
+                    </span>
+                    {canMutateRecipe && canConvertIngredientBetweenGramsAndDeciliters(ing) && (
+                      <button
+                        type="button"
+                        onClick={() => applyRecipeIngredientConversion(recipeIngredients.findIndex((recipeIngredient) => recipeIngredient.id === ing.id))}
+                        className="rounded-full border border-black/5 bg-white/60 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid shadow-sm transition-colors hover:bg-white dark:border-white/10 dark:bg-black/20"
+                        title="Konverter mellem g og dl"
+                      >
+                        g/dl
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -1272,8 +1290,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               className="print:hidden inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2A1F1A] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[#D4B886] border border-[#3A2A22] transition-colors hover:bg-[#3A2A22] disabled:opacity-50"
               title="AI - Ret til cookmode"
             >
-              {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-              {isAdjusting ? 'Retter...' : 'AI - Ret til cookmode'}
+              {isGeneratingSteps ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+              {isGeneratingSteps ? 'Retter...' : 'AI - Ret til cookmode'}
             </button>
           )}
         </div>
@@ -1324,7 +1342,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         canEstimate={canMutateRecipe}
         canClear={canMutateRecipe}
         readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke aendres for delte opskrifter i denne stabiliserings-pass.'}
-        isEstimating={Boolean(isAdjusting)}
+        isEstimating={isEstimatingNutrition}
         aiDisabledReason={aiDisabledReason}
         onEstimate={() => onEstimateNutrition?.(recipe)}
         onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
@@ -1472,7 +1490,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 disabled={!smartInstruction.trim() || isAdjusting}
                 className="flex-1 py-4 rounded-2xl bg-forest-mid text-white font-bold text-xs uppercase tracking-widest disabled:opacity-50 flex justify-center items-center gap-2 hover:bg-forest-dark transition-all shadow-md"
               >
-                {isAdjusting ? <Loader2 size={16} className="animate-spin" /> : 'Tilpas'}
+                {isSmartAdjusting ? <Loader2 size={16} className="animate-spin" /> : 'Tilpas'}
               </button>
             </div>
           </div>

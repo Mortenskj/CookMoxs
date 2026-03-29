@@ -13,6 +13,7 @@ type HeatInference = {
 const HEAT_NOTE_BY_LEVEL: Partial<Record<CanonicalHeatLevel, string>> = {
   2: 'svag varme',
   3: 'lav varme',
+  4: 'middel-lav varme',
   5: 'middel varme',
   6: 'rolig stegning',
   7: 'middel-hoej varme',
@@ -180,6 +181,13 @@ function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeat
 
   if (
     (normalizedText.includes('bring i kog') || normalizedText.includes('kog op'))
+    && (normalizedText.includes('lad simre') || normalizedText.includes('simr'))
+  ) {
+    return 3;
+  }
+
+  if (
+    (normalizedText.includes('bring i kog') || normalizedText.includes('kog op'))
     && (normalizedText.includes('skru ned') || normalizedText.includes('lad koge videre') || normalizedText.includes('lad koge'))
   ) {
     return 5;
@@ -229,7 +237,7 @@ function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeat
       || normalizedText.includes('klar')
     )
   ) {
-    return 5;
+    return 4;
   }
 
   if (
@@ -245,7 +253,7 @@ function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeat
       || normalizedText.includes(' afbrun')
     )
   ) {
-    return 6;
+    return 5;
   }
 
   if (

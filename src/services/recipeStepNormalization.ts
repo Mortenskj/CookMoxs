@@ -112,9 +112,58 @@ function normalizeStep(step: Step, ingredients: Ingredient[], index: number): St
   };
 }
 
+function hasOvenPreheatStep(steps: Step[]) {
+  return steps.some((step) => {
+    const normalizedText = normalizeForMatch(step.text || '');
+    return (
+      normalizedText.includes('forvarm ovnen')
+      || normalizedText.includes('taend ovnen')
+      || normalizedText.includes('saet ovnen paa')
+    );
+  });
+}
+
+function getFirstDetectedOvenHeat(steps: Step[]) {
+  for (const step of steps) {
+    const heatFromField = inferHeatMetadataFromText(step.heat);
+    if (heatFromField.oven) {
+      return heatFromField.oven;
+    }
+
+    const heatFromText = inferHeatMetadataFromText(step.text);
+    if (heatFromText.oven) {
+      return heatFromText.oven;
+    }
+  }
+
+  return undefined;
+}
+
+function ensureOvenPreheatStep(steps: Step[]) {
+  if (steps.length === 0 || hasOvenPreheatStep(steps)) {
+    return steps;
+  }
+
+  const ovenHeat = getFirstDetectedOvenHeat(steps);
+  if (!ovenHeat) {
+    return steps;
+  }
+
+  const preheatStep: Step = {
+    id: 'step-oven-preheat',
+    text: `Taend ovnen og forvarm til ${ovenHeat}.`,
+    heat: ovenHeat,
+    reminder: 'Lad ovnen blive helt varm, foer retten saettes ind.',
+    relevantIngredients: [],
+  };
+
+  return [preheatStep, ...steps];
+}
+
 export function normalizeRecipeForCookMode(recipe: Recipe): Recipe {
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
-  const steps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
+  const normalizedSteps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
+  const steps = ensureOvenPreheatStep(normalizedSteps);
   const guides = buildHeatAndOvenGuides(steps);
 
   return {

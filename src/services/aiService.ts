@@ -14,6 +14,8 @@ type ErrorResponseBody = {
   code?: string;
 };
 
+const AI_REQUEST_TIMEOUT_MS = 45000;
+
 export class AiRequestError extends Error {
   readonly code: AiRequestErrorCode;
   readonly status?: number;
@@ -45,18 +47,39 @@ async function request<T>(url: string, body: unknown): Promise<T> {
     throw new AiRequestError('Du er offline. AI-funktioner kraever internetforbindelse.', 'offline');
   }
 
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller
+    ? globalThis.setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS)
+    : null;
+
   let resp: Response;
   try {
     resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: controller?.signal,
     });
   } catch (error) {
+    if (timeoutId !== null) {
+      globalThis.clearTimeout(timeoutId);
+    }
+
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new AiRequestError(
+        'AI-kaldet brugte for lang tid og blev afbrudt. Proev igen om lidt.',
+        'network_error',
+      );
+    }
+
     throw new AiRequestError(
       error instanceof Error ? error.message : 'Failed to fetch',
       'network_error',
     );
+  }
+
+  if (timeoutId !== null) {
+    globalThis.clearTimeout(timeoutId);
   }
 
   const data = await resp.json().catch(() => '__MALFORMED_RESPONSE__');

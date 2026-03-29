@@ -6,6 +6,8 @@ export type AnalyticsEventName =
   | 'recipe_deleted'
   | 'cook_mode_started'
   | 'cook_mode_completed'
+  | 'ai_adjust_started'
+  | 'ai_adjust_failed'
   | 'ai_adjust_used'
   | 'backup_exported'
   | 'backup_restored'

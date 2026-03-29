@@ -99,6 +99,17 @@ const RECIPE_SCHEMA = {
   required: ['title', 'ingredients', 'steps', 'servings'],
 };
 
+const STEP_REPAIR_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    steps: RECIPE_SCHEMA.properties.steps,
+    heatGuide: { type: Type.ARRAY, items: { type: Type.STRING } },
+    ovenGuide: { type: Type.ARRAY, items: { type: Type.STRING } },
+    aiRationale: { type: Type.STRING },
+  },
+  required: ['steps'],
+};
+
 const NUTRITION_ESTIMATE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -656,26 +667,36 @@ async function startServer() {
     try {
       const styleInstruction = getLevelStyleInstruction(level, 'steps');
       const prompt = `
-        You are an expert chef. Generate or enhance the recipe steps and missing metadata.
+        You are an expert chef. Repair the recipe steps so the recipe works cleanly in cook mode.
         Rules:
         1. Improve existing steps instead of rewriting good ones unnecessarily.
-        2. Add oven preheat only when contextually appropriate.
-        3. Use heat values on a 1-9 induction scale.
-        4. Extract timers into the timer property.
-        5. Provide aiRationale.
-        6. Group ingredients into meaningful Danish groups.
+        2. Return only repaired steps plus optional aiRationale, heatGuide and ovenGuide.
+        3. Preserve the dish, ingredient list and overall method.
+        4. Add a dedicated oven-preheat step when later steps use an oven temperature and no preheat step exists yet.
+        5. Use heat values on a 1-9 induction scale for stovetop steps.
+        6. Extract timers into the timer property.
         7. Match the communication style to this instruction: ${styleInstruction}
         8. Be conservative with heat. Do not default to aggressive heat just to make a step sound decisive.
         9. Reserve 9/9 for brief preheating or bringing liquid to a boil, not for sustained cooking.
-        10. If a step brings water or liquid to a boil and then continues cooking, split it into separate steps or clearly state the heat reduction afterward.
+        10. If a step says to bring something to a boil and then simmer, split it into separate steps or state the heat reduction explicitly so the sustained stovetop heat is lower than the initial boil.
         11. For onions, garlic and other aromatics, prefer moderate heat unless the text explicitly calls for hard browning.
         12. If a step needs two distinct heat phases, prefer splitting it into two steps so each step has one clear working heat.
         13. The structured heat field should reflect the sustained working heat, not a short initial peak, unless the whole step is truly only a brief high-heat action.
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
-      return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, STEP_REPAIR_SCHEMA);
+      return res.json({
+        recipe: {
+          ...recipe,
+          steps: parsedData.steps,
+          aiRationale: parsedData.aiRationale || recipe.aiRationale,
+          heatGuide: parsedData.heatGuide,
+          ovenGuide: parsedData.ovenGuide,
+          id: recipe.id,
+          lastUsed: new Date().toISOString(),
+        },
+      });
     } catch (error) {
       console.error('AI Generate Steps Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/generate-steps');

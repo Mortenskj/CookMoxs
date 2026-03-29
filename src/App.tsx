@@ -103,6 +103,14 @@ const parseAIError = (err: any, defaultMsg: string) => {
   return normalizeAiActionError(err).message || defaultMsg;
 };
 
+type AiActionKey =
+  | 'smart_adjust'
+  | 'generate_steps'
+  | 'fill_rest'
+  | 'generate_tips'
+  | 'estimate_nutrition'
+  | 'apply_prefix';
+
 const getPersistentAIDisabledReason = (err: unknown): string | null => {
   const normalized = normalizeAiActionError(err);
   if (normalized.category === 'invalid_model') {
@@ -310,7 +318,7 @@ export default function App() {
   const savedRecipesRef = useRef<Recipe[]>(savedRecipes);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [adjusting, setAdjusting] = useState(false);
+  const [activeAiAction, setActiveAiAction] = useState<AiActionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timers, setTimers] = useState<Timer[]>([]);
   const timersRef = useRef<Timer[]>(timers);
@@ -318,6 +326,7 @@ export default function App() {
   const [isActiveRecipeCacheReady, setIsActiveRecipeCacheReady] = useState(false);
   timersRef.current = timers;
   savedRecipesRef.current = savedRecipes;
+  const adjusting = activeAiAction !== null;
   const hasActiveTimers = timers.some((timer) => timer.active && timer.remaining > 0);
 
   const commitSavedRecipes = useCallback((nextRecipes: Recipe[]) => {
@@ -329,6 +338,42 @@ export default function App() {
     userState: user ? 'authenticated' : 'guest',
     view: currentView,
   }), [currentView, user]);
+
+  const trackAiActionStarted = useCallback((action: AiActionKey, recipeId: string) => {
+    trackEvent('ai_adjust_started', {
+      ...getAnalyticsContext(),
+      recipeId,
+      action,
+    });
+  }, [getAnalyticsContext]);
+
+  const trackAiActionUsed = useCallback((action: AiActionKey, recipeId: string, startedAt: number) => {
+    trackEvent('ai_adjust_used', {
+      ...getAnalyticsContext(),
+      recipeId,
+      action,
+      durationMs: Date.now() - startedAt,
+    });
+  }, [getAnalyticsContext]);
+
+  const trackAiActionFailed = useCallback(
+    (action: AiActionKey, recipeId: string, startedAt: number, errorValue: unknown, fallbackMessage: string) => {
+      const normalized = normalizeAiActionError(errorValue);
+      const message = normalized.message || fallbackMessage;
+
+      trackEvent('ai_adjust_failed', {
+        ...getAnalyticsContext(),
+        recipeId,
+        action,
+        errorCategory: normalized.category,
+        errorMessage: message,
+        durationMs: Date.now() - startedAt,
+      });
+
+      return message;
+    },
+    [getAnalyticsContext],
+  );
 
   const handleDarkModeChange = (nextIsDarkMode: boolean) => {
     if (nextIsDarkMode === isDarkMode) return;
@@ -1293,8 +1338,10 @@ export default function App() {
   };
 
   const handleSmartAdjust = async (recipe: Recipe, instruction: string) => {
-    setAdjusting(true);
+    const startedAt = Date.now();
+    setActiveAiAction('smart_adjust');
     setError(null);
+    trackAiActionStarted('smart_adjust', recipe.id);
     try {
       const updated = await aiAdjustRecipe(recipe, instruction);
       setAiUnavailableMessage(null);
@@ -1303,23 +1350,21 @@ export default function App() {
         id: recipe.id,
         lastUsed: new Date().toISOString(),
       }));
-      trackEvent('ai_adjust_used', {
-        ...getAnalyticsContext(),
-        recipeId: recipe.id,
-        action: 'smart_adjust',
-      });
+      trackAiActionUsed('smart_adjust', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Adjust Error:', err);
       rememberAIDisabledState(err);
-      setError(parseAIError(err, 'Kunne ikke tilpasse opskriften'));
+      setError(trackAiActionFailed('smart_adjust', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')));
     } finally {
-      setAdjusting(false);
+      setActiveAiAction(null);
     }
   };
 
   const handleGenerateSteps = async (recipe: Recipe) => {
-    setAdjusting(true);
+    const startedAt = Date.now();
+    setActiveAiAction('generate_steps');
     setError(null);
+    trackAiActionStarted('generate_steps', recipe.id);
     try {
       const updated = await aiGenerateSteps(recipe, userLevel);
       setAiUnavailableMessage(null);
@@ -1328,23 +1373,21 @@ export default function App() {
         id: recipe.id,
         lastUsed: new Date().toISOString(),
       }));
-      trackEvent('ai_adjust_used', {
-        ...getAnalyticsContext(),
-        recipeId: recipe.id,
-        action: 'generate_steps',
-      });
+      trackAiActionUsed('generate_steps', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Generate Error:', err);
       rememberAIDisabledState(err);
-      setError(parseAIError(err, 'Kunne ikke generere fremgangsmåde'));
+      setError(trackAiActionFailed('generate_steps', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke generere fremgangsmåde')));
     } finally {
-      setAdjusting(false);
+      setActiveAiAction(null);
     }
   };
 
   const handleFillRest = async (recipe: Recipe) => {
-    setAdjusting(true);
+    const startedAt = Date.now();
+    setActiveAiAction('fill_rest');
     setError(null);
+    trackAiActionStarted('fill_rest', recipe.id);
     try {
       const updated = await aiFillRest(recipe, userLevel);
       setAiUnavailableMessage(null);
@@ -1354,46 +1397,42 @@ export default function App() {
         id: recipe.id,
         lastUsed: new Date().toISOString(),
       }));
-      trackEvent('ai_adjust_used', {
-        ...getAnalyticsContext(),
-        recipeId: recipe.id,
-        action: 'fill_rest',
-      });
+      trackAiActionUsed('fill_rest', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Fill Rest Error:', err);
       rememberAIDisabledState(err);
-      setError(parseAIError(err, 'Kunne ikke udfylde resten'));
+      setError(trackAiActionFailed('fill_rest', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke udfylde resten')));
     } finally {
-      setAdjusting(false);
+      setActiveAiAction(null);
     }
   };
 
   const handleGenerateTips = async (recipe: Recipe) => {
-    setAdjusting(true);
+    const startedAt = Date.now();
+    setActiveAiAction('generate_tips');
     setError(null);
+    trackAiActionStarted('generate_tips', recipe.id);
     try {
       const tipsAndTricks = await aiGenerateTips(recipe);
       setAiUnavailableMessage(null);
       const updatedRecipe: Recipe = normalizeRecipeForCookMode({ ...recipe, tipsAndTricks });
       setViewingRecipe(updatedRecipe);
       await handleSaveRecipe(updatedRecipe);
-      trackEvent('ai_adjust_used', {
-        ...getAnalyticsContext(),
-        recipeId: recipe.id,
-        action: 'generate_tips',
-      });
+      trackAiActionUsed('generate_tips', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Tips Error:', err);
       rememberAIDisabledState(err);
-      setError(parseAIError(err, 'Kunne ikke generere tips'));
+      setError(trackAiActionFailed('generate_tips', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke generere tips')));
     } finally {
-      setAdjusting(false);
+      setActiveAiAction(null);
     }
   };
 
   const handleEstimateNutrition = async (recipe: Recipe) => {
-    setAdjusting(true);
+    const startedAt = Date.now();
+    setActiveAiAction('estimate_nutrition');
     setError(null);
+    trackAiActionStarted('estimate_nutrition', recipe.id);
     try {
       const nutritionEstimate = await aiEstimateRecipeNutrition(recipe, userLevel);
       setAiUnavailableMessage(null);
@@ -1403,23 +1442,22 @@ export default function App() {
       });
       setViewingRecipe(updatedRecipe);
       await handleSaveRecipe(updatedRecipe);
-      trackEvent('ai_adjust_used', {
-        ...getAnalyticsContext(),
-        recipeId: recipe.id,
-        action: 'estimate_nutrition',
-      });
+      trackAiActionUsed('estimate_nutrition', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Nutrition Estimate Error:', err);
       rememberAIDisabledState(err);
-      setError(parseAIError(err, 'Kunne ikke estimere macro og kcal'));
+      const message = trackAiActionFailed('estimate_nutrition', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke estimere macro og kcal'));
+      setError(message);
     } finally {
-      setAdjusting(false);
+      setActiveAiAction(null);
     }
   };
 
   const handleApplyPrefix = async (recipe: Recipe, prefix: string) => {
-    setAdjusting(true);
+    const startedAt = Date.now();
+    setActiveAiAction('apply_prefix');
     setError(null);
+    trackAiActionStarted('apply_prefix', recipe.id);
     try {
       const updated = await aiApplyPrefix(recipe, prefix);
       setAiUnavailableMessage(null);
@@ -1430,17 +1468,13 @@ export default function App() {
         lastUsed: new Date().toISOString(),
       });
       setViewingRecipe(newRecipe);
-      trackEvent('ai_adjust_used', {
-        ...getAnalyticsContext(),
-        recipeId: recipe.id,
-        action: 'apply_prefix',
-      });
+      trackAiActionUsed('apply_prefix', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Prefix Error:', err);
       rememberAIDisabledState(err);
-      setError(parseAIError(err, 'Kunne ikke tilpasse opskriften'));
+      setError(trackAiActionFailed('apply_prefix', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')));
     } finally {
-      setAdjusting(false);
+      setActiveAiAction(null);
     }
   };
 
@@ -1604,6 +1638,7 @@ export default function App() {
             if (original) setViewingRecipe(original);
           }}
           isAdjusting={adjusting}
+          activeAiAction={activeAiAction}
           error={error}
           aiDisabledReason={aiDisabledReason}
           initialEditMode={viewingRecipe.title === ''}
