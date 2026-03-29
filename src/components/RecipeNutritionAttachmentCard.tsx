@@ -1,6 +1,7 @@
 import { Barcode, ChevronDown, ChevronUp, Link2, Loader2, Search, ShieldAlert, Unlink2, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
+import { useRecipeNutritionVisible } from '../hooks/useRecipeNutritionVisible';
 import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
 import type { RecipeNutritionAttachment, RecipeNutritionEstimate } from '../types';
 import {
@@ -45,6 +46,7 @@ export function RecipeNutritionAttachmentCard({
   onClear,
 }: RecipeNutritionAttachmentCardProps) {
   const { enabled: nutritionToolsEnabled } = useNutritionToolsEnabled();
+  const { visible: recipeNutritionVisible } = useRecipeNutritionVisible();
   const { expandedByDefault } = useRecipeNutritionExpandedByDefault();
   const [enabled, setEnabled] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -84,7 +86,7 @@ export function RecipeNutritionAttachmentCard({
     setIsExpanded(expandedByDefault);
   }, [expandedByDefault]);
 
-  if (loadingStatus || !enabled || !nutritionToolsEnabled) {
+  if (loadingStatus || !enabled || !nutritionToolsEnabled || !recipeNutritionVisible) {
     return null;
   }
 

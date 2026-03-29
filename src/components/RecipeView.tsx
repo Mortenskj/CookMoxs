@@ -20,7 +20,7 @@ interface RecipeViewProps {
   onBack: () => void;
   onForward?: () => void;
   hasForward?: boolean;
-  onStartCook: (recipe: Recipe, scale: number, includePrep: boolean) => void;
+  onStartCook: (recipe: Recipe, scale: number) => void;
   onSave: (recipe: Recipe) => void;
   onDelete: () => void;
   onToggleFavorite: (recipe: Recipe) => void;
@@ -40,7 +40,6 @@ interface RecipeViewProps {
 
 export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
-  const [includePrep, setIncludePrep] = useState(true);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [editData, setEditData] = useState<Recipe>(recipe);
   const [history, setHistory] = useState<Recipe[]>([recipe]);
@@ -169,8 +168,14 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       'pasta': 35
     };
 
-    let matchedKey = Object.keys(gToDl).find(k => name.includes(k));
-    const conversionRate = matchedKey ? gToDl[matchedKey] : 100; // Fallback to 100g = 1dl if unknown
+    const matchedKey = Object.keys(gToDl).find(k => name.includes(k));
+    if (!matchedKey) {
+      setFolderConfirmationError(`Kan ikke konvertere ${ing.name || 'denne ingrediens'} sikkert mellem g og dl uden kendt tæthed.`);
+      return;
+    }
+
+    const conversionRate = gToDl[matchedKey];
+    setFolderConfirmationError(null);
 
     if (ing.unit.toLowerCase() === 'g') {
       newAmount = Number((ing.amount / conversionRate).toFixed(1));
@@ -1466,15 +1471,6 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {/* Floating Cook Button */}
       <div className="fixed bottom-20 left-0 right-0 p-4 max-w-md mx-auto z-20 print:hidden">
         <div className="flex flex-col gap-3">
-          <label className="flex items-center gap-3 justify-center mb-1 text-sm text-forest-mid dark:text-white/70 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={includePrep} 
-              onChange={(e) => setIncludePrep(e.target.checked)} 
-              className="w-5 h-5 rounded border-forest-mid/30 text-forest-dark focus:ring-forest-dark bg-white/50 dark:bg-black/50"
-            />
-            <span className="font-medium tracking-wide">Inkludér "Forbered ingredienser" trin</span>
-          </label>
           {canMutateRecipe && !recipe.isSaved && (
             <button 
               onClick={openFolderPickerForSave}
@@ -1485,7 +1481,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </button>
           )}
           <button 
-            onClick={() => onStartCook(recipe, scale, includePrep)}
+            onClick={() => onStartCook(recipe, scale)}
             className="btn-wood-light w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
           >
             <ChefHat size={20} className="text-forest-mid dark:text-white/70" />

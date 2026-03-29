@@ -4,6 +4,7 @@ import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/co
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
 import { SEASONAL_THEME_OPTIONS } from '../config/seasonalThemes';
 import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
+import { useRecipeNutritionVisible } from '../hooks/useRecipeNutritionVisible';
 import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
 import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
@@ -26,6 +27,8 @@ interface SettingsViewProps {
   setImportPreference: (value: ImportPreference) => void;
   autoAiImportEnhancement: boolean;
   setAutoAiImportEnhancement: (value: boolean) => void;
+  includePrep: boolean;
+  setIncludePrep: (value: boolean) => void;
   cookFontSize: CookFontSize;
   setCookFontSize: (size: CookFontSize) => void;
   onExportBackup: () => void;
@@ -88,6 +91,8 @@ export function SettingsView({
   setImportPreference,
   autoAiImportEnhancement,
   setAutoAiImportEnhancement,
+  includePrep,
+  setIncludePrep,
   cookFontSize,
   setCookFontSize,
   onExportBackup,
@@ -102,6 +107,10 @@ export function SettingsView({
   aiDisabledReason,
 }: SettingsViewProps) {
   const { enabled: nutritionToolsEnabled, setEnabled: setNutritionToolsEnabled } = useNutritionToolsEnabled();
+  const {
+    visible: recipeNutritionVisible,
+    setVisible: setRecipeNutritionVisible,
+  } = useRecipeNutritionVisible();
   const {
     expandedByDefault: recipeNutritionExpandedByDefault,
     setExpandedByDefault: setRecipeNutritionExpandedByDefault,
@@ -373,17 +382,53 @@ export function SettingsView({
               <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
                 <div>
                   <p className="font-serif text-lg text-forest-dark italic">
-                    {recipeNutritionExpandedByDefault ? 'Produktdata vises aabent' : 'Produktdata skjules som standard'}
+                    {recipeNutritionVisible ? 'Produktdata vises paa opskriftssiden' : 'Produktdata skjules paa opskriftssiden'}
                   </p>
                   <p className="text-xs text-forest-mid opacity-75">
-                    Styr om sektionen for produktdata nederst i opskriften er foldet ud, naar du aabner en opskrift.
+                    Styr om sektionen for produktdata nederst i opskriften overhovedet vises i denne browser.
                   </p>
                 </div>
                 <SettingsToggle
-                  enabled={recipeNutritionExpandedByDefault}
-                  onChange={setRecipeNutritionExpandedByDefault}
+                  enabled={recipeNutritionVisible}
+                  onChange={setRecipeNutritionVisible}
                 />
               </div>
+              {recipeNutritionVisible && (
+                <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
+                  <div>
+                    <p className="font-serif text-lg text-forest-dark italic">
+                      {recipeNutritionExpandedByDefault ? 'Produktdata vises aabent' : 'Produktdata skjules som standard'}
+                    </p>
+                    <p className="text-xs text-forest-mid opacity-75">
+                      Styr om sektionen for produktdata nederst i opskriften er foldet ud, naar du aabner en opskrift.
+                    </p>
+                  </div>
+                  <SettingsToggle
+                    enabled={recipeNutritionExpandedByDefault}
+                    onChange={setRecipeNutritionExpandedByDefault}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-start gap-3 mb-4">
+              <Type size={14} className="text-forest-mid mt-1" />
+              <div>
+                <p className="font-serif text-lg text-forest-dark italic">Forberedelses-trin i cook mode</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Vælg om cook mode skal starte med et ekstra trin til at finde og klargøre ingredienser.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/50 p-4 mb-8">
+              <div>
+                <p className="font-serif text-lg text-forest-dark italic">{includePrep ? 'Forberedelses-trin aktivt' : 'Forberedelses-trin skjult'}</p>
+                <p className="text-xs text-forest-mid opacity-75">
+                  Når det er slået fra, starter cook mode direkte på første egentlige tilberedningstrin.
+                </p>
+              </div>
+              <SettingsToggle
+                enabled={includePrep}
+                onChange={setIncludePrep}
+              />
             </div>
 
             <div className="flex items-start gap-3 mb-4">

@@ -162,6 +162,10 @@ export default function App() {
     return raw === null ? true : raw === 'true';
   });
   const [activeTimerPopup, setActiveTimerPopup] = useState<string | null>(null);
+  const [includePrep, setIncludePrep] = useState<boolean>(() => {
+    const raw = localStorage.getItem(STORAGE_KEYS.cookModeIncludePrep);
+    return raw === null ? true : raw === 'true';
+  });
   const [cookFontSize, setCookFontSize] = useState<CookFontSize>(() => {
     const raw = localStorage.getItem(STORAGE_KEYS.cookFontSize);
     return raw === 'small' || raw === 'normal' || raw === 'large' || raw === 'xlarge' ? raw : DEFAULT_COOK_FONT_SIZE;
@@ -210,6 +214,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.autoAiImportEnhancement, String(autoAiImportEnhancement));
   }, [autoAiImportEnhancement]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.cookModeIncludePrep, String(includePrep));
+  }, [includePrep]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.cookFontSize, cookFontSize);
@@ -297,9 +305,9 @@ export default function App() {
     }
   };
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
-  const [includePrep, setIncludePrep] = useState(true);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+  const savedRecipesRef = useRef<Recipe[]>(savedRecipes);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
@@ -309,7 +317,13 @@ export default function App() {
   const [isSavedRecipeCacheReady, setIsSavedRecipeCacheReady] = useState(false);
   const [isActiveRecipeCacheReady, setIsActiveRecipeCacheReady] = useState(false);
   timersRef.current = timers;
+  savedRecipesRef.current = savedRecipes;
   const hasActiveTimers = timers.some((timer) => timer.active && timer.remaining > 0);
+
+  const commitSavedRecipes = useCallback((nextRecipes: Recipe[]) => {
+    savedRecipesRef.current = nextRecipes;
+    setSavedRecipes(nextRecipes);
+  }, []);
 
   const getAnalyticsContext = useCallback(() => ({
     userState: user ? 'authenticated' : 'guest',
@@ -355,17 +369,16 @@ export default function App() {
         }
 
         const normalizedCachedRecipes = normalizeRecipesForCookMode(cachedRecipes);
-        setSavedRecipes((prev) => (prev.length > 0 ? prev : normalizedCachedRecipes));
+        const nextRecipes = savedRecipesRef.current.length > 0 ? savedRecipesRef.current : normalizedCachedRecipes;
+        commitSavedRecipes(nextRecipes);
         setIsSavedRecipeCacheReady(true);
       });
 
       const unsubRecipes = listenToUserRecipes(user.uid, (recipes) => {
         hasReceivedCloudRecipes = true;
         setIsSavedRecipeCacheReady(true);
-        setSavedRecipes(prev => {
-          const shared = prev.filter(r => r.authorUID !== user.uid);
-          return [...recipes, ...shared];
-        });
+        const shared = savedRecipesRef.current.filter((recipe) => recipe.authorUID !== user.uid);
+        commitSavedRecipes([...recipes, ...shared]);
       }, handleSyncListenerError);
 
       const unsubFoldersSync = listenToAccessibleFolders(user.uid, (snapshotFolders) => {
@@ -403,7 +416,7 @@ export default function App() {
           allFolders.push(data);
         });
 
-        const reconciled = reconcileDefaultFolderState(allFolders, savedRecipes, user.uid);
+        const reconciled = reconcileDefaultFolderState(allFolders, savedRecipesRef.current, user.uid);
         const hadCanonicalDefault = allFolders.some((folder) => folder.id === getCanonicalDefaultFolderId(user.uid));
 
         if (!hadCanonicalDefault) {
@@ -413,11 +426,9 @@ export default function App() {
         }
 
         setFolders(reconciled.folders);
-        setSavedRecipes((prev) => {
-          const myRecipes = reconciled.recipes.filter((recipe) => recipe.authorUID === user.uid);
-          const shared = prev.filter((recipe) => recipe.authorUID !== user.uid);
-          return [...myRecipes, ...shared];
-        });
+        const myRecipes = reconciled.recipes.filter((recipe) => recipe.authorUID === user.uid);
+        const shared = savedRecipesRef.current.filter((recipe) => recipe.authorUID !== user.uid);
+        commitSavedRecipes([...myRecipes, ...shared]);
 
         if (unsubSharedRecipes) {
           unsubSharedRecipes();
@@ -426,10 +437,8 @@ export default function App() {
 
         if (sharedFolderIds.length > 0) {
           unsubSharedRecipes = listenToSharedRecipes(sharedFolderIds, (sharedRecipes) => {
-            setSavedRecipes(prev => {
-              const myRecipes = prev.filter(r => r.authorUID === user.uid);
-              return [...myRecipes, ...sharedRecipes];
-            });
+            const myRecipes = savedRecipesRef.current.filter((recipe) => recipe.authorUID === user.uid);
+            commitSavedRecipes([...myRecipes, ...sharedRecipes]);
           }, handleSyncListenerError);
         }
       }, handleSyncListenerError);
@@ -448,7 +457,7 @@ export default function App() {
 
         if (cancelled) return;
 
-        setSavedRecipes(nextRecipes);
+        commitSavedRecipes(nextRecipes);
         setIsSavedRecipeCacheReady(true);
       })();
       setFolders(loadLocalFolders());
@@ -1435,19 +1444,18 @@ export default function App() {
     }
   };
 
-  const handleStartCook = (recipe: Recipe, scale: number, includePrep: boolean) => {
+  const handleStartCook = (recipe: Recipe, scale: number) => {
     const updatedRecipe = { ...recipe, lastUsed: new Date().toISOString(), scale };
     saveActiveRecipe(updatedRecipe);
-    setIncludePrep(includePrep);
     
     const newSaved = savedRecipes.map(r => r.id === recipe.id ? updatedRecipe : r);
     saveToLocalStorage(newSaved);
     
     trackEvent('cook_mode_started', {
       ...getAnalyticsContext(),
-      recipeId: recipe.id,
-      includePrep,
-      scale,
+          recipeId: recipe.id,
+          includePrep,
+          scale,
     });
     navigateTo('cook');
   };
@@ -1663,6 +1671,8 @@ export default function App() {
           setImportPreference={setImportPreference}
           autoAiImportEnhancement={autoAiImportEnhancement}
           setAutoAiImportEnhancement={setAutoAiImportEnhancement}
+          includePrep={includePrep}
+          setIncludePrep={setIncludePrep}
           cookFontSize={cookFontSize}
           setCookFontSize={setCookFontSize}
           onExportBackup={handleExportBackup}

@@ -319,14 +319,14 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
         )}
       </div>
 
-      {/* Floating Navigation Buttons */}
-      <div className="fixed bottom-6 left-0 right-0 max-w-md mx-auto px-4 flex justify-between items-center pointer-events-none z-40">
+      {/* Side Navigation Buttons */}
+      <div className="fixed inset-y-0 left-0 right-0 max-w-md mx-auto px-3 sm:px-4 flex justify-between items-center pointer-events-none z-40">
         <button 
           onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
           disabled={currentStep === 0}
-          className="pointer-events-auto p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all disabled:opacity-0 disabled:pointer-events-none border border-white/10 shadow-lg"
+          className="pointer-events-auto p-3 sm:p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all disabled:opacity-0 disabled:pointer-events-none border border-white/10 shadow-lg"
         >
-          <ChevronLeft size={28} />
+          <ChevronLeft size={24} className="sm:w-7 sm:h-7" />
         </button>
         
         <button 
@@ -337,9 +337,9 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
               onCompleteCooking();
             }
           }}
-          className="pointer-events-auto p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all shadow-lg hover:scale-105 active:scale-95 border border-white/10"
+          className="pointer-events-auto p-3 sm:p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all shadow-lg hover:scale-105 active:scale-95 border border-white/10"
         >
-          {currentStep === steps.length - 1 ? <CheckCircle size={28} /> : <ChevronRight size={28} />}
+          {currentStep === steps.length - 1 ? <CheckCircle size={24} className="sm:w-7 sm:h-7" /> : <ChevronRight size={24} className="sm:w-7 sm:h-7" />}
         </button>
       </div>
 

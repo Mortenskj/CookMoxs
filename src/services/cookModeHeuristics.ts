@@ -14,6 +14,7 @@ const HEAT_NOTE_BY_LEVEL: Partial<Record<CanonicalHeatLevel, string>> = {
   2: 'svag varme',
   3: 'lav varme',
   5: 'middel varme',
+  6: 'rolig stegning',
   7: 'middel-hoej varme',
   8: 'hoej varme',
   9: 'bring i kog',
@@ -163,6 +164,32 @@ export function extractOvenHeat(value?: string): string | undefined {
 }
 
 function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeatLevel | undefined {
+  const reduceMatch = normalizedText.match(/skru ned(?: igen)?(?: til)?\s+([1-9])\s*\/\s*9/);
+  if (reduceMatch) {
+    return Number(reduceMatch[1]) as CanonicalHeatLevel;
+  }
+
+  const simmerMatch = normalizedText.match(/(?:lad|skal)\s+simre(?: videre)?(?: ved| paa)?\s+([1-9])\s*\/\s*9/);
+  if (simmerMatch) {
+    return Number(simmerMatch[1]) as CanonicalHeatLevel;
+  }
+
+  if (normalizedText.includes('bring i kog') && normalizedText.includes('skru ned og lad simre')) {
+    return 3;
+  }
+
+  if (
+    (normalizedText.includes('bring i kog') || normalizedText.includes('kog op'))
+    && (normalizedText.includes('skru ned') || normalizedText.includes('lad koge videre') || normalizedText.includes('lad koge'))
+  ) {
+    return 5;
+  }
+
+  const explicitMatch = normalizedText.match(/(?:induktion\s*)?([1-9])\s*\/\s*9/);
+  if (explicitMatch) {
+    return Number(explicitMatch[1]) as CanonicalHeatLevel;
+  }
+
   if (
     normalizedText.includes('bring i kog')
     || normalizedText.includes('kog op')
@@ -189,13 +216,46 @@ function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeat
   }
 
   if (
+    (
+      normalizedText.includes('loeg')
+      || normalizedText.includes('hvidloeg')
+      || normalizedText.includes('skalotteloeg')
+      || normalizedText.includes('aromater')
+    )
+    && (
+      normalizedText.includes('sauter')
+      || normalizedText.includes('saute')
+      || normalizedText.includes('sved')
+      || normalizedText.includes('klar')
+    )
+  ) {
+    return 5;
+  }
+
+  if (
+    (
+      normalizedText.includes('loeg')
+      || normalizedText.includes('hvidloeg')
+      || normalizedText.includes('skalotteloeg')
+      || normalizedText.includes('aromater')
+    )
+    && (
+      normalizedText.includes('brun ')
+      || normalizedText.endsWith(' brun')
+      || normalizedText.includes(' afbrun')
+    )
+  ) {
+    return 6;
+  }
+
+  if (
     normalizedText.includes('hoej varme')
     || normalizedText.includes('hard browning')
     || normalizedText.includes('brun ')
     || normalizedText.endsWith(' brun')
     || normalizedText.includes(' afbrun')
   ) {
-    return 8;
+    return 7;
   }
 
   if (
@@ -227,11 +287,6 @@ function inferHeatLevelFromNormalizedText(normalizedText: string): CanonicalHeat
 
   if (normalizedText.includes('2-3/9') || normalizedText.includes('2 3/9')) {
     return 3;
-  }
-
-  const explicitMatch = normalizedText.match(/(?:induktion\s*)?([1-9])\s*\/\s*9/);
-  if (explicitMatch) {
-    return Number(explicitMatch[1]) as CanonicalHeatLevel;
   }
 
   return undefined;

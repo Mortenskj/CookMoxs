@@ -466,6 +466,10 @@ async function startServer() {
         6. Extract timers into the timer property.
         7. Avoid repeating values already present in structured fields.
         8. Explain changes in aiRationale.
+        9. Be conservative with weight/volume conversion. Never assume that 1 ml = 1 g or 1 dl = 100 g unless the ingredient is clearly water-like.
+        10. Only convert between g and dl/ml when the ingredient has a well-known kitchen density, such as water, milk, cream, oil, butter, flour, sugar, oats, rice or cocoa.
+        11. If the requested g/dl conversion is uncertain for a specific ingredient, keep the original amount and unit instead of guessing. Explain that choice briefly in aiRationale.
+        12. When converting between weight and volume, keep the result realistic for Danish home cooking and avoid fake precision.
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
@@ -493,6 +497,12 @@ async function startServer() {
         5. Provide aiRationale.
         6. Group ingredients into meaningful Danish groups.
         7. Match the communication style to this instruction: ${styleInstruction}
+        8. Be conservative with heat. Do not default to aggressive heat just to make a step sound decisive.
+        9. Reserve 9/9 for brief preheating or bringing liquid to a boil, not for sustained cooking.
+        10. If a step brings water or liquid to a boil and then continues cooking, split it into separate steps or clearly state the heat reduction afterward.
+        11. For onions, garlic and other aromatics, prefer moderate heat unless the text explicitly calls for hard browning.
+        12. If a step needs two distinct heat phases, prefer splitting it into two steps so each step has one clear working heat.
+        13. The structured heat field should reflect the sustained working heat, not a short initial peak, unless the whole step is truly only a brief high-heat action.
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
@@ -516,6 +526,12 @@ async function startServer() {
         Behold eksisterende ingredienser og trin, men gør opskriften komplet.
         Sørg for heat, timer, summary, categories og servings.
         Match tonen til denne stilinstruktion: ${styleInstruction}
+        Varme-regler:
+        - Brug den kanoniske 1-9 induktionsskala.
+        - Vaer konservativ med varme. 9/9 er kun til kort opkog eller kort forvarmning, ikke stabil arbejdsvarme.
+        - Hvis noget skal koges op og derefter koge videre, saa beskriv nedjusteringen tydeligt eller del det i to trin.
+        - Loeg, hvidloeg og andre aromater skal som udgangspunkt ikke have unodigt haard varme.
+        - Hvis et trin har to tydelige varmefaser, saa foretraek to trin frem for en enkelt vag varmeangivelse.
         Opskrift JSON:
         ${JSON.stringify(recipe)}
       `;
@@ -707,4 +723,5 @@ async function startServer() {
 }
 
 startServer();
+
 
