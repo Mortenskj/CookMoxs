@@ -57,6 +57,25 @@ const MACRO_META: Record<MacroTab, { label: string; stroke: string; softBg: stri
   },
 };
 
+function normalizeEstimateForDisplay(estimate?: RecipeNutritionEstimate) {
+  if (!estimate) {
+    return null;
+  }
+
+  return {
+    ...estimate,
+    per100g: estimate.per100g ?? {},
+    perPortion: estimate.perPortion ?? {},
+    ingredientBreakdown: Array.isArray(estimate.ingredientBreakdown) ? estimate.ingredientBreakdown : [],
+    omittedIngredients: Array.isArray(estimate.omittedIngredients) ? estimate.omittedIngredients : [],
+    countedIngredientCount: typeof estimate.countedIngredientCount === 'number' ? estimate.countedIngredientCount : 0,
+    totalIngredientCount: typeof estimate.totalIngredientCount === 'number' ? estimate.totalIngredientCount : 0,
+    validationWarnings: Array.isArray(estimate.validationWarnings) ? estimate.validationWarnings : [],
+    coverageStatus: estimate.coverageStatus ?? 'complete',
+    rationale: estimate.rationale ?? '',
+  };
+}
+
 function formatIngredientMacroLine(estimate: RecipeNutritionEstimate['ingredientBreakdown'][number]) {
   const parts: string[] = [];
 
@@ -111,6 +130,7 @@ export function RecipeNutritionAttachmentCard({
   const [showMacroSources, setShowMacroSources] = useState(false);
   const [activeMacroTab, setActiveMacroTab] = useState<MacroTab>('protein');
   const [showAllMacroSources, setShowAllMacroSources] = useState(false);
+  const displayEstimate = useMemo(() => normalizeEstimateForDisplay(estimate), [estimate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,22 +169,18 @@ export function RecipeNutritionAttachmentCard({
   const summaryLine = hasAttachment
     ? getRecipeNutritionSummaryLine(attachment)
     : 'Ingen produktdata er knyttet til denne opskrift endnu.';
-  const ingredientBreakdown = Array.isArray(estimate?.ingredientBreakdown) ? estimate.ingredientBreakdown : [];
-  const omittedIngredients = Array.isArray(estimate?.omittedIngredients) ? estimate.omittedIngredients : [];
-  const countedIngredientCount = typeof estimate?.countedIngredientCount === 'number'
-    ? estimate.countedIngredientCount
-    : Math.max(ingredientBreakdown.length - omittedIngredients.length, 0);
-  const totalIngredientCount = typeof estimate?.totalIngredientCount === 'number'
-    ? estimate.totalIngredientCount
-    : Math.max(ingredientBreakdown.length, countedIngredientCount + omittedIngredients.length);
-  const validationWarnings = Array.isArray(estimate?.validationWarnings) ? estimate.validationWarnings : [];
-  const coverageStatus = estimate?.coverageStatus ?? (omittedIngredients.length > 0 ? 'partial' : 'complete');
+  const ingredientBreakdown = displayEstimate?.ingredientBreakdown ?? [];
+  const omittedIngredients = displayEstimate?.omittedIngredients ?? [];
+  const countedIngredientCount = displayEstimate?.countedIngredientCount ?? Math.max(ingredientBreakdown.length - omittedIngredients.length, 0);
+  const totalIngredientCount = displayEstimate?.totalIngredientCount ?? Math.max(ingredientBreakdown.length, countedIngredientCount + omittedIngredients.length);
+  const validationWarnings = displayEstimate?.validationWarnings ?? [];
+  const coverageStatus = displayEstimate?.coverageStatus ?? (omittedIngredients.length > 0 ? 'partial' : 'complete');
   const canTriggerEstimate = recipeNutritionEstimateVisible && canEstimate && Boolean(onEstimate);
   const estimateCoverageLabel = coverageStatus === 'complete' ? 'Komplet estimate' : 'Delvist estimate';
-  const canRenderMacroOverview = Boolean(estimate && recipeNutritionEstimateVisible && coverageStatus === 'complete');
-  const selectedSnapshot = estimate ? estimate[macroBasis] : null;
+  const canRenderMacroOverview = Boolean(displayEstimate && recipeNutritionEstimateVisible && coverageStatus === 'complete');
+  const selectedSnapshot = displayEstimate ? displayEstimate[macroBasis] : null;
   const contributionScale = useMemo(() => {
-    if (!estimate) {
+    if (!displayEstimate) {
       return null;
     }
 
@@ -172,13 +188,13 @@ export function RecipeNutritionAttachmentCard({
       return Number.isFinite(servings) && Number(servings) > 0 ? 1 / Number(servings) : 1;
     }
 
-    return estimate.estimatedTotalWeightGrams && estimate.estimatedTotalWeightGrams > 0
-      ? 100 / estimate.estimatedTotalWeightGrams
+    return displayEstimate.estimatedTotalWeightGrams && displayEstimate.estimatedTotalWeightGrams > 0
+      ? 100 / displayEstimate.estimatedTotalWeightGrams
       : 1;
-  }, [estimate, macroBasis, servings]);
+  }, [displayEstimate, macroBasis, servings]);
   const sourceBasisLabel = macroBasis === 'perPortion'
     ? 'pr. portion'
-    : estimate?.estimatedTotalWeightGrams && estimate.estimatedTotalWeightGrams > 0
+    : displayEstimate?.estimatedTotalWeightGrams && displayEstimate.estimatedTotalWeightGrams > 0
       ? 'pr. 100 g'
       : 'for hele opskriften';
   const macroOverview = useMemo(() => {
@@ -257,11 +273,11 @@ export function RecipeNutritionAttachmentCard({
     });
   }, [macroOverview]);
   const macroSourceItems = useMemo(() => {
-    if (!estimate || !contributionScale) {
+    if (!displayEstimate || !contributionScale) {
       return [];
     }
 
-    const items = ingredientBreakdown
+    const items = displayEstimate.ingredientBreakdown
       .map((item) => {
         const wholeRecipeValue = activeMacroTab === 'protein'
           ? item.proteinGrams ?? 0
@@ -282,7 +298,7 @@ export function RecipeNutritionAttachmentCard({
       .sort((a, b) => b.scaledValue - a.scaledValue);
 
     return showAllMacroSources ? items : items.slice(0, 5);
-  }, [activeMacroTab, contributionScale, estimate, showAllMacroSources]);
+  }, [activeMacroTab, contributionScale, displayEstimate, showAllMacroSources]);
 
   useEffect(() => {
     setShowAllMacroSources(false);
@@ -345,7 +361,7 @@ export function RecipeNutritionAttachmentCard({
         </div>
       </div>
 
-      {estimate && recipeNutritionEstimateVisible && (
+      {displayEstimate && recipeNutritionEstimateVisible && (
         <div className="mb-4 rounded-3xl border border-[#D4B886]/40 bg-[#FFF8EA]/80 p-5 text-sm text-forest-mid shadow-sm dark:border-[#D4B886]/20 dark:bg-[#2A1F1A]/50 dark:text-white/80">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -356,7 +372,7 @@ export function RecipeNutritionAttachmentCard({
                 </span>
               </div>
               <p className="mt-1 text-xs opacity-75">
-                Vejledende beregning ud fra ingredienslisten. Ikke producentdata. Senest opdateret {new Date(estimate.generatedAt).toLocaleString('da-DK')}.
+                Vejledende beregning ud fra ingredienslisten. Ikke producentdata. Senest opdateret {new Date(displayEstimate.generatedAt).toLocaleString('da-DK')}.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -364,7 +380,7 @@ export function RecipeNutritionAttachmentCard({
                 {estimateCoverageLabel}
               </span>
               <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
-                Sikkerhed: {estimate.confidence}
+                Sikkerhed: {displayEstimate.confidence}
               </span>
             </div>
           </div>
@@ -462,7 +478,7 @@ export function RecipeNutritionAttachmentCard({
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-xs opacity-75">
-                    <span>Samlet vægt: {formatMacroValue(estimate.estimatedTotalWeightGrams)} g</span>
+                    <span>Samlet vægt: {formatMacroValue(displayEstimate.estimatedTotalWeightGrams)} g</span>
                     <span>Visning: {sourceBasisLabel}</span>
                   </div>
                 </div>
@@ -476,10 +492,10 @@ export function RecipeNutritionAttachmentCard({
 
           <div className="hidden print:block mt-4 rounded-2xl border border-black/10 bg-white p-4 text-black">
             <p className="text-sm font-bold uppercase tracking-widest">AI-makroestimat</p>
-            <p className="mt-2 text-xs">Vejledende beregning ud fra ingredienslisten. {estimateCoverageLabel}. Sikkerhed: {estimate.confidence}.</p>
+            <p className="mt-2 text-xs">Vejledende beregning ud fra ingredienslisten. {estimateCoverageLabel}. Sikkerhed: {displayEstimate.confidence}.</p>
             <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-              <div>Pr. 100 g: {formatMacroValue(estimate.per100g.energyKcal)} kcal, fedt {formatMacroValue(estimate.per100g.fatGrams)} g, kulhydrat {formatMacroValue(estimate.per100g.carbsGrams)} g, protein {formatMacroValue(estimate.per100g.proteinGrams)} g</div>
-              <div>Pr. portion: {formatMacroValue(estimate.perPortion.energyKcal)} kcal, fedt {formatMacroValue(estimate.perPortion.fatGrams)} g, kulhydrat {formatMacroValue(estimate.perPortion.carbsGrams)} g, protein {formatMacroValue(estimate.perPortion.proteinGrams)} g</div>
+              <div>Pr. 100 g: {formatMacroValue(displayEstimate.per100g.energyKcal)} kcal, fedt {formatMacroValue(displayEstimate.per100g.fatGrams)} g, kulhydrat {formatMacroValue(displayEstimate.per100g.carbsGrams)} g, protein {formatMacroValue(displayEstimate.per100g.proteinGrams)} g</div>
+              <div>Pr. portion: {formatMacroValue(displayEstimate.perPortion.energyKcal)} kcal, fedt {formatMacroValue(displayEstimate.perPortion.fatGrams)} g, kulhydrat {formatMacroValue(displayEstimate.perPortion.carbsGrams)} g, protein {formatMacroValue(displayEstimate.perPortion.proteinGrams)} g</div>
             </div>
             {validationWarnings.length > 0 && (
               <ul className="mt-3 text-xs">
@@ -491,9 +507,9 @@ export function RecipeNutritionAttachmentCard({
           </div>
           <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
             <p className="font-bold uppercase tracking-widest opacity-60">Antagelser</p>
-            <p className="mt-2">{estimate.rationale}</p>
+            <p className="mt-2">{displayEstimate.rationale}</p>
             <p className="mt-3 opacity-75">
-              Estimeret samlet vægt: {estimate.estimatedTotalWeightGrams ?? '-'} g
+              Estimeret samlet vægt: {displayEstimate.estimatedTotalWeightGrams ?? '-'} g
             </p>
           </div>
           {ingredientBreakdown.length > 0 && (
