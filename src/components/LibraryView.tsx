@@ -105,18 +105,18 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
       </div>
 
       <div className="relative mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-forest-mid dark:text-white/80 opacity-50 dark:opacity-90" size={20} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-forest-mid dark:text-white/90 opacity-50 dark:opacity-100" size={20} />
         <input 
           type="text" 
           placeholder="Søg i ingredienser, tags eller navn..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-10 py-4 glass-brushed cm-search-shell rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-forest-mid/10 focus:border-forest-mid/30 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/40 font-medium"
+          className="w-full pl-12 pr-10 py-4 glass-brushed cm-search-shell rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-forest-mid/10 focus:border-forest-mid/30 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/55 font-medium"
         />
         {searchQuery && (
           <button 
             onClick={() => setSearchQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-forest-mid dark:text-white/70 hover:text-forest-dark dark:hover:text-white"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white"
           >
             <X size={18} />
           </button>
@@ -125,7 +125,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
 
       {searchQuery ? (
         <div>
-          <h2 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] mb-4 opacity-70 text-engraved">Søgeresultater</h2>
+          <h2 className="text-xs font-bold text-forest-mid dark:text-white/90 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Søgeresultater</h2>
           {renderRecipeList(getSortedRecipes(searchResults), 'Ingen opskrifter matchede din søgning.')}
         </div>
       ) : activeSection === 'home' ? (
@@ -238,7 +238,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
             <div className="flex justify-between items-center mb-6">
               <div className="flex flex-col">
                 <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved">
-                  <Folder size={20} className="text-forest-mid dark:text-white/70"/> {selectedFolder.name}
+                  <Folder size={20} className="text-forest-mid dark:text-white/90"/> {selectedFolder.name}
                 </h2>
                 <div className="ml-7 mt-2 flex items-center gap-2">
                   <OwnershipBadge ownership={folderOwnership} />
@@ -352,7 +352,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         ) : (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Book size={20} className="text-forest-mid dark:text-white/70"/> Kogebøger</h2>
+              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Book size={20} className="text-forest-mid dark:text-white/90"/> Kogebøger</h2>
               <button 
                 onClick={() => setShowNewFolderInput(true)}
                 className="text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/80 flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all"
@@ -405,7 +405,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                     onClick={() => setSelectedFolderId(folder.id)}
                     className="flex flex-col items-start p-6 glass-brushed rounded-[2rem] hover:bg-white/60 dark:hover:bg-white/10 transition-all text-left group relative"
                   >
-                    <Folder size={28} className="text-forest-mid dark:text-white/70 mb-4 group-hover:scale-110 transition-transform" />
+                    <Folder size={28} className="text-forest-mid dark:text-white/90 mb-4 group-hover:scale-110 transition-transform" />
                     {isShared && (
                       <div className="absolute top-4 right-4 text-forest-mid dark:text-white/80 opacity-60 dark:opacity-90">
                         <UserPlus size={14} />
@@ -425,7 +425,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
       ) : activeSection === 'all' ? (
         <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><List size={20} className="text-forest-mid dark:text-white/70"/> Alle opskrifter</h2>
+            <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><List size={20} className="text-forest-mid dark:text-white/90"/> Alle opskrifter</h2>
             <LibrarySortSelect value={sortOrder} onChange={setSortOrder} />
           </div>
           {renderRecipeList(getSortedRecipes(savedRecipes), 'Du har ingen opskrifter endnu.', 'Start med at importere en opskrift eller opret en ny i en mappe.')}
@@ -434,14 +434,14 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         selectedCategory ? (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid dark:text-white/70"/> {selectedCategory}</h2>
+              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid dark:text-white/90"/> {selectedCategory}</h2>
               <LibrarySortSelect value={sortOrder} onChange={setSortOrder} />
             </div>
             {renderRecipeList(getSortedRecipes(savedRecipes.filter(r => r.categories?.includes(selectedCategory))), 'Ingen opskrifter i denne kategori.')}
           </div>
         ) : (
           <div>
-            <h2 className="text-2xl font-serif text-forest-dark dark:text-white mb-6 flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid dark:text-white/70"/> Kategorier</h2>
+            <h2 className="text-2xl font-serif text-forest-dark dark:text-white mb-6 flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid dark:text-white/90"/> Kategorier</h2>
             <div className="flex flex-wrap gap-3">
               {allCategories.map(cat => {
                 const count = savedRecipes.filter(r => r.categories?.includes(cat)).length;

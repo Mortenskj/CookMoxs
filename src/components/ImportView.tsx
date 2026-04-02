@@ -195,7 +195,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   Du er offline. Linket bliver gemt lokalt i køen og kan behandles senere.
                 </div>
               )}
-              <label className="block text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] opacity-60 ml-1 text-engraved">Indsæt link</label>
+              <label className="block text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt link</label>
               <input
                 type="url"
                 value={url}
@@ -207,7 +207,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/50 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/30 font-serif italic"
                 autoFocus
               />
-              <p className="text-xs text-forest-mid dark:text-white/80 italic opacity-70 dark:opacity-100">
+              <p className="text-xs text-forest-mid dark:text-white/90 italic opacity-70 dark:opacity-100">
                 {isOnline ? 'Vi prøver grundimport først og bruger kun AI, hvis siden kræver det.' : 'Offline links gemmes nu i køen til senere behandling.'}
               </p>
             </div>
@@ -220,7 +220,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   {textAndFileDisabledReason}
                 </div>
               )}
-              <label className="block text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] opacity-60 ml-1 text-engraved">Indsæt tekst</label>
+              <label className="block text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt tekst</label>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -255,7 +255,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 {loading ? <Loader2 size={32} className="animate-spin" /> : <FileUp size={32} />}
               </button>
               <p className="text-forest-dark dark:text-white font-serif text-xl italic">Upload PDF eller dokument</p>
-              <p className="text-sm text-forest-mid dark:text-white/60 italic opacity-60">Denne importtype kræver AI.</p>
+              <p className="text-sm text-forest-mid dark:text-white/85 italic opacity-60 dark:opacity-100">Denne importtype kræver AI.</p>
             </div>
           )}
 
@@ -318,7 +318,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               )}
 
               <p className="text-forest-dark dark:text-white font-serif text-xl italic">Scan en opskrift</p>
-              <p className="text-sm text-forest-mid dark:text-white/60 italic opacity-60">
+              <p className="text-sm text-forest-mid dark:text-white/85 italic opacity-60 dark:opacity-100">
                 {isOnline ? 'Billedimport kræver AI.' : 'Offline billeder gemmes nu i køen.'}
               </p>
             </div>

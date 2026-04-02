@@ -739,7 +739,7 @@
   }
 
   .dark .cm-nav-item {
-    color: rgba(243, 238, 229, 0.84);
+    color: rgba(243, 238, 229, 0.9);
   }
 
   .cm-nav-item:hover {
@@ -747,7 +747,7 @@
   }
 
   .dark .cm-nav-item:hover {
-    background: rgba(255, 248, 240, 0.16);
+    background: rgba(255, 248, 240, 0.18);
   }
 
   .cm-nav-item--active {
@@ -757,8 +757,8 @@
   }
 
   .dark .cm-nav-item--active {
-    background: rgba(255, 248, 240, 0.24);
-    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 248, 240, 0.26);
+    border-color: rgba(255, 255, 255, 0.3);
     color: rgba(243, 238, 229, 1);
   }
 

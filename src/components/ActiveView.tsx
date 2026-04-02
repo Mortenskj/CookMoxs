@@ -13,10 +13,10 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
     return (
       <div className="p-4 pb-32 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center min-h-screen dark:text-white">
         <div className="w-24 h-24 cm-surface-secondary rounded-full flex items-center justify-center mb-8 glass-brushed">
-          <ChefHat size={48} className="text-forest-mid dark:text-white/80" />
+          <ChefHat size={48} className="text-forest-mid dark:text-white/90" />
         </div>
         <h2 className="text-3xl font-serif text-forest-dark dark:text-white mb-4 italic text-engraved">Intet i gang</h2>
-        <p className="text-forest-mid dark:text-white/80 mb-10 max-w-xs italic leading-relaxed opacity-70 dark:opacity-100">
+        <p className="text-forest-mid dark:text-white/90 mb-10 max-w-xs italic leading-relaxed opacity-70 dark:opacity-100">
           Du har ikke nogen aktiv opskrift i øjeblikket. Find en i biblioteket eller importer en ny.
         </p>
         <button 
@@ -39,8 +39,8 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
       <div className="glass-brushed rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-black/5 dark:border-white/10 overflow-hidden mb-8">
         <div className="cm-surface-secondary p-8 border-b border-black/5 dark:border-white/10">
           <h2 className="text-2xl font-serif text-forest-dark dark:text-white mb-3 italic text-engraved">{activeRecipe.title}</h2>
-          <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/80">
-            <span className="cm-surface-utility flex items-center gap-2 px-3 py-1 rounded-full dark:text-white/85">
+          <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/90">
+            <span className="cm-surface-utility flex items-center gap-2 px-3 py-1 rounded-full dark:text-white/95">
               <Clock size={12} className="animate-pulse" /> Aktiv nu
             </span>
           </div>
@@ -59,14 +59,14 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
             onClick={() => onOpenRecipe(activeRecipe)}
             className="w-full cm-surface-secondary text-forest-dark dark:text-white py-5 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all"
           >
-            <FileText size={22} className="text-forest-mid dark:text-white/80" />
+            <FileText size={22} className="text-forest-mid dark:text-white/90" />
             <span className="font-serif text-lg italic">Se hele opskriften</span>
           </button>
           
           <div className="grid grid-cols-2 gap-3 pt-4">
             <button 
               onClick={() => onSave(activeRecipe)}
-              className="flex-1 cm-surface-utility text-forest-mid dark:text-white/85 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/60 dark:hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest"
+              className="flex-1 cm-surface-utility text-forest-mid dark:text-white/95 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/60 dark:hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest"
             >
               <Save size={16} />
               Gem

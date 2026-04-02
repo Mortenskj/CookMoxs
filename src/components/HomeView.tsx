@@ -53,7 +53,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
               </div>
               <div>
                 <h2 className="text-xl font-serif italic text-forest-dark dark:text-white">Kom godt i gang</h2>
-                <p className="text-sm text-forest-mid dark:text-white/70 leading-relaxed mt-1">CookMoxs er klar. Start med at importere din første opskrift, vælg dit niveau i køkkenet og gem dine egne favoritter efterhånden.</p>
+                <p className="text-sm text-forest-mid dark:text-white/85 leading-relaxed mt-1">CookMoxs er klar. Start med at importere din første opskrift, vælg dit niveau i køkkenet og gem dine egne favoritter efterhånden.</p>
               </div>
             </div>
 
