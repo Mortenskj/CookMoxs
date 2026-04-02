@@ -354,10 +354,7 @@
     @apply font-sans antialiased text-forest-dark;
     position: relative;
     background-color: var(--season-bg-main);
-    background-image: var(--season-atmosphere-overlay), var(--season-bg-image);
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center top;
+    background-image: none;
     transition:
       background-image var(--season-motion-duration) var(--season-motion-ease),
       background-color var(--season-motion-duration) var(--season-motion-ease);

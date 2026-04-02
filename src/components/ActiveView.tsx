@@ -11,7 +11,7 @@ interface ActiveViewProps {
 export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: ActiveViewProps) {
   if (!activeRecipe) {
     return (
-      <div className="p-4 pb-32 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center min-h-screen herbal-pattern dark:text-white">
+      <div className="p-4 pb-32 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center min-h-screen dark:text-white">
         <div className="w-24 h-24 bg-white/60 dark:bg-black/40 rounded-full flex items-center justify-center mb-8 border border-black/5 dark:border-white/10 shadow-sm glass-brushed">
           <ChefHat size={48} className="text-forest-mid dark:text-white/70" />
         </div>
@@ -30,7 +30,7 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
   }
 
   return (
-    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern dark:text-white">
+    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen dark:text-white">
       <div className="flex items-center gap-2 mb-8 pt-4">
         <Flame size={28} className="text-forest-dark dark:text-white" />
         <h1 className="text-3xl font-serif text-forest-dark dark:text-white italic text-engraved">I gang</h1>

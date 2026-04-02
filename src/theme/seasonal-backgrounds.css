@@ -19,19 +19,52 @@
 
 .cm-seasonal-scene::before {
   z-index: -4;
-  background-image: var(--cm-scene-desktop);
+  background:
+    radial-gradient(
+      132% 68% at 50% -8%,
+      color-mix(in srgb, var(--season-accent) 14%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      88% 52% at 14% 12%,
+      color-mix(in srgb, var(--season-highlight) 8%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      92% 50% at 86% 14%,
+      color-mix(in srgb, var(--season-text-secondary) 6%, transparent),
+      transparent 74%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--season-bg-main) 94%, white),
+      var(--season-bg-main)
+    );
   background-position: center top;
   background-repeat: no-repeat;
   background-size: cover;
-  transform: scale(1.02);
+  transform: none;
 }
 
 .cm-seasonal-scene::after {
   z-index: -3;
   background:
-    linear-gradient(to bottom, var(--cm-overlay-top), rgba(255, 255, 255, 0) 26%, var(--cm-overlay-bottom)),
-    radial-gradient(1200px 420px at 50% 0%, var(--cm-haze-a), rgba(255, 255, 255, 0) 70%),
-    radial-gradient(880px 300px at 14% 10%, var(--cm-haze-b), rgba(255, 255, 255, 0) 68%);
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--season-bg-main) 22%, transparent),
+      rgba(255, 255, 255, 0) 26%,
+      color-mix(in srgb, var(--season-bg-main) 16%, transparent)
+    ),
+    radial-gradient(
+      1200px 360px at 14% 8%,
+      color-mix(in srgb, var(--season-accent) 7%, transparent),
+      rgba(255, 255, 255, 0) 72%
+    ),
+    radial-gradient(
+      1120px 320px at 86% 10%,
+      color-mix(in srgb, var(--season-highlight) 5%, transparent),
+      rgba(255, 255, 255, 0) 74%
+    );
 }
 
 .cm-seasonal-haze,
@@ -44,20 +77,23 @@
 .cm-seasonal-haze {
   z-index: -2;
   background:
-    radial-gradient(circle at 12% 16%, var(--cm-haze-a), transparent 18%),
-    radial-gradient(circle at 88% 12%, var(--cm-haze-b), transparent 22%),
-    radial-gradient(circle at 52% 78%, var(--cm-haze-c), transparent 26%);
-  opacity: var(--cm-noise-opacity);
+    radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--season-accent) 6%, transparent), transparent 22%),
+    radial-gradient(circle at 86% 16%, color-mix(in srgb, var(--season-highlight) 5%, transparent), transparent 24%),
+    radial-gradient(circle at 52% 80%, color-mix(in srgb, var(--season-text-secondary) 4%, transparent), transparent 28%);
+  opacity: 0.28;
 }
 
 .cm-seasonal-noise {
   z-index: -1;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)),
-    radial-gradient(circle at 22% 24%, rgba(255, 255, 255, 0.08), transparent 16%),
-    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.05), transparent 18%);
-  mix-blend-mode: screen;
-  opacity: 0.4;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.01) 0 1px,
+      rgba(255, 255, 255, 0) 1px 5px
+    );
+  mix-blend-mode: normal;
+  opacity: 0.14;
 }
 
 .cm-seasonal-content {
@@ -110,13 +146,6 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
     radial-gradient(circle at 22% 24%, rgba(255, 255, 255, 0.04), transparent 16%),
     radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.025), transparent 18%);
-}
-
-@media (max-width: 820px) {
-  .cm-seasonal-scene::before {
-    background-image: var(--cm-scene-mobile);
-    background-position: center top;
-  }
 }
 
 @media print {

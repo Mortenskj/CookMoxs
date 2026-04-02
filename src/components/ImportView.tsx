@@ -154,7 +154,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
   if (loading) {
     return (
-      <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern flex flex-col items-center justify-center">
+      <div className="p-4 pb-32 max-w-md mx-auto min-h-screen flex flex-col items-center justify-center">
         <LoadingAnimation />
       </div>
     );
@@ -162,7 +162,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
   if (activeTab) {
     return (
-      <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern dark:text-white">
+      <div className="p-4 pb-32 max-w-md mx-auto min-h-screen dark:text-white">
         <div className="flex items-center gap-4 mb-8 pt-4">
           <button
             onClick={() => setActiveTab(null)}
@@ -370,7 +370,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   }
 
   return (
-    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern dark:text-white">
+    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen dark:text-white">
       <h1 className="text-3xl font-serif text-forest-dark dark:text-white mb-8 pt-4 italic text-engraved">Ny opskrift</h1>
 
       {pendingCount > 0 && (
