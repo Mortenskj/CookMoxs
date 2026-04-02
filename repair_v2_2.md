@@ -1,4 +1,4 @@
-# CookMoxs — Repair Guide v2.2 for Codex
+# CookMoxs — Repair Guide v2.1 for Codex
 
 ## Mission
 

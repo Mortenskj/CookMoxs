@@ -1,4 +1,4 @@
-# CookMoxs — Why the v2.2 changes are required
+# CookMoxs — Why the v2.1 changes are required
 
 This note exists to reduce Codex interpretation work.
 The app already tells us where reliability breaks. The repair should therefore be prescriptive where product intent is known.
