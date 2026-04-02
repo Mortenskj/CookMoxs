@@ -46,7 +46,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
 
       {!activeRecipe && totalRecipes === 0 && (
         <section className="mb-10">
-          <div className="glass-brushed p-6 rounded-[2rem] border border-black/5 shadow-sm bg-white/50">
+          <div className="glass-brushed p-6 rounded-[2rem]">
             <div className="flex items-start gap-4 mb-4">
               <div className="p-3 rounded-2xl bg-sand text-forest-mid border border-black/5">
                 <ChefHat size={22} />
@@ -58,21 +58,21 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
             </div>
 
             <div className="grid grid-cols-1 gap-3 mb-4">
-              <div className="rounded-2xl bg-white/50 border border-black/5 p-4 flex items-start gap-3">
+              <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
                 <PlusCircle size={18} className="text-forest-mid mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-forest-dark">Importér din første opskrift</p>
                   <p className="text-xs text-forest-mid opacity-80">Fra link, tekst, PDF eller billede.</p>
                 </div>
               </div>
-              <div className="rounded-2xl bg-white/50 border border-black/5 p-4 flex items-start gap-3">
+              <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
                 <Settings size={18} className="text-forest-mid mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-forest-dark">Tilpas oplevelsen</p>
                   <p className="text-xs text-forest-mid opacity-80">Vælg køkkenniveau, tema og tekststørrelse til Cook mode.</p>
                 </div>
               </div>
-              <div className="rounded-2xl bg-white/50 border border-black/5 p-4 flex items-start gap-3">
+              <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
                 {isOnline ? <Cloud size={18} className="text-forest-mid mt-0.5" /> : <WifiOff size={18} className="text-forest-mid mt-0.5" />}
                 <div>
                   <p className="text-sm font-semibold text-forest-dark">{currentUser ? 'Cloud er aktiv' : 'Brug lokalt eller log ind'}</p>

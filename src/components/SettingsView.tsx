@@ -135,7 +135,7 @@ export function SettingsView({
       </div>
 
       <div className="space-y-8">
-        <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+        <section className="glass-brushed p-8 rounded-[2.5rem]">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <User size={14} /> Konto
           </h2>
@@ -173,13 +173,13 @@ export function SettingsView({
           ) : null}
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+        <section className="glass-brushed p-8 rounded-[2.5rem]">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Cloud size={14} /> Data og backup
           </h2>
 
           <div className="space-y-5">
-            <div className="rounded-2xl bg-white/50 border border-black/5 p-4">
+            <div className="cm-surface-secondary rounded-2xl p-4">
               <p className="font-serif text-lg text-forest-dark italic mb-1">Cloud er synkronisering - ikke rigtig backup</p>
               <p className="text-xs text-forest-mid leading-relaxed opacity-80">
                 Når du er logget ind, ligger dine data i skyen via Firestore. Men hvis noget bliver overskrevet eller slettet ved en fejl,
@@ -187,7 +187,7 @@ export function SettingsView({
               </p>
             </div>
 
-            <div className="rounded-2xl border border-black/5 bg-white/50 p-4 flex items-start justify-between gap-4">
+            <div className="cm-surface-secondary rounded-2xl p-4 flex items-start justify-between gap-4">
               <div>
                 <p className="font-serif text-lg text-forest-dark italic mb-1">Cloud-status</p>
                 <p className="text-xs text-forest-mid leading-relaxed opacity-80">
@@ -223,7 +223,7 @@ export function SettingsView({
           </div>
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+        <section className="glass-brushed p-8 rounded-[2.5rem]">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <ChefHat size={14} /> Dit niveau i køkkenet
           </h2>
@@ -251,7 +251,7 @@ export function SettingsView({
           </div>
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+        <section className="glass-brushed p-8 rounded-[2.5rem]">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Palette size={14} /> Tema (Årstider)
           </h2>
@@ -273,7 +273,7 @@ export function SettingsView({
           </div>
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+        <section className="glass-brushed p-8 rounded-[2.5rem]">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Thermometer size={14} /> Præferencer
           </h2>
@@ -343,7 +343,7 @@ export function SettingsView({
                   <p className="text-xs text-forest-mid italic opacity-70">Til test: kør altid en AI-berigelse oven på vellykket grundimport af links.</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/50 p-4">
+              <div className="cm-surface-secondary flex items-center justify-between rounded-2xl p-4">
                 <div>
                   <p className="font-serif text-lg text-forest-dark italic">{autoAiImportEnhancement ? 'Altid aktiv' : 'Kun grundimport'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
@@ -372,7 +372,7 @@ export function SettingsView({
                   <p className="text-xs text-forest-mid italic opacity-70">Slå produktopslag og opskriftsnær nutrition til eller fra i denne browser.</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/50 p-4">
+              <div className="cm-surface-secondary flex items-center justify-between rounded-2xl p-4">
                 <div>
                   <p className="font-serif text-lg text-forest-dark italic">{nutritionToolsEnabled ? 'Modul aktivt' : 'Modul skjult'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
@@ -384,7 +384,7 @@ export function SettingsView({
                   onChange={setNutritionToolsEnabled}
                 />
               </div>
-              <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
+              <div className="cm-surface-utility mt-4 flex items-center justify-between rounded-2xl p-4">
                 <div>
                   <p className="font-serif text-lg text-forest-dark italic">
                     {recipeNutritionVisible ? 'Produktdata vises paa opskriftssiden' : 'Produktdata skjules paa opskriftssiden'}
@@ -399,7 +399,7 @@ export function SettingsView({
                 />
               </div>
               {recipeNutritionVisible && (
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
+                <div className="cm-surface-utility mt-4 flex items-center justify-between rounded-2xl p-4">
                   <div>
                     <p className="font-serif text-lg text-forest-dark italic">
                       {recipeNutritionEstimateVisible ? 'AI-makroestimat vises' : 'AI-makroestimat skjules'}
@@ -415,7 +415,7 @@ export function SettingsView({
                 </div>
               )}
               {recipeNutritionVisible && (
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white/40 p-4">
+                <div className="cm-surface-utility mt-4 flex items-center justify-between rounded-2xl p-4">
                   <div>
                     <p className="font-serif text-lg text-forest-dark italic">
                       {recipeNutritionExpandedByDefault ? 'Produktdata vises aabent' : 'Produktdata skjules som standard'}
@@ -439,7 +439,7 @@ export function SettingsView({
                 <p className="text-xs text-forest-mid italic opacity-70">Vælg om cook mode skal starte med et ekstra trin til at finde og klargøre ingredienser.</p>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-2xl border border-black/5 bg-white/50 p-4 mb-8">
+            <div className="cm-surface-secondary flex items-center justify-between rounded-2xl p-4 mb-8">
               <div>
                 <p className="font-serif text-lg text-forest-dark italic">{includePrep ? 'Forberedelses-trin aktivt' : 'Forberedelses-trin skjult'}</p>
                 <p className="text-xs text-forest-mid opacity-75">
@@ -487,13 +487,13 @@ export function SettingsView({
           aiDisabledReason={aiDisabledReason}
         />
 
-        <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+        <section className="glass-brushed p-8 rounded-[2.5rem]">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Info size={14} /> Om appen
           </h2>
 
           <div className="space-y-5 text-sm text-forest-dark leading-relaxed font-serif italic">
-            <div className="rounded-2xl border border-black/5 bg-white/50 p-4 not-italic">
+            <div className="cm-surface-secondary rounded-2xl p-4 not-italic">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-forest-mid">Version</p>

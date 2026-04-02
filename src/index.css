@@ -500,6 +500,31 @@
     display: none;
   }
 
+  .cm-surface-secondary {
+    background-color: color-mix(in srgb, var(--season-bg-surface-muted) 100%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--season-border-soft) 112%, transparent) !important;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--season-shadow-color) 62%, transparent) !important;
+  }
+
+  .cm-surface-utility {
+    background-color: color-mix(in srgb, var(--season-bg-surface-strong) 72%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--season-border-soft) 106%, transparent) !important;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--season-shadow-color) 46%, transparent) !important;
+  }
+
+  .cm-search-shell {
+    background-color: color-mix(in srgb, var(--season-bg-surface-strong) 78%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--season-border-soft) 108%, transparent) !important;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--season-shadow-color) 50%, transparent) !important;
+  }
+
+  .cm-topbar-surface {
+    background-color: color-mix(in srgb, var(--season-bg-surface-strong) 96%, transparent) !important;
+    border-bottom: 1px solid color-mix(in srgb, var(--season-border-soft) 108%, transparent) !important;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--season-shadow-color) 40%, transparent) !important;
+    backdrop-filter: blur(4px) saturate(102%) !important;
+  }
+
   /* Approved UI-01: Soft Tonal Contour */
   .btn-botanical,
   .btn-heath,

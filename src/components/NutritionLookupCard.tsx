@@ -73,13 +73,13 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
   };
 
   return (
-    <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+    <section className="glass-brushed p-8 rounded-[2.5rem]">
       <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
         <Sparkles size={14} /> Nutrition og stregkode
       </h2>
 
       <div className="space-y-5">
-        <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
+        <div className="cm-surface-secondary rounded-2xl p-4">
           <p className="font-serif text-lg text-forest-dark italic">Tidlig nutrition-beta</p>
           <p className="mt-2 text-xs text-forest-mid opacity-80">
             Søg efter et produkt manuelt med stregkode eller tekst. Dette er kun lookup-visning endnu og ændrer ikke dine opskrifter.
@@ -140,7 +140,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
 
         {result && (
           <div className="space-y-3">
-            <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
+            <div className="cm-surface-secondary rounded-2xl p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-forest-mid opacity-60">
                 {result.mode === 'barcode' ? 'Stregkodeopslag' : 'Produktsøgning'}
               </p>
@@ -156,7 +156,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
             </div>
 
             {result.items.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-black/5 bg-white/55 p-4">
+              <div key={item.id} className="cm-surface-secondary rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-serif text-lg text-forest-dark italic">{item.title}</p>

@@ -111,7 +111,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
           placeholder="Søg i ingredienser, tags eller navn..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-10 py-4 glass-brushed rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-forest-mid/10 focus:border-forest-mid/30 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/40 font-medium bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10"
+          className="w-full pl-12 pr-10 py-4 glass-brushed cm-search-shell rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-forest-mid/10 focus:border-forest-mid/30 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/40 font-medium"
         />
         {searchQuery && (
           <button 

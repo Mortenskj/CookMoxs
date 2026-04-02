@@ -67,19 +67,19 @@ export function LearningFeedbackCard() {
   };
 
   return (
-    <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+    <section className="glass-brushed p-8 rounded-[2.5rem]">
       <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
         <MessageSquareHeart size={14} /> Frivillig feedback
       </h2>
 
-      <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
+      <div className="cm-surface-secondary rounded-2xl p-4">
         <p className="font-serif text-lg text-forest-dark italic">Hjælp kun hvis du vil</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
           Denne feedback er frivillig, tydelig og lokal for denne browser. Den bruges ikke til skjult scoring, ligger ikke i dine opskrifter eller backups, og ændrer ikke automatisk dine opskrifter.
         </p>
       </div>
 
-      <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white/50 p-4">
+      <div className="cm-surface-secondary mt-5 flex items-center justify-between gap-4 rounded-2xl p-4">
         <div>
           <p className="font-serif text-lg text-forest-dark italic">Aktiver eksplicit feedback</p>
           <p className="text-xs text-forest-mid opacity-75">Du kan slaa det til eller fra uden at påvirke resten af appen.</p>
@@ -158,7 +158,7 @@ export function LearningFeedbackCard() {
       )}
 
       {message && (
-        <div className="mt-5 rounded-2xl border border-black/5 bg-white/50 p-4 text-sm text-forest-mid">
+        <div className="cm-surface-secondary mt-5 rounded-2xl p-4 text-sm text-forest-mid">
           {message}
         </div>
       )}

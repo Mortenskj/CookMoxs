@@ -173,13 +173,13 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
   };
 
   return (
-    <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+    <section className="glass-brushed p-8 rounded-[2.5rem]">
       <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
         <Users size={14} /> Husstand
       </h2>
 
       {!user ? (
-        <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
+        <div className="cm-surface-secondary rounded-2xl p-4">
           <p className="font-serif text-lg text-forest-dark italic">Log ind for at bruge husstande</p>
           <p className="mt-2 text-xs text-forest-mid opacity-80">Her kommer den mindste household-flade: opret en husstand, se medlemmer og deres roller.</p>
         </div>
@@ -193,7 +193,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
           )}
 
           {ownedHouseholds.length === 0 && (
-            <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
+            <div className="cm-surface-secondary rounded-2xl p-4">
               <p className="font-serif text-lg text-forest-dark italic">Opret din første husstand</p>
               <p className="mt-1 text-xs text-forest-mid opacity-80">Brug husstande til familie- eller hjemmedeling uden at brede UI ud endnu.</p>
               <div className="mt-4 flex flex-col sm:flex-row gap-3">
@@ -226,7 +226,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
             const invitedMembers = members.filter((member) => member.status === 'invited');
 
             return (
-              <div key={household.id} className="rounded-[2rem] border border-black/5 bg-white/55 p-5">
+              <div key={household.id} className="cm-surface-secondary rounded-[2rem] p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-serif text-xl text-forest-dark italic">{household.name}</p>
@@ -253,7 +253,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                         const isRemoving = busyKey === `remove:${household.id}:${memberKey}`;
 
                         return (
-                          <div key={`${household.id}-${memberKey}`} className="rounded-2xl border border-black/5 bg-white/60 p-3">
+                          <div key={`${household.id}-${memberKey}`} className="cm-surface-secondary rounded-2xl p-3">
                             <div className="flex items-center justify-between gap-3">
                               <div>
                                 <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Ukendt medlem'}</p>
@@ -332,7 +332,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                           const isRemoving = busyKey === `remove:${household.id}:${memberKey}`;
 
                           return (
-                            <div key={`${household.id}-${memberKey}`} className="rounded-2xl border border-black/5 bg-white/60 p-3">
+                            <div key={`${household.id}-${memberKey}`} className="cm-surface-secondary rounded-2xl p-3">
                               <div className="flex items-center justify-between gap-3">
                                 <div>
                                   <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Invitation uden navn'}</p>

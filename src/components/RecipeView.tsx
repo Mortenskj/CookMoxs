@@ -907,7 +907,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   return (
     <div className="recipe-print-root p-4 pb-32 max-w-md mx-auto min-h-screen">
       {/* Header */}
-      <div className="recipe-print-header flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-sand/90 dark:bg-[#121614]/90 backdrop-blur-md py-4 z-10 border-b border-black/5 dark:border-white/10 print:hidden">
+      <div className="recipe-print-header cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10 print:hidden">
         <div className="flex gap-2">
           <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <ArrowLeft size={22} />
@@ -1038,7 +1038,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           )}
           {recipe.notes && (
-            <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 mt-4 relative overflow-hidden">
+            <div className="cm-surface-secondary p-6 rounded-3xl mt-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
               <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-3 opacity-60 dark:opacity-100 text-engraved">Mine noter</h4>
               <p className="text-sm text-forest-mid dark:text-white/80 whitespace-pre-wrap leading-relaxed italic">{recipe.notes}</p>
@@ -1179,7 +1179,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4 bg-white/60 dark:bg-black/20 rounded-2xl px-4 py-2 border border-black/5 dark:border-white/10 shadow-sm w-full justify-center print:border-none print:shadow-none print:bg-transparent print:p-0">
+          <div className="cm-surface-utility flex items-center gap-4 rounded-2xl px-4 py-2 w-full justify-center print:border-none print:shadow-none print:bg-transparent print:p-0">
             <button onClick={() => handleScale(((recipe.servings * scale) - 1) / recipe.servings)} className="text-forest-mid dark:text-white/70 hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">-</button>
             <span className="text-xs font-bold text-forest-dark dark:text-white text-center uppercase tracking-widest min-w-[4rem]">{Math.round(recipe.servings * scale)} {recipe.servingsUnit || 'pers.'}</span>
             <button onClick={() => handleScale(((recipe.servings * scale) + 1) / recipe.servings)} className="text-forest-mid dark:text-white/70 hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">+</button>
@@ -1233,7 +1233,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {(recipeHeatGuide.length > 0 || recipe.ovenGuide || recipeFlavorBoosts.length > 0 || recipePitfalls.length > 0 || recipeHints.length > 0) && (
         <section className="mb-10 space-y-4">
           {recipeHeatGuide.length > 0 && (
-            <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 flex gap-4 relative overflow-hidden group">
+            <div className="cm-surface-secondary p-6 rounded-3xl flex gap-4 relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
               <Flame className="text-heath-mid shrink-0" size={24} />
               <div>
@@ -1245,7 +1245,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           )}
           {recipeFlavorBoosts.length > 0 && (
-            <div className="bg-white/40 dark:bg-black/20 p-6 rounded-3xl border border-black/5 dark:border-white/10 flex gap-4 relative overflow-hidden">
+            <div className="cm-surface-secondary p-6 rounded-3xl flex gap-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-forest-mid/20" />
               <Lightbulb className="text-heath-mid shrink-0" size={24} />
               <div>

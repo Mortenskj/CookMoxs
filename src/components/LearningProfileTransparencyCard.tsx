@@ -54,12 +54,12 @@ export function LearningProfileTransparencyCard() {
   }
 
   return (
-    <section className="glass-brushed p-8 rounded-[2.5rem] border border-black/5 shadow-sm bg-white/40">
+    <section className="glass-brushed p-8 rounded-[2.5rem]">
       <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
         <Eye size={14} /> Hvad modulet ved
       </h2>
 
-      <div className="rounded-2xl border border-black/5 bg-white/50 p-4">
+      <div className="cm-surface-secondary rounded-2xl p-4">
         <p className="font-serif text-lg text-forest-dark italic">Forklarligt og gennemsigtigt</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
           Denne visning viser kun den eksplicitte feedback, du selv har valgt at gemme i denne browser. Der er ingen skjult score, ingen automatiske anbefalinger i dette step, og intet her bliver lagt ind i dine opskrifter eller backups.
@@ -67,19 +67,19 @@ export function LearningProfileTransparencyCard() {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 text-xs text-forest-mid">
-        <div className="rounded-2xl bg-white/55 px-4 py-3">
+        <div className="cm-surface-secondary rounded-2xl px-4 py-3">
           <p className="font-bold uppercase tracking-widest opacity-60">Feedback aktiv</p>
           <p className="mt-2 text-sm text-forest-dark">{snapshot.status.feedbackEnabled ? 'Ja' : 'Nej'}</p>
         </div>
-        <div className="rounded-2xl bg-white/55 px-4 py-3">
+        <div className="cm-surface-secondary rounded-2xl px-4 py-3">
           <p className="font-bold uppercase tracking-widest opacity-60">Lagring</p>
           <p className="mt-2 text-sm text-forest-dark">Kun lokal browser</p>
         </div>
-        <div className="rounded-2xl bg-white/55 px-4 py-3">
+        <div className="cm-surface-secondary rounded-2xl px-4 py-3">
           <p className="font-bold uppercase tracking-widest opacity-60">Feedbackposter</p>
           <p className="mt-2 text-sm text-forest-dark">{snapshot.feedbackEntryCount}</p>
         </div>
-        <div className="rounded-2xl bg-white/55 px-4 py-3">
+        <div className="cm-surface-secondary rounded-2xl px-4 py-3">
           <p className="font-bold uppercase tracking-widest opacity-60">Signaltyper</p>
           <p className="mt-2 text-sm text-forest-dark">{snapshot.record?.signalSources.join(', ') || 'Ingen endnu'}</p>
         </div>
@@ -110,7 +110,7 @@ export function LearningProfileTransparencyCard() {
         {snapshot.recentFeedback.length > 0 && (
           <div className="mt-3 space-y-3">
             {snapshot.recentFeedback.map((entry, index) => (
-              <div key={`${entry.createdAt}-${index}`} className="rounded-2xl border border-black/5 bg-white/50 p-4">
+              <div key={`${entry.createdAt}-${index}`} className="cm-surface-secondary rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-serif text-sm text-forest-dark italic">{AREA_LABELS[entry.area]}</p>
