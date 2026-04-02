@@ -101,15 +101,15 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
   if (!recipe) {
     return (
-      <div className="p-4 pb-24 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center min-h-screen bg-forest-dark text-[#F9F9F7]">
-        <div className="w-24 h-24 bg-[#3A453F] rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-sm">
+      <div className="cm-cook-shell p-4 pb-24 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center">
+        <div className="cm-cook-surface w-24 h-24 rounded-[28px] flex items-center justify-center mb-8">
           <ChefHat size={48} className="text-heath-mid" />
         </div>
         <h2 className="text-3xl font-serif mb-4 italic text-[#F9F9F7]">Ingen opskrift valgt</h2>
         <p className="text-heath-mid mb-10 max-w-xs italic opacity-70 leading-relaxed">
           Gå til biblioteket eller importer en ny opskrift for at starte madlavningen.
         </p>
-        <button onClick={onExit} className="bg-heath-dark text-[#F9F9F7] px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-heath-mid transition-colors">
+        <button onClick={onExit} className="cm-cook-secondary-button">
           Gå tilbage
         </button>
       </div>
@@ -153,7 +153,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
             <span className="text-xs font-bold text-heath-mid uppercase tracking-widest mb-1 truncate">Trin {currentStep + 1} af {steps.length}</span>
             <button 
               onClick={onStopCooking}
-              className="text-xs text-red-400 font-bold uppercase tracking-widest text-left hover:underline opacity-80 truncate"
+              className="cm-cook-danger-button self-start mt-1"
             >
               Stop madlavning
             </button>
@@ -197,13 +197,13 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
                   </span>
                   <button 
                     onClick={() => setTimers(timers.map(timer => timer.id === t.id ? { ...timer, active: !timer.active } : timer))}
-                    className="text-[#F9F9F7] hover:text-heath-mid transition-colors"
+                    className="cm-cook-icon-button cm-cook-icon-button--compact"
                   >
                     {t.active && t.remaining > 0 ? <PauseCircle size={24} /> : <PlayCircle size={24} />}
                   </button>
                   <button 
                     onClick={() => setTimers(timers.filter(timer => timer.id !== t.id))}
-                    className="text-heath-mid hover:text-red-400 transition-colors opacity-60"
+                    className="cm-cook-icon-button cm-cook-icon-button--compact opacity-80"
                   >
                     <X size={16} />
                   </button>
@@ -272,7 +272,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
             </div>
             
             {step.reminder && (
-              <div className="bg-[#E5A93B]/10 border border-[#E5A93B]/30 rounded-2xl p-4 sm:p-5 flex gap-4 items-start shadow-sm">
+              <div className="cm-cook-surface-subtle rounded-2xl p-4 sm:p-5 flex gap-4 items-start border-[rgba(229,169,59,0.3)]">
                 <div className="bg-[#E5A93B]/20 p-2 rounded-full shrink-0">
                   <AlertCircle className="text-[#E5A93B]" size={24} />
                 </div>

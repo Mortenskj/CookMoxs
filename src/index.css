@@ -124,9 +124,9 @@
 
 .dark.theme-spring {
   --season-bg-main: #0A140E;
-  --season-bg-surface: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.14);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.2);
+  --season-bg-surface: rgba(30, 39, 33, 0.84);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
+  --season-bg-surface-strong: rgba(36, 46, 39, 0.9);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #C5E3D0;
   --season-border-soft: rgba(255, 255, 255, 0.14);
@@ -188,9 +188,9 @@
 
 .dark.theme-summer {
   --season-bg-main: #1C150C;
-  --season-bg-surface: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.14);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.2);
+  --season-bg-surface: rgba(40, 34, 25, 0.84);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
+  --season-bg-surface-strong: rgba(48, 40, 30, 0.9);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #FDE8C4;
   --season-border-soft: rgba(255, 255, 255, 0.14);
@@ -252,9 +252,9 @@
 
 .dark.theme-autumn {
   --season-bg-main: #121614;
-  --season-bg-surface: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.22);
+  --season-bg-surface: rgba(34, 40, 36, 0.84);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
+  --season-bg-surface-strong: rgba(40, 46, 41, 0.9);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #C2D1C4;
   --season-border-soft: rgba(255, 255, 255, 0.15);
@@ -316,9 +316,9 @@
 
 .dark.theme-winter {
   --season-bg-main: #0A0E12;
-  --season-bg-surface: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.14);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.2);
+  --season-bg-surface: rgba(28, 35, 41, 0.84);
+  --season-bg-surface-muted: rgba(243, 248, 252, 0.1);
+  --season-bg-surface-strong: rgba(34, 42, 48, 0.9);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #DFEBF5;
   --season-border-soft: rgba(255, 255, 255, 0.14);
@@ -442,10 +442,8 @@
   .season-toast-surface {
     background-color: color-mix(in srgb, var(--theme-panel-strong) 94%, transparent);
     border: 1px solid color-mix(in srgb, var(--theme-panel-border) 92%, transparent);
-    backdrop-filter: blur(6px) saturate(108%);
-    box-shadow:
-      0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent),
-      inset 0 0 0 1px color-mix(in srgb, var(--theme-panel-border) 74%, transparent);
+    backdrop-filter: blur(4px) saturate(102%);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent);
   }
 
   .season-loading-shell::after {
@@ -493,76 +491,69 @@
 
   /* Approved UI-02: Soft Tonal Veil */
   .glass-brushed {
-    background-color: color-mix(in srgb, var(--theme-panel-bg) 100%, transparent);
-    border: 1px solid color-mix(in srgb, var(--theme-panel-border) 96%, transparent);
-    backdrop-filter: blur(6px) saturate(106%);
-    box-shadow:
-      0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent),
-      inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
+    background-color: color-mix(in srgb, var(--theme-panel-bg) 100%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--theme-panel-border) 96%, transparent) !important;
+    backdrop-filter: blur(4px) saturate(102%) !important;
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent) !important;
     position: relative;
     overflow: hidden;
   }
 
-  /* Theme-aware utility overrides for panels */
-  .glass-panel .text-white { color: var(--theme-light) !important; }
-  .glass-panel .bg-white { background-color: var(--theme-panel-strong) !important; }
-  .glass-panel .bg-white\/20 { background-color: color-mix(in srgb, var(--theme-panel-bg) 50%, transparent) !important; }
-  .glass-panel .bg-white\/40 { background-color: var(--theme-panel-bg) !important; }
-  .glass-panel .bg-white\/60 { background-color: var(--theme-panel-hover) !important; }
-  .glass-panel .bg-white\/80 { background-color: var(--theme-panel-strong) !important; }
-  .glass-panel .bg-white\/90 { background-color: var(--theme-panel-strong) !important; }
-  
-  .glass-panel .hover\:bg-white:hover { background-color: var(--theme-panel-strong) !important; }
-  .glass-panel .hover\:bg-white\/40:hover { background-color: var(--theme-panel-hover) !important; }
-  .glass-panel .hover\:bg-white\/60:hover { background-color: var(--theme-panel-strong) !important; }
-  .glass-panel .hover\:bg-white\/80:hover { background-color: var(--theme-panel-strong) !important; }
-  
-  .glass-panel .border-white\/20 { border-color: var(--theme-panel-border) !important; }
-  .glass-panel .border-white\/40 { border-color: var(--theme-panel-hover) !important; }
-
   .glass-brushed::before {
-    content: "";
-    @apply absolute inset-0 pointer-events-none;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.02)),
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
-    opacity: 0.06;
+    display: none;
   }
 
   /* Approved UI-01: Soft Tonal Contour */
+  .btn-botanical,
+  .btn-heath,
+  .btn-wood-light,
+  .cm-danger-button,
+  .cm-cook-primary-button,
+  .cm-cook-secondary-button,
+  .cm-cook-danger-button {
+    @apply inline-flex items-center justify-center gap-2 transition-all duration-150 ease-out;
+    min-height: 48px;
+    padding: 0 20px !important;
+    border-radius: 20px !important;
+    font-family: var(--font-sans), sans-serif !important;
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em !important;
+    line-height: 1.1;
+    text-transform: none !important;
+    white-space: nowrap;
+  }
+
   .btn-botanical {
-    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden text-white transition-all duration-150 ease-out;
+    @apply relative overflow-hidden text-white;
     background: #98A08F;
     color: #F6F2EA;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 18px rgba(28, 32, 28, 0.14);
-    border-radius: 20px;
+    box-shadow: 0 8px 18px rgba(28, 32, 28, 0.14) !important;
   }
   .btn-botanical:hover {
     background: color-mix(in srgb, #98A08F 92%, #1c201c);
-    box-shadow: 0 10px 20px rgba(28, 32, 28, 0.16);
+    box-shadow: 0 10px 20px rgba(28, 32, 28, 0.16) !important;
   }
   
   .btn-heath {
-    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden text-white transition-all duration-150 ease-out;
+    @apply relative overflow-hidden text-white;
     background: #3B443D;
     color: #F6F2EA;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 18px rgba(18, 22, 18, 0.18);
-    border-radius: 20px;
+    box-shadow: 0 8px 18px rgba(18, 22, 18, 0.18) !important;
   }
   .btn-heath:hover {
     background: color-mix(in srgb, #3B443D 90%, #101211);
-    box-shadow: 0 10px 20px rgba(18, 22, 18, 0.2);
+    box-shadow: 0 10px 20px rgba(18, 22, 18, 0.2) !important;
   }
   
   .btn-wood-light {
-    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden transition-all duration-150 ease-out;
+    @apply relative overflow-hidden;
     background: rgba(245, 242, 236, 0.72);
     color: #2E342E;
     border: 1px solid rgba(39, 42, 38, 0.12);
-    box-shadow: 0 4px 12px rgba(28, 32, 28, 0.08);
-    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(28, 32, 28, 0.08) !important;
   }
   .btn-wood-light:hover::after {
     content: none;
@@ -572,10 +563,30 @@
     background: rgba(245, 242, 236, 0.78);
   }
 
+  .dark .btn-botanical {
+    background: color-mix(in srgb, #98A08F 88%, #1d221f);
+  }
+
+  .dark .btn-wood-light {
+    background: rgba(255, 248, 240, 0.1);
+    color: #F3EEE5;
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14) !important;
+  }
+
+  .dark .btn-wood-light:hover {
+    background: rgba(255, 248, 240, 0.16);
+  }
+
   .btn-botanical:active,
   .btn-heath:active,
-  .btn-wood-light:active {
+  .btn-wood-light:active,
+  .cm-danger-button:active,
+  .cm-cook-primary-button:active,
+  .cm-cook-secondary-button:active,
+  .cm-cook-danger-button:active {
     transform: translateY(1px);
+    box-shadow: 0 4px 10px rgba(28, 32, 28, 0.12) !important;
   }
 
   .btn-botanical:focus-visible,
@@ -614,15 +625,25 @@
   }
 
   .cm-danger-button {
-    @apply inline-flex items-center justify-center gap-2 transition-all duration-150 ease-out;
     background: rgba(182, 95, 86, 0.08);
     color: #A34F47;
     border: 1px solid rgba(182, 95, 86, 0.3);
-    box-shadow: none;
+    box-shadow: none !important;
   }
 
   .cm-danger-button:hover {
     background: rgba(182, 95, 86, 0.14);
+  }
+
+  .dark .cm-danger-button {
+    background: rgba(182, 95, 86, 0.14);
+    color: #F3EEE5;
+    border-color: rgba(182, 95, 86, 0.34);
+  }
+
+  .cm-danger-button:active,
+  .cm-cook-danger-button:active {
+    box-shadow: none !important;
   }
 
   .cm-nav-dock {
@@ -634,7 +655,8 @@
 
   .cm-nav-item {
     @apply relative flex flex-col items-center justify-center transition-all duration-150 ease-out;
-    min-width: 72px;
+    width: 100%;
+    min-width: 0;
     min-height: 56px;
     gap: 4px;
     padding: 8px 10px 6px;
@@ -724,6 +746,49 @@
 
   .cm-cook-icon-button:hover {
     background: rgba(255, 248, 240, 0.14);
+  }
+
+  .cm-cook-icon-button--compact {
+    width: 34px;
+    height: 34px;
+    border-radius: 14px;
+  }
+
+  .cm-cook-primary-button {
+    background: #3B443D;
+    color: #F6F2EA;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 18px rgba(18, 22, 18, 0.18) !important;
+  }
+
+  .cm-cook-primary-button:hover {
+    background: color-mix(in srgb, #3B443D 90%, #101211);
+  }
+
+  .cm-cook-secondary-button {
+    background: rgba(255, 248, 240, 0.1);
+    color: #F3EEE5;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14) !important;
+  }
+
+  .cm-cook-secondary-button:hover {
+    background: rgba(255, 248, 240, 0.16);
+  }
+
+  .cm-cook-danger-button {
+    min-height: 36px;
+    padding: 0 14px !important;
+    border-radius: 16px !important;
+    font-size: 14px !important;
+    background: rgba(182, 95, 86, 0.14);
+    color: #F3EEE5;
+    border: 1px solid rgba(182, 95, 86, 0.34);
+    box-shadow: none !important;
+  }
+
+  .cm-cook-danger-button:hover {
+    background: rgba(182, 95, 86, 0.2);
   }
 
   .cm-cook-nav-button {

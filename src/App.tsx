@@ -1891,7 +1891,7 @@ export default function App() {
       {/* Bottom Navigation */}
       {currentView !== 'cook' && currentView !== 'settings' && (
         <nav className="cm-nav-dock relative w-full pb-[env(safe-area-inset-bottom)] z-50 rounded-t-[28px] print:hidden">
-          <div className="flex justify-around items-center min-h-[76px] px-4 pt-3 pb-3 max-w-md mx-auto">
+          <div className="grid grid-cols-4 items-center gap-2 min-h-[76px] px-4 pt-3 pb-3 max-w-md mx-auto">
             <NavItem icon={<Home size={22} />} label="Hjem" active={currentView === 'home'} onClick={() => navigateTo('home')} />
             <NavItem icon={<CookingPot size={22} />} label="I gang" active={currentView === 'active'} onClick={() => navigateTo('active')} />
             <NavItem icon={<PlusCircle size={22} />} label="Tilføj" active={currentView === 'import'} onClick={() => navigateTo('import')} />
