@@ -166,7 +166,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         <div className="flex items-center gap-4 mb-8 pt-4">
           <button
             onClick={() => setActiveTab(null)}
-            className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
+            className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/80 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
           >
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2">Tilbage</span>
@@ -204,10 +204,10 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   if (e.key === 'Enter' && url) handleSubmit();
                 }}
                 placeholder="https://..."
-                className="w-full p-5 bg-white/60 dark:bg-black/40 border border-black/5 dark:border-white/10 rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/40 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/20 font-serif italic shadow-sm"
+                className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/50 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/30 font-serif italic"
                 autoFocus
               />
-              <p className="text-xs text-forest-mid dark:text-white/60 italic opacity-70">
+              <p className="text-xs text-forest-mid dark:text-white/80 italic opacity-70 dark:opacity-100">
                 {isOnline ? 'Vi prøver grundimport først og bruger kun AI, hvis siden kræver det.' : 'Offline links gemmes nu i køen til senere behandling.'}
               </p>
             </div>
@@ -226,7 +226,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Kopier og indsæt opskriften her..."
                 rows={8}
-                className="w-full p-5 bg-white/60 dark:bg-black/40 border border-black/5 dark:border-white/10 rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/40 transition-all resize-none text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/20 font-serif italic shadow-sm"
+                className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/50 transition-all resize-none text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/30 font-serif italic"
                 autoFocus
                 disabled={Boolean(textAndFileDisabledReason)}
               />
@@ -250,7 +250,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading || Boolean(textAndFileDisabledReason)}
-                className="w-20 h-20 bg-white/60 dark:bg-black/40 rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid dark:text-white/70 border border-black/5 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-white/20 transition-all disabled:opacity-50"
+                className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid dark:text-white/80 hover:bg-white/80 dark:hover:bg-white/20 transition-all disabled:opacity-50"
               >
                 {loading ? <Loader2 size={32} className="animate-spin" /> : <FileUp size={32} />}
               </button>
@@ -293,7 +293,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   disabled={loading || Boolean(imageDisabledReason)}
                   className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all disabled:opacity-50"
                 >
-                  <div className="w-12 h-12 bg-forest-dark/10 dark:bg-white/10 rounded-full flex items-center justify-center text-forest-dark dark:text-white">
+                  <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark dark:text-white">
                     <Camera size={24} />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-widest text-forest-dark dark:text-white">Kamera</span>
@@ -303,7 +303,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   disabled={loading || Boolean(imageDisabledReason)}
                   className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all disabled:opacity-50"
                 >
-                  <div className="w-12 h-12 bg-forest-dark/10 dark:bg-white/10 rounded-full flex items-center justify-center text-forest-dark dark:text-white">
+                  <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark dark:text-white">
                     <ImageIcon size={24} />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-widest text-forest-dark dark:text-white">Galleri</span>
@@ -312,8 +312,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
               {loading && (
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 size={32} className="animate-spin text-forest-mid dark:text-white/70" />
-                  <p className="text-sm text-forest-mid dark:text-white/60 italic">Analyserer billede...</p>
+                  <Loader2 size={32} className="animate-spin text-forest-mid dark:text-white/80" />
+                  <p className="text-sm text-forest-mid dark:text-white/80 italic">Analyserer billede...</p>
                 </div>
               )}
 
@@ -326,7 +326,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
           {activeTab === 'manual' && (
             <div className="space-y-6 text-center py-10">
-              <div className="w-20 h-20 bg-white/60 dark:bg-black/40 rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid dark:text-white/70 border border-black/5 dark:border-white/10 shadow-sm">
+              <div className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid dark:text-white/80">
                 <PenTool size={32} />
               </div>
               <p className="text-forest-dark dark:text-white font-serif text-xl italic">Skriv din egen opskrift fra bunden</p>
@@ -358,7 +358,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               className="btn-wood-light w-full mt-10 py-5 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
             >
               {loading ? (
-                <><Loader2 size={20} className="animate-spin text-forest-mid dark:text-white/70" /> Analyserer...</>
+                <><Loader2 size={20} className="animate-spin text-forest-mid dark:text-white/80" /> Analyserer...</>
               ) : (
                 'Importer opskrift'
               )}
@@ -396,7 +396,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               disabled={disabled}
               className={`glass-brushed p-6 rounded-[2rem] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all group text-center shadow-sm ${index === 4 ? 'col-span-2' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <div className="w-16 h-16 bg-forest-dark/5 dark:bg-white/5 rounded-2xl flex items-center justify-center text-forest-mid dark:text-white/70 group-hover:bg-forest-dark dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-black transition-all mb-2 relative">
+              <div className="w-16 h-16 cm-surface-secondary rounded-2xl flex items-center justify-center text-forest-mid dark:text-white/80 group-hover:bg-forest-dark dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-black transition-all mb-2 relative">
                 {cat.icon}
                 {cat.id === 'url' && pendingCount > 0 && (
                   <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -411,7 +411,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               </div>
               <div>
                 <h3 className="text-lg font-serif text-forest-dark dark:text-white italic leading-tight">{cat.label}</h3>
-                <p className="text-xs text-forest-mid dark:text-white/60 italic opacity-60 uppercase tracking-widest mt-1">{cat.description}</p>
+                <p className="text-xs text-forest-mid dark:text-white/80 italic opacity-60 dark:opacity-100 uppercase tracking-widest mt-1">{cat.description}</p>
                 {AI_TEXT_FILE_TABS.includes(cat.id) && (
                   <p className="text-[10px] text-heath-mid italic uppercase tracking-widest mt-2">Kræver AI</p>
                 )}

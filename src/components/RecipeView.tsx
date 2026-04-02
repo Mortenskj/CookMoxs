@@ -265,7 +265,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     return (
       <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
         <div className="cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10">
-          <button onClick={handleCancelEdit} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          <button onClick={handleCancelEdit} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <X size={22} />
           </button>
           <div className="flex gap-2 flex-wrap justify-end flex-1">
@@ -273,19 +273,19 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <button 
                 onClick={undo} 
                 disabled={historyIndex === 0}
-                className={`p-1.5 rounded-full transition-colors ${historyIndex === 0 ? 'text-forest-mid/20 dark:text-white/20' : 'text-forest-mid dark:text-white/70 hover:bg-white/60 dark:hover:bg-white/10'}`}
+                className={`p-1.5 rounded-full transition-colors ${historyIndex === 0 ? 'text-forest-mid/20 dark:text-white/20' : 'text-forest-mid dark:text-white/85 hover:bg-white/60 dark:hover:bg-white/10'}`}
               >
                 <ArrowLeft size={18} />
               </button>
               <button 
                 onClick={redo} 
                 disabled={historyIndex === history.length - 1}
-                className={`p-1.5 rounded-full transition-colors ${historyIndex === history.length - 1 ? 'text-forest-mid/20 dark:text-white/20' : 'text-forest-mid dark:text-white/70 hover:bg-white/60 dark:hover:bg-white/10'}`}
+                className={`p-1.5 rounded-full transition-colors ${historyIndex === history.length - 1 ? 'text-forest-mid/20 dark:text-white/20' : 'text-forest-mid dark:text-white/85 hover:bg-white/60 dark:hover:bg-white/10'}`}
               >
                 <ArrowRight size={18} />
               </button>
             </div>
-            <button onClick={() => updateEditData(recipe)} className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/70 hover:text-forest-dark dark:hover:text-white transition-colors">
+            <button onClick={() => updateEditData(recipe)} className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/80 hover:text-forest-dark dark:hover:text-white transition-colors">
               Nulstil
             </button>
             {canMutateRecipe && (
@@ -323,7 +323,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px'; }}
               placeholder="Kort beskrivelse..."
               rows={2}
-              className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-3 resize-none text-forest-mid dark:text-white/70 overflow-hidden text-sm leading-relaxed italic"
+              className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-3 resize-none text-forest-mid dark:text-white/80 overflow-hidden text-sm leading-relaxed italic"
             />
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="flex-1">
@@ -909,12 +909,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {/* Header */}
       <div className="recipe-print-header cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10 print:hidden">
         <div className="flex gap-2">
-          <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2 hidden sm:inline">Tilbage</span>
           </button>
           {hasForward && onForward && (
-            <button onClick={onForward} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+            <button onClick={onForward} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
               <ArrowRight size={22} />
             </button>
           )}
@@ -930,17 +930,17 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </button>
           )}
           {canMutateRecipe && (
-            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 cm-surface-utility text-forest-mid dark:text-white/85 rounded-full transition-colors hover:bg-white/40 dark:hover:bg-white/10">
               <Edit3 size={18} />
               <span className="text-sm font-medium hidden sm:inline">Rediger</span>
             </button>
           )}
           {canMutateRecipe && (
-            <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+            <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
               <Heart size={22} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} />
             </button>
           )}
-          <button onClick={() => window.print()} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          <button onClick={() => window.print()} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <Printer size={22} />
           </button>
         </div>
@@ -964,13 +964,13 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           <h1 className="text-4xl font-serif text-forest-dark dark:text-white mb-4 leading-tight italic text-engraved">{recipe.title}</h1>
           {recipe.summary && <p className="text-forest-mid dark:text-white/80 mb-6 leading-relaxed italic text-sm opacity-80">{recipe.summary}</p>}
           {(recipe.updatedAt || recipe.createdAt) && (
-            <p className="text-xs text-forest-mid dark:text-white/70 italic mb-4 opacity-80">
+            <p className="text-xs text-forest-mid dark:text-white/80 italic mb-4 opacity-80 dark:opacity-100">
               Sidst gemt: {new Date(recipe.updatedAt || recipe.createdAt!).toLocaleString('da-DK')}
             </p>
           )}
           <div className="mb-4 flex items-center gap-3">
             <OwnershipBadge ownership={ownership} />
-            <p className="text-xs text-forest-mid dark:text-white/70 opacity-80">{ownership.detail}</p>
+            <p className="text-xs text-forest-mid dark:text-white/80 opacity-80 dark:opacity-100">{ownership.detail}</p>
           </div>
           {!canMutateRecipe && (
             <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
@@ -989,7 +989,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   }
                 }}
                 disabled={isAdjusting || aiDisabled}
-                className="bg-white/60 dark:bg-black/20 text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 outline-none appearance-none cursor-pointer pr-10 relative shadow-sm hover:bg-white dark:hover:bg-white/10 transition-all"
+                className="cm-surface-utility text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase outline-none appearance-none cursor-pointer pr-10 relative hover:bg-white dark:hover:bg-white/10 transition-all"
                 style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%238A5A7D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right .8rem top 50%', backgroundSize: '.6rem auto' }}
               >
                 <option value="">✨ AI Varianter</option>
@@ -1008,7 +1008,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <button 
                 onClick={() => setShowTipsModal(true)}
                 disabled={isAdjusting || aiDisabled}
-                className="flex items-center gap-2 bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/80 hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 transition-all shadow-sm hover:bg-white dark:hover:bg-white/10"
+                className="cm-surface-utility flex items-center gap-2 text-forest-mid dark:text-white/85 hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all hover:bg-white dark:hover:bg-white/10"
               >
                 {isGeneratingTips ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
                 Tips & Tricks
@@ -1021,7 +1021,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </span>
             )}
             {recipeCategories.map((cat, i) => (
-              <span key={i} className="bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/80 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
+              <span key={i} className="cm-surface-utility text-forest-mid dark:text-white/85 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
                 {cat}
               </span>
             ))}
@@ -1052,7 +1052,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         <div className="mb-8 glass-brushed p-6 sm:p-8 rounded-[2.5rem] border border-heath-mid/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-heath-mid/5 rounded-full -mr-16 -mt-16 blur-2xl" />
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-[#FDFBF7] dark:bg-black/20 rounded-xl shadow-sm border border-black/5 dark:border-white/10">
+            <div className="cm-surface-utility p-2 rounded-xl">
               <Wand2 size={20} className="text-heath-mid" />
             </div>
             <h3 className="font-serif text-xl text-forest-dark dark:text-white italic text-engraved">AI Tilpasning</h3>
@@ -1064,7 +1064,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             {recipe.originalRecipeId && onUndoAI && (
               <button 
                 onClick={() => onUndoAI(recipe.originalRecipeId!)}
-                className="flex-1 py-3 bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/80 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10 shadow-sm"
+                className="cm-surface-utility flex-1 py-3 text-forest-mid dark:text-white/85 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all"
               >
                 Fortryd
               </button>

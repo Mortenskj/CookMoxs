@@ -19,14 +19,14 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           <Sprout size={28} className="text-forest-dark dark:text-white" />
           <h1 className="text-3xl font-serif text-forest-dark dark:text-white tracking-tight italic text-engraved">CookMoxs</h1>
         </div>
-        <button onClick={() => onNavigate('settings')} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+        <button onClick={() => onNavigate('settings')} className="p-2 text-forest-mid dark:text-white/80 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
           <Settings size={22} />
         </button>
       </div>
 
       {activeRecipe && (
         <section className="mb-10">
-          <h2 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] mb-4 opacity-70 text-engraved">I gang nu</h2>
+          <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">I gang nu</h2>
           <div 
             onClick={() => onNavigate('active')}
             className="glass-brushed p-5 rounded-[2rem] cursor-pointer hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-500 group"
@@ -34,7 +34,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-xl font-serif text-forest-dark dark:text-white mb-2 group-hover:text-forest-mid dark:group-hover:text-white/80 transition-colors truncate">{activeRecipe.title}</h3>
-                <p className="text-xs font-medium text-forest-mid dark:text-white/70 flex items-center gap-1.5 uppercase tracking-wider">
+                <p className="text-xs font-medium text-forest-mid dark:text-white/80 flex items-center gap-1.5 uppercase tracking-wider">
                   <PlayCircle size={14} className="animate-pulse" /> Fortsæt madlavning
                 </p>
               </div>
@@ -95,7 +95,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
       )}
 
       <section className="mb-10">
-        <h2 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] mb-4 opacity-70 text-engraved">Hurtig start</h2>
+        <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Hurtig start</h2>
         <button 
           onClick={() => onNavigate('import')}
           className="btn-wood-light w-full p-5 rounded-[2rem] flex items-center justify-center gap-3"
@@ -107,7 +107,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
 
       {recentRecipes.length > 0 && (
         <section>
-          <h2 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] mb-4 opacity-70 flex items-center gap-2 text-engraved">
+          <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 flex items-center gap-2 text-engraved">
             <Clock size={12} /> Senest brugte
           </h2>
           <div className="space-y-4">
@@ -118,7 +118,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
                 className="glass-brushed p-4 rounded-2xl cursor-pointer hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 flex justify-between items-center group"
               >
                 <span className="font-medium text-forest-dark dark:text-white truncate pr-4 group-hover:translate-x-1 transition-transform">{recipe.title}</span>
-                <span className="text-xs font-bold text-forest-mid dark:text-white/70 opacity-50 whitespace-nowrap uppercase tracking-wider">
+                <span className="text-xs font-bold text-forest-mid dark:text-white/80 opacity-50 dark:opacity-100 whitespace-nowrap uppercase tracking-wider">
                   {recipe.lastUsed ? new Date(recipe.lastUsed).toLocaleDateString('da-DK') : ''}
                 </span>
               </div>
