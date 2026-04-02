@@ -264,12 +264,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   if (isEditing) {
     return (
       <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
-        <div className="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-[#FDFBF7]/90 dark:bg-[#121614]/90 backdrop-blur-md py-4 z-10 border-b border-black/5 dark:border-white/10">
+        <div className="cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10">
           <button onClick={handleCancelEdit} className="p-2 text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
             <X size={22} />
           </button>
           <div className="flex gap-2 flex-wrap justify-end flex-1">
-            <div className="flex bg-white/40 dark:bg-black/20 rounded-full p-1 border border-black/5 dark:border-white/10 mr-2">
+            <div className="cm-surface-utility flex rounded-full p-1 mr-2">
               <button 
                 onClick={undo} 
                 disabled={historyIndex === 0}

@@ -1809,7 +1809,7 @@ export default function App() {
               >
                 <div className="relative group">
                   <div 
-                    className={`glass-brushed border border-white/20 dark:border-white/10 rounded-full w-16 h-16 shadow-xl flex flex-col items-center justify-center cursor-pointer bg-white/40 dark:bg-black/40 backdrop-blur-md hover:scale-105 transition-all ${t.remaining === 0 ? 'animate-pulse bg-red-500/20 border-red-500/30' : ''}`}
+                    className={`glass-brushed cm-surface-utility border border-white/20 dark:border-white/10 rounded-full w-16 h-16 shadow-xl flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-all ${t.remaining === 0 ? 'animate-pulse bg-red-500/20 border-red-500/30' : ''}`}
                     onClick={() => {
                       setActiveTimerPopup(activeTimerPopup === t.id ? null : t.id);
                     }}
@@ -1826,7 +1826,7 @@ export default function App() {
                   {/* Popup */}
                   {activeTimerPopup === t.id && (
                     <div 
-                      className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 glass-brushed bg-white/95 dark:bg-black/95 p-6 rounded-3xl shadow-2xl border border-white/40 dark:border-white/10 w-[90%] max-w-sm animate-in zoom-in-95 duration-200 z-[60]"
+                      className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 glass-brushed cm-surface-secondary p-6 rounded-3xl shadow-2xl border border-white/40 dark:border-white/10 w-[90%] max-w-sm animate-in zoom-in-95 duration-200 z-[60]"
                     >
                       <div className="flex items-center justify-center mb-4">
                         {Icon === Microwave ? (

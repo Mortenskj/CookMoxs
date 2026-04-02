@@ -60,12 +60,12 @@
 
 .dark {
   --season-bg-main: #121614;
-  --season-bg-surface: rgba(34, 40, 36, 0.82);
-  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
-  --season-bg-surface-strong: rgba(39, 45, 41, 0.9);
+  --season-bg-surface: rgba(34, 40, 36, 0.88);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.18);
+  --season-bg-surface-strong: rgba(39, 45, 41, 0.94);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #E0E8E1;
-  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-border-soft: rgba(255, 255, 255, 0.18);
   --season-accent: #C0D0C5;
   --season-highlight: #9AB0A4;
   --season-atmosphere-overlay: linear-gradient(
@@ -124,12 +124,12 @@
 
 .dark.theme-spring {
   --season-bg-main: #0A140E;
-  --season-bg-surface: rgba(30, 39, 33, 0.84);
-  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
-  --season-bg-surface-strong: rgba(36, 46, 39, 0.9);
+  --season-bg-surface: rgba(30, 39, 33, 0.88);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.18);
+  --season-bg-surface-strong: rgba(36, 46, 39, 0.94);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #C5E3D0;
-  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-border-soft: rgba(255, 255, 255, 0.18);
   --season-accent: #A8D1B4;
   --season-highlight: #6A9C79;
   --season-atmosphere-overlay: linear-gradient(
@@ -188,12 +188,12 @@
 
 .dark.theme-summer {
   --season-bg-main: #1C150C;
-  --season-bg-surface: rgba(40, 34, 25, 0.84);
-  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
-  --season-bg-surface-strong: rgba(48, 40, 30, 0.9);
+  --season-bg-surface: rgba(40, 34, 25, 0.88);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.18);
+  --season-bg-surface-strong: rgba(48, 40, 30, 0.94);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #FDE8C4;
-  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-border-soft: rgba(255, 255, 255, 0.18);
   --season-accent: #F2D4A2;
   --season-highlight: #D1AE82;
   --season-atmosphere-overlay: linear-gradient(
@@ -252,12 +252,12 @@
 
 .dark.theme-autumn {
   --season-bg-main: #121614;
-  --season-bg-surface: rgba(34, 40, 36, 0.84);
-  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
-  --season-bg-surface-strong: rgba(40, 46, 41, 0.9);
+  --season-bg-surface: rgba(34, 40, 36, 0.88);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.18);
+  --season-bg-surface-strong: rgba(40, 46, 41, 0.94);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #C2D1C4;
-  --season-border-soft: rgba(255, 255, 255, 0.15);
+  --season-border-soft: rgba(255, 255, 255, 0.18);
   --season-accent: #A3B3A6;
   --season-highlight: #7A8C82;
   --season-atmosphere-overlay: linear-gradient(
@@ -316,12 +316,12 @@
 
 .dark.theme-winter {
   --season-bg-main: #0A0E12;
-  --season-bg-surface: rgba(28, 35, 41, 0.84);
-  --season-bg-surface-muted: rgba(243, 248, 252, 0.1);
-  --season-bg-surface-strong: rgba(34, 42, 48, 0.9);
+  --season-bg-surface: rgba(28, 35, 41, 0.88);
+  --season-bg-surface-muted: rgba(243, 248, 252, 0.18);
+  --season-bg-surface-strong: rgba(34, 42, 48, 0.94);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #DFEBF5;
-  --season-border-soft: rgba(255, 255, 255, 0.14);
+  --season-border-soft: rgba(255, 255, 255, 0.18);
   --season-accent: #C2D4E6;
   --season-highlight: #8A9FBA;
   --season-atmosphere-overlay: linear-gradient(
@@ -500,10 +500,22 @@
     display: none;
   }
 
+  .dark .glass-brushed {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 94%, transparent) !important;
+    border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3) !important;
+  }
+
   .cm-surface-secondary {
     background-color: color-mix(in srgb, var(--season-bg-surface-muted) 100%, transparent) !important;
     border: 1px solid color-mix(in srgb, var(--season-border-soft) 112%, transparent) !important;
     box-shadow: 0 6px 16px color-mix(in srgb, var(--season-shadow-color) 62%, transparent) !important;
+  }
+
+  .dark .cm-surface-secondary {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 82%, transparent) !important;
+    border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24) !important;
   }
 
   .cm-surface-utility {
@@ -512,10 +524,22 @@
     box-shadow: 0 2px 8px color-mix(in srgb, var(--season-shadow-color) 46%, transparent) !important;
   }
 
+  .dark .cm-surface-utility {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 68%, transparent) !important;
+    border-color: color-mix(in srgb, var(--theme-panel-border) 98%, transparent) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+  }
+
   .cm-search-shell {
     background-color: color-mix(in srgb, var(--season-bg-surface-strong) 78%, transparent) !important;
     border: 1px solid color-mix(in srgb, var(--season-border-soft) 108%, transparent) !important;
     box-shadow: 0 4px 12px color-mix(in srgb, var(--season-shadow-color) 50%, transparent) !important;
+  }
+
+  .dark .cm-search-shell {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 74%, transparent) !important;
+    border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22) !important;
   }
 
   .cm-topbar-surface {
@@ -523,6 +547,12 @@
     border-bottom: 1px solid color-mix(in srgb, var(--season-border-soft) 108%, transparent) !important;
     box-shadow: 0 4px 14px color-mix(in srgb, var(--season-shadow-color) 40%, transparent) !important;
     backdrop-filter: blur(4px) saturate(102%) !important;
+  }
+
+  .dark .cm-topbar-surface {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 96%, transparent) !important;
+    border-bottom-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24) !important;
   }
 
   /* Approved UI-01: Soft Tonal Contour */
@@ -590,14 +620,14 @@
   }
 
   .dark .btn-wood-light {
-    background: rgba(255, 248, 240, 0.1);
+    background: rgba(255, 248, 240, 0.16);
     color: #F3EEE5;
     border-color: rgba(255, 255, 255, 0.22);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14) !important;
   }
 
   .dark .btn-wood-light:hover {
-    background: rgba(255, 248, 240, 0.16);
+    background: rgba(255, 248, 240, 0.22);
   }
 
   .btn-botanical:active,
@@ -646,6 +676,17 @@
     background: rgba(245, 242, 236, 0.76);
   }
 
+  .dark .cm-icon-button {
+    background: rgba(255, 248, 240, 0.14);
+    color: #F3EEE5;
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+  }
+
+  .dark .cm-icon-button:hover {
+    background: rgba(255, 248, 240, 0.2);
+  }
+
   .cm-danger-button {
     background: rgba(182, 95, 86, 0.08);
     color: #A34F47;
@@ -675,6 +716,12 @@
     box-shadow: 0 -4px 20px rgba(18, 22, 18, 0.08);
   }
 
+  .dark .cm-nav-dock {
+    background: color-mix(in srgb, var(--theme-panel-strong) 94%, transparent);
+    border-top-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.22);
+  }
+
   .cm-nav-item {
     @apply relative flex flex-col items-center justify-center transition-all duration-150 ease-out;
     width: 100%;
@@ -694,6 +741,10 @@
     background: rgba(245, 242, 236, 0.18);
   }
 
+  .dark .cm-nav-item:hover {
+    background: rgba(255, 248, 240, 0.08);
+  }
+
   .cm-nav-item--active {
     background: rgba(152, 160, 143, 0.18);
     border: 1px solid rgba(34, 38, 34, 0.12);
@@ -701,8 +752,8 @@
   }
 
   .dark .cm-nav-item--active {
-    background: rgba(255, 248, 240, 0.1);
-    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 248, 240, 0.16);
+    border-color: rgba(255, 255, 255, 0.18);
     color: rgba(243, 238, 229, 0.92);
   }
 
