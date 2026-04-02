@@ -122,7 +122,7 @@ export function SettingsView({
   } = useRecipeNutritionExpandedByDefault();
 
   return (
-    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen herbal-pattern">
+    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
       <div className="flex items-center gap-4 mb-10 pt-4">
         <button onClick={onBack} className="flex items-center gap-1 p-3 text-forest-mid hover:bg-white/60 rounded-full transition-all glass-brushed border border-black/5 shadow-sm">
           <ArrowLeft size={20} />

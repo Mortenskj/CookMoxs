@@ -13,7 +13,7 @@ interface HomeViewProps {
 
 export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe, totalRecipes, currentUser, isOnline }: HomeViewProps) {
   return (
-    <div className="p-4 pb-24 max-w-md mx-auto min-h-screen herbal-pattern">
+    <div className="p-4 pb-24 max-w-md mx-auto min-h-screen">
       <div className="flex justify-between items-center mb-8 pt-4">
         <div className="flex items-center gap-2">
           <Sprout size={28} className="text-forest-dark dark:text-white" />
