@@ -83,11 +83,11 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
 
             <div className="flex gap-3">
               <button onClick={() => onNavigate('import')} className="btn-wood-light flex-1 p-4 rounded-[1.5rem] flex items-center justify-center gap-2">
-                <PlusCircle size={18} className="text-forest-mid dark:text-white/70" />
+                <PlusCircle size={18} className="text-forest-mid dark:text-white/80" />
                 <span className="font-serif text-lg italic text-forest-dark dark:text-white">Start nu</span>
               </button>
               <button onClick={() => onNavigate('settings')} className="glass-brushed px-5 py-4 rounded-[1.5rem] flex items-center justify-center gap-2 border border-black/5">
-                <BookOpen size={18} className="text-forest-mid dark:text-white/70" />
+                <BookOpen size={18} className="text-forest-mid dark:text-white/80" />
               </button>
             </div>
           </div>
@@ -100,7 +100,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           onClick={() => onNavigate('import')}
           className="btn-wood-light w-full p-5 rounded-[2rem] flex items-center justify-center gap-3"
         >
-          <PlusCircle size={22} className="text-forest-mid dark:text-white/70" />
+          <PlusCircle size={22} className="text-forest-mid dark:text-white/80" />
           <span className="font-serif text-xl italic text-forest-dark dark:text-white">Ny opskrift</span>
         </button>
       </section>

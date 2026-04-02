@@ -481,6 +481,11 @@
     @apply text-forest-dark;
     text-shadow: 0.5px 0.5px 0px var(--theme-panel-strong), -0.5px -0.5px 0px rgba(0, 0, 0, 0.05);
   }
+
+  .dark .text-engraved {
+    color: #F3EEE5;
+    text-shadow: none;
+  }
   
   .bg-noise {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
@@ -501,9 +506,9 @@
   }
 
   .dark .glass-brushed {
-    background-color: color-mix(in srgb, var(--theme-panel-strong) 94%, transparent) !important;
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 96%, transparent) !important;
     border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34) !important;
   }
 
   .cm-surface-secondary {
@@ -513,9 +518,9 @@
   }
 
   .dark .cm-surface-secondary {
-    background-color: color-mix(in srgb, var(--theme-panel-strong) 82%, transparent) !important;
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 86%, transparent) !important;
     border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24) !important;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28) !important;
   }
 
   .cm-surface-utility {
@@ -525,9 +530,9 @@
   }
 
   .dark .cm-surface-utility {
-    background-color: color-mix(in srgb, var(--theme-panel-strong) 68%, transparent) !important;
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 74%, transparent) !important;
     border-color: color-mix(in srgb, var(--theme-panel-border) 98%, transparent) !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24) !important;
   }
 
   .cm-search-shell {
@@ -537,9 +542,9 @@
   }
 
   .dark .cm-search-shell {
-    background-color: color-mix(in srgb, var(--theme-panel-strong) 74%, transparent) !important;
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 80%, transparent) !important;
     border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.26) !important;
   }
 
   .cm-topbar-surface {
@@ -550,9 +555,9 @@
   }
 
   .dark .cm-topbar-surface {
-    background-color: color-mix(in srgb, var(--theme-panel-strong) 96%, transparent) !important;
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 98%, transparent) !important;
     border-bottom-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28) !important;
   }
 
   /* Approved UI-01: Soft Tonal Contour */
@@ -620,14 +625,14 @@
   }
 
   .dark .btn-wood-light {
-    background: rgba(255, 248, 240, 0.16);
+    background: rgba(255, 248, 240, 0.22);
     color: #F3EEE5;
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.26);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
   }
 
   .dark .btn-wood-light:hover {
-    background: rgba(255, 248, 240, 0.22);
+    background: rgba(255, 248, 240, 0.28);
   }
 
   .btn-botanical:active,
@@ -717,9 +722,9 @@
   }
 
   .dark .cm-nav-dock {
-    background: color-mix(in srgb, var(--theme-panel-strong) 97%, transparent);
+    background: color-mix(in srgb, var(--theme-panel-strong) 99%, transparent);
     border-top-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent);
-    box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.32);
   }
 
   .cm-nav-item {
@@ -734,7 +739,7 @@
   }
 
   .dark .cm-nav-item {
-    color: rgba(243, 238, 229, 0.76);
+    color: rgba(243, 238, 229, 0.84);
   }
 
   .cm-nav-item:hover {
@@ -742,7 +747,7 @@
   }
 
   .dark .cm-nav-item:hover {
-    background: rgba(255, 248, 240, 0.12);
+    background: rgba(255, 248, 240, 0.16);
   }
 
   .cm-nav-item--active {
@@ -752,9 +757,9 @@
   }
 
   .dark .cm-nav-item--active {
-    background: rgba(255, 248, 240, 0.2);
-    border-color: rgba(255, 255, 255, 0.24);
-    color: rgba(243, 238, 229, 0.98);
+    background: rgba(255, 248, 240, 0.24);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: rgba(243, 238, 229, 1);
   }
 
   .cm-nav-label {

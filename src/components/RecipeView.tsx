@@ -1215,7 +1215,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                       <button
                         type="button"
                         onClick={() => applyRecipeIngredientConversion(recipeIngredients.findIndex((recipeIngredient) => recipeIngredient.id === ing.id))}
-                        className="rounded-full border border-black/5 bg-white/60 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid shadow-sm transition-colors hover:bg-white dark:border-white/10 dark:bg-black/20"
+                        className="cm-surface-utility rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid transition-colors hover:bg-white dark:hover:bg-white/10"
                         title="Konverter mellem g og dl"
                       >
                         g/dl
@@ -1238,7 +1238,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <Flame className="text-heath-mid shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Varmeguide</h4>
-                <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
+                <ul className="text-sm text-forest-mid dark:text-white/80 space-y-2 italic leading-relaxed">
                   {recipeHeatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{formatHeatGuideEntry(g)}</li>)}
                 </ul>
               </div>
@@ -1249,8 +1249,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <div className="absolute top-0 left-0 w-1 h-full bg-forest-mid/20" />
               <Lightbulb className="text-heath-mid shrink-0" size={24} />
               <div>
-                <h4 className="text-xs font-bold text-forest-mid dark:text-white/70 uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Smagsboostere</h4>
-                <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
+                <h4 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Smagsboostere</h4>
+                <ul className="text-sm text-forest-mid dark:text-white/80 space-y-2 italic leading-relaxed">
                   {recipeFlavorBoosts.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
@@ -1262,7 +1262,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <AlertTriangle className="text-[#DC2626] shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-[#DC2626] uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Faldgruber</h4>
-                <ul className="text-sm text-forest-mid dark:text-white/70 space-y-2 italic leading-relaxed">
+                <ul className="text-sm text-forest-mid dark:text-white/80 space-y-2 italic leading-relaxed">
                   {recipePitfalls.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
@@ -1279,7 +1279,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <Flame className="text-heath-mid" size={24} />
               Fremgangsmåde
             </h2>
-            <p className="mt-2 text-sm text-forest-mid dark:text-white/70 italic">
+            <p className="mt-2 text-sm text-forest-mid dark:text-white/80 italic">
               Brug AI til at gennemgå trin, varme og tider, så opskriften fungerer bedre i cookmode.
             </p>
           </div>
@@ -1304,12 +1304,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap gap-2">
                   {step.heat && (
-                    <div className="inline-flex items-center gap-2 bg-white/60 dark:bg-black/20 text-heath-mid px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
+                    <div className="cm-surface-utility inline-flex items-center gap-2 text-heath-mid px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
                       <Flame size={12} /> {formatStepHeatDisplay(step)}
                     </div>
                   )}
                   {step.timer && (
-                    <div className="inline-flex items-center gap-2 bg-white/60 dark:bg-black/20 text-forest-mid dark:text-white/70 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase border border-black/5 dark:border-white/10 shadow-sm">
+                    <div className="cm-surface-utility inline-flex items-center gap-2 text-forest-mid dark:text-white/85 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
                       <Clock size={12} /> {step.timer.duration} min: {step.timer.description}
                     </div>
                   )}
@@ -1513,7 +1513,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             onClick={() => onStartCook(recipe, scale)}
             className="btn-wood-light w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
           >
-            <ChefHat size={20} className="text-forest-mid dark:text-white/70" />
+            <ChefHat size={20} className="text-forest-mid dark:text-white/85" />
             <span className="font-serif italic text-xl text-forest-dark dark:text-white">Start madlavning</span>
           </button>
         </div>
