@@ -5,12 +5,12 @@
 :root {
   /* Default autumn token system */
   --season-bg-main: #F9F9F7;
-  --season-bg-surface: rgba(255, 255, 255, 0.5);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.4);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.8);
+  --season-bg-surface: rgba(244, 241, 235, 0.78);
+  --season-bg-surface-muted: rgba(246, 243, 238, 0.64);
+  --season-bg-surface-strong: rgba(245, 242, 236, 0.88);
   --season-text-primary: #2C3531;
   --season-text-secondary: #687870;
-  --season-border-soft: rgba(255, 255, 255, 0.4);
+  --season-border-soft: rgba(34, 38, 34, 0.1);
   --season-accent: #8C9A8E;
   --season-highlight: #5A6B5D;
   --season-atmosphere-overlay: linear-gradient(
@@ -29,9 +29,9 @@
   --season-atmosphere-opacity: 0.95;
   --season-pattern-tone: color-mix(in srgb, #687870 16%, transparent);
   --season-pattern-size: 100px;
-  --season-panel-blur: 24px;
-  --season-panel-saturation: 120%;
-  --season-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --season-panel-blur: 8px;
+  --season-panel-saturation: 112%;
+  --season-panel-shadow: 0 10px 28px rgba(26, 30, 26, 0.1);
   --season-shadow-color: rgba(44, 53, 49, 0.12);
   --season-illustration-opacity: 0.015;
   --season-motion-duration: 0.5s;
@@ -60,12 +60,12 @@
 
 .dark {
   --season-bg-main: #121614;
-  --season-bg-surface: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.15);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.22);
+  --season-bg-surface: rgba(34, 40, 36, 0.82);
+  --season-bg-surface-muted: rgba(255, 248, 240, 0.1);
+  --season-bg-surface-strong: rgba(39, 45, 41, 0.9);
   --season-text-primary: #FFFFFF;
   --season-text-secondary: #E0E8E1;
-  --season-border-soft: rgba(255, 255, 255, 0.15);
+  --season-border-soft: rgba(255, 255, 255, 0.14);
   --season-accent: #C0D0C5;
   --season-highlight: #9AB0A4;
   --season-atmosphere-overlay: linear-gradient(
@@ -76,19 +76,19 @@
   --season-contour-tone: color-mix(in srgb, #C0D0C5 14%, transparent);
   --season-pattern-tone: color-mix(in srgb, #C0D0C5 12%, transparent);
   --season-atmosphere-opacity: 0.88;
-  --season-panel-shadow: 0 10px 34px rgba(0, 0, 0, 0.28);
+  --season-panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
   --season-shadow-color: rgba(0, 0, 0, 0.28);
   --season-loading-accent: color-mix(in srgb, #C0D0C5 78%, white);
 }
 
 .theme-spring {
   --season-bg-main: #F4F9F5;
-  --season-bg-surface: rgba(255, 255, 255, 0.52);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.42);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.82);
+  --season-bg-surface: rgba(244, 241, 235, 0.84);
+  --season-bg-surface-muted: rgba(246, 243, 238, 0.74);
+  --season-bg-surface-strong: rgba(245, 242, 236, 0.9);
   --season-text-primary: #1A3A28;
   --season-text-secondary: #4A7C59;
-  --season-border-soft: rgba(255, 255, 255, 0.4);
+  --season-border-soft: rgba(34, 38, 34, 0.12);
   --season-accent: #88B794;
   --season-highlight: #2D5A3F;
   --season-atmosphere-overlay: linear-gradient(
@@ -107,9 +107,9 @@
   --season-atmosphere-opacity: 0.98;
   --season-pattern-tone: color-mix(in srgb, #4A7C59 11%, transparent);
   --season-pattern-size: 112px;
-  --season-panel-blur: 20px;
-  --season-panel-saturation: 114%;
-  --season-panel-shadow: 0 10px 26px rgba(26, 58, 40, 0.08);
+  --season-panel-blur: 8px;
+  --season-panel-saturation: 108%;
+  --season-panel-shadow: 0 10px 28px rgba(26, 58, 40, 0.09);
   --season-shadow-color: rgba(26, 58, 40, 0.12);
   --season-motion-duration: 0.45s;
   --season-motion-float-duration: 1.55s;
@@ -147,12 +147,12 @@
 
 .theme-summer {
   --season-bg-main: #FDFBF7;
-  --season-bg-surface: rgba(255, 255, 255, 0.48);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.38);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.78);
+  --season-bg-surface: rgba(244, 241, 235, 0.76);
+  --season-bg-surface-muted: rgba(246, 243, 238, 0.66);
+  --season-bg-surface-strong: rgba(245, 242, 236, 0.86);
   --season-text-primary: #4A3B22;
   --season-text-secondary: #C19A6B;
-  --season-border-soft: rgba(255, 255, 255, 0.38);
+  --season-border-soft: rgba(34, 38, 34, 0.1);
   --season-accent: #E6C287;
   --season-highlight: #8B6B43;
   --season-atmosphere-overlay: linear-gradient(
@@ -171,9 +171,9 @@
   --season-atmosphere-opacity: 1;
   --season-pattern-tone: color-mix(in srgb, #C19A6B 14%, transparent);
   --season-pattern-size: 92px;
-  --season-panel-blur: 23px;
-  --season-panel-saturation: 132%;
-  --season-panel-shadow: 0 14px 34px rgba(74, 59, 34, 0.1);
+  --season-panel-blur: 8px;
+  --season-panel-saturation: 110%;
+  --season-panel-shadow: 0 10px 28px rgba(74, 59, 34, 0.09);
   --season-shadow-color: rgba(74, 59, 34, 0.12);
   --season-motion-duration: 0.52s;
   --season-motion-float-duration: 1.9s;
@@ -211,12 +211,12 @@
 
 .theme-autumn {
   --season-bg-main: #F9F9F7;
-  --season-bg-surface: rgba(255, 255, 255, 0.5);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.4);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.8);
+  --season-bg-surface: rgba(244, 241, 235, 0.78);
+  --season-bg-surface-muted: rgba(246, 243, 238, 0.68);
+  --season-bg-surface-strong: rgba(245, 242, 236, 0.88);
   --season-text-primary: #2C3531;
   --season-text-secondary: #687870;
-  --season-border-soft: rgba(255, 255, 255, 0.4);
+  --season-border-soft: rgba(34, 38, 34, 0.1);
   --season-accent: #8C9A8E;
   --season-highlight: #5A6B5D;
   --season-atmosphere-overlay: linear-gradient(
@@ -235,9 +235,9 @@
   --season-atmosphere-opacity: 0.97;
   --season-pattern-tone: color-mix(in srgb, #687870 13%, transparent);
   --season-pattern-size: 102px;
-  --season-panel-blur: 26px;
-  --season-panel-saturation: 124%;
-  --season-panel-shadow: 0 12px 34px rgba(44, 53, 49, 0.1);
+  --season-panel-blur: 8px;
+  --season-panel-saturation: 112%;
+  --season-panel-shadow: 0 10px 28px rgba(44, 53, 49, 0.1);
   --season-shadow-color: rgba(44, 53, 49, 0.12);
   --season-motion-duration: 0.5s;
   --season-motion-float-duration: 1.8s;
@@ -275,12 +275,12 @@
 
 .theme-winter {
   --season-bg-main: #F0F4F8;
-  --season-bg-surface: rgba(255, 255, 255, 0.5);
-  --season-bg-surface-muted: rgba(255, 255, 255, 0.4);
-  --season-bg-surface-strong: rgba(255, 255, 255, 0.82);
+  --season-bg-surface: rgba(244, 241, 235, 0.84);
+  --season-bg-surface-muted: rgba(246, 243, 238, 0.74);
+  --season-bg-surface-strong: rgba(245, 242, 236, 0.9);
   --season-text-primary: #1A242B;
   --season-text-secondary: #5C7285;
-  --season-border-soft: rgba(255, 255, 255, 0.42);
+  --season-border-soft: rgba(34, 38, 34, 0.12);
   --season-accent: #A2B5C6;
   --season-highlight: #3A4F63;
   --season-atmosphere-overlay: linear-gradient(
@@ -299,9 +299,9 @@
   --season-atmosphere-opacity: 0.84;
   --season-pattern-tone: color-mix(in srgb, #5C7285 9%, transparent);
   --season-pattern-size: 122px;
-  --season-panel-blur: 18px;
-  --season-panel-saturation: 108%;
-  --season-panel-shadow: 0 8px 26px rgba(26, 36, 43, 0.08);
+  --season-panel-blur: 8px;
+  --season-panel-saturation: 106%;
+  --season-panel-shadow: 0 10px 28px rgba(26, 36, 43, 0.09);
   --season-shadow-color: rgba(26, 36, 43, 0.12);
   --season-motion-duration: 0.56s;
   --season-motion-float-duration: 2.2s;
@@ -440,12 +440,12 @@
   }
 
   .season-toast-surface {
-    background-color: color-mix(in srgb, var(--theme-panel-strong) 90%, transparent);
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 94%, transparent);
     border: 1px solid color-mix(in srgb, var(--theme-panel-border) 92%, transparent);
-    backdrop-filter: blur(calc(var(--season-panel-blur) * 0.75)) saturate(var(--season-panel-saturation));
+    backdrop-filter: blur(6px) saturate(108%);
     box-shadow:
-      var(--season-panel-shadow),
-      inset 0 0 0 1px color-mix(in srgb, var(--theme-panel-border) 70%, transparent);
+      0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--theme-panel-border) 74%, transparent);
   }
 
   .season-loading-shell::after {
@@ -491,14 +491,14 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
   }
 
-  /* Sandblasted / Frosted glass effect */
+  /* Approved UI-02: Soft Tonal Veil */
   .glass-brushed {
-    background-color: var(--theme-panel-bg);
-    border: 1px solid var(--theme-panel-border);
-    backdrop-filter: blur(var(--season-panel-blur)) saturate(var(--season-panel-saturation));
-    box-shadow: 
-      var(--season-panel-shadow),
-      inset 0 0 0 1px var(--theme-panel-border);
+    background-color: color-mix(in srgb, var(--theme-panel-bg) 100%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-panel-border) 96%, transparent);
+    backdrop-filter: blur(6px) saturate(106%);
+    box-shadow:
+      0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent),
+      inset 0 1px 0 color-mix(in srgb, white 28%, transparent);
     position: relative;
     overflow: hidden;
   }
@@ -522,55 +522,231 @@
 
   .glass-brushed::before {
     content: "";
-    @apply absolute inset-0 pointer-events-none opacity-[0.04];
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    @apply absolute inset-0 pointer-events-none;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.02)),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+    opacity: 0.06;
   }
 
-  /* Stitched botanical label button - Sage Green */
+  /* Approved UI-01: Soft Tonal Contour */
   .btn-botanical {
-    @apply relative overflow-hidden bg-heath-mid text-white transition-all duration-500 hover:bg-forest-mid hover:-translate-y-1 active:translate-y-0 active:scale-95;
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--theme-accent-mid) 20%, transparent);
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden text-white transition-all duration-150 ease-out;
+    background: #98A08F;
+    color: #F6F2EA;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 18px rgba(28, 32, 28, 0.14);
+    border-radius: 20px;
   }
   .btn-botanical:hover {
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-mid) 25%, transparent);
+    background: color-mix(in srgb, #98A08F 92%, #1c201c);
+    box-shadow: 0 10px 20px rgba(28, 32, 28, 0.16);
   }
   
-  /* Stitched heath label button - Darker Sage */
   .btn-heath {
-    @apply relative overflow-hidden bg-heath-dark text-white transition-all duration-500 hover:bg-forest-dark hover:-translate-y-1 active:translate-y-0 active:scale-95;
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--theme-accent-dark) 20%, transparent);
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden text-white transition-all duration-150 ease-out;
+    background: #3B443D;
+    color: #F6F2EA;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 18px rgba(18, 22, 18, 0.18);
+    border-radius: 20px;
   }
   .btn-heath:hover {
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-dark) 25%, transparent);
+    background: color-mix(in srgb, #3B443D 90%, #101211);
+    box-shadow: 0 10px 20px rgba(18, 22, 18, 0.2);
   }
   
-  /* Light Wood / Sand button for main actions */
   .btn-wood-light {
-    @apply relative overflow-hidden text-forest-dark transition-all duration-500 shadow-[0_8px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] hover:-translate-y-1 active:translate-y-0 active:scale-95;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--theme-light) 90%, black), color-mix(in srgb, var(--theme-light) 80%, black));
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden transition-all duration-150 ease-out;
+    background: rgba(245, 242, 236, 0.72);
+    color: #2E342E;
+    border: 1px solid rgba(39, 42, 38, 0.12);
+    box-shadow: 0 4px 12px rgba(28, 32, 28, 0.08);
+    border-radius: 20px;
   }
-  
-  .btn-botanical::after, .btn-heath::after, .btn-wood-light::after {
-    content: '';
-    @apply absolute inset-1 border rounded-[inherit] pointer-events-none transition-colors duration-300;
-    border-style: dashed;
-  }
-  
-  .btn-botanical::after, .btn-heath::after {
-    @apply border-white/20;
-  }
-  
-  .btn-wood-light::after {
-    @apply border-forest-dark/10;
-  }
-  
-  .btn-botanical:hover::after, .btn-heath:hover::after {
-    @apply border-white/40;
-  }
-  
   .btn-wood-light:hover::after {
-    @apply border-forest-dark/20;
+    content: none;
+  }
+
+  .btn-wood-light:hover {
+    background: rgba(245, 242, 236, 0.78);
+  }
+
+  .btn-botanical:active,
+  .btn-heath:active,
+  .btn-wood-light:active {
+    transform: translateY(1px);
+  }
+
+  .btn-botanical:focus-visible,
+  .btn-heath:focus-visible,
+  .btn-wood-light:focus-visible,
+  .cm-icon-button:focus-visible,
+  .cm-nav-item:focus-visible,
+  .cm-cook-icon-button:focus-visible {
+    outline: 2px solid rgba(244, 238, 226, 0.62);
+    outline-offset: 2px;
+  }
+
+  .btn-botanical:disabled,
+  .btn-heath:disabled,
+  .btn-wood-light:disabled,
+  .cm-icon-button:disabled,
+  .cm-cook-icon-button:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .cm-icon-button {
+    @apply inline-flex items-center justify-center transition-all duration-150 ease-out;
+    width: 40px;
+    height: 40px;
+    border-radius: 16px;
+    background: rgba(245, 242, 236, 0.68);
+    color: #2E342E;
+    border: 1px solid rgba(39, 42, 38, 0.12);
+    box-shadow: 0 3px 8px rgba(28, 32, 28, 0.06);
+  }
+
+  .cm-icon-button:hover {
+    background: rgba(245, 242, 236, 0.76);
+  }
+
+  .cm-danger-button {
+    @apply inline-flex items-center justify-center gap-2 transition-all duration-150 ease-out;
+    background: rgba(182, 95, 86, 0.08);
+    color: #A34F47;
+    border: 1px solid rgba(182, 95, 86, 0.3);
+    box-shadow: none;
+  }
+
+  .cm-danger-button:hover {
+    background: rgba(182, 95, 86, 0.14);
+  }
+
+  .cm-nav-dock {
+    background: color-mix(in srgb, var(--theme-panel-bg) 98%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--theme-panel-border) 96%, transparent);
+    backdrop-filter: blur(4px) saturate(106%);
+    box-shadow: 0 -4px 20px rgba(18, 22, 18, 0.08);
+  }
+
+  .cm-nav-item {
+    @apply relative flex flex-col items-center justify-center transition-all duration-150 ease-out;
+    min-width: 72px;
+    min-height: 56px;
+    gap: 4px;
+    padding: 8px 10px 6px;
+    border-radius: 18px;
+    color: rgba(46, 52, 46, 0.64);
+  }
+
+  .dark .cm-nav-item {
+    color: rgba(243, 238, 229, 0.62);
+  }
+
+  .cm-nav-item:hover {
+    background: rgba(245, 242, 236, 0.18);
+  }
+
+  .cm-nav-item--active {
+    background: rgba(152, 160, 143, 0.18);
+    border: 1px solid rgba(34, 38, 34, 0.12);
+    color: rgba(46, 52, 46, 0.92);
+  }
+
+  .dark .cm-nav-item--active {
+    background: rgba(255, 248, 240, 0.1);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(243, 238, 229, 0.92);
+  }
+
+  .cm-nav-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+
+  .cm-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .cm-nav-item--active .cm-nav-label {
+    font-weight: 600;
+  }
+
+  .cm-cook-shell {
+    color: #F3EEE5;
+    min-height: 100dvh;
+    background: transparent;
+  }
+
+  .cm-cook-topbar {
+    background: rgba(24, 30, 27, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  .cm-cook-surface {
+    background: rgba(26, 31, 28, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  .cm-cook-surface-subtle {
+    background: rgba(255, 248, 240, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
+
+  .cm-cook-heat-chip {
+    background: rgba(182, 95, 86, 0.14);
+    color: #F3EEE5;
+    border: 1px solid rgba(182, 95, 86, 0.3);
+  }
+
+  .cm-cook-icon-button {
+    @apply inline-flex items-center justify-center transition-all duration-150 ease-out;
+    width: 40px;
+    height: 40px;
+    border-radius: 16px;
+    background: rgba(255, 248, 240, 0.1);
+    color: #F3EEE5;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
+  }
+
+  .cm-cook-icon-button:hover {
+    background: rgba(255, 248, 240, 0.14);
+  }
+
+  .cm-cook-nav-button {
+    @apply inline-flex items-center justify-center transition-all duration-150 ease-out;
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    background: rgba(27, 33, 29, 0.88);
+    color: #F3EEE5;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  .cm-cook-nav-button:hover {
+    background: rgba(33, 39, 35, 0.92);
+  }
+
+  .cm-cook-progress-track {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .cm-cook-progress-bar {
+    background: rgba(243, 238, 229, 0.96);
   }
 
   .herbal-pattern {

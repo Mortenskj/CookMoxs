@@ -133,7 +133,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
   return (
     <div 
-      className="flex flex-col h-full bg-[#1A221E] text-[#F9F9F7] max-w-md mx-auto relative overflow-y-auto custom-scrollbar"
+      className="cm-cook-shell flex flex-col h-full max-w-md mx-auto relative overflow-y-auto custom-scrollbar"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -141,11 +141,11 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
       {/* Sticky Top Section */}
       <div className="sticky top-0 z-30 flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-white/10 bg-[#1A221E] shadow-sm gap-2 pt-6 relative">
+        <div className="cm-cook-topbar flex justify-between items-center p-4 sm:p-6 gap-2 pt-6 relative">
           {/* Continuous Progress Bar at the top */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 z-50">
+          <div className="cm-cook-progress-track absolute top-0 left-0 right-0 h-1 z-50">
             <div 
-              className="h-full bg-[#F9F9F7] transition-all duration-500 ease-out"
+              className="cm-cook-progress-bar h-full transition-all duration-500 ease-out"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
             />
           </div>
@@ -161,7 +161,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button 
               onClick={() => setFontSize(prev => prev === 'small' ? 'normal' : prev === 'normal' ? 'large' : prev === 'large' ? 'xlarge' : 'small')}
-              className="p-2 sm:p-3 text-[#F9F9F7] hover:bg-white/10 rounded-full transition-all border border-white/10 shadow-sm"
+              className="cm-cook-icon-button w-auto px-3 sm:px-4"
             >
               <div className="flex items-center gap-2">
                 <Type size={18} className="sm:w-5 sm:h-5" />
@@ -172,12 +172,12 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
             </button>
             <button 
               onClick={() => setShowIngredients(true)} 
-              className="p-2 sm:p-3 text-[#F9F9F7] hover:bg-white/10 rounded-full transition-all border border-white/10 shadow-sm flex items-center gap-2"
+              className="cm-cook-icon-button w-auto px-3 sm:px-4 flex items-center gap-2"
             >
               <List size={18} className="sm:w-5 sm:h-5" />
               <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Ingredienser</span>
             </button>
-            <button onClick={onExit} className="p-2 sm:p-3 text-[#F9F9F7] hover:bg-white/10 rounded-full transition-all border border-white/10 shadow-sm">
+            <button onClick={onExit} className="cm-cook-icon-button">
               <X size={18} className="sm:w-5 sm:h-5" />
             </button>
           </div>
@@ -185,7 +185,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
         {/* Persistent Timers */}
         {timers.length > 0 && (
-          <div className="bg-[#2C3631] border-b border-white/10 shadow-inner flex flex-col max-h-40 overflow-y-auto custom-scrollbar">
+          <div className="cm-cook-surface rounded-b-[22px] border-t-0 flex flex-col max-h-40 overflow-y-auto custom-scrollbar">
             {timers.map(t => (
               <div key={t.id} className="px-4 py-2 flex items-center justify-between border-b border-white/5 last:border-0">
                 <div className="flex-1 min-w-0 pr-4">
@@ -221,13 +221,13 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
         {(displayHeat || (step.timer && !timers.some(t => t.description === step.timer!.description && t.duration === step.timer!.duration * 60))) && (
           <div className="flex flex-col sm:flex-row gap-3 shrink-0">
             {displayHeat && (
-              <div className="flex-1 bg-red-500/10 text-red-200 px-4 py-3 rounded-2xl border border-red-500/20 flex items-center justify-center gap-3 shadow-sm">
+              <div className="cm-cook-heat-chip flex-1 px-4 py-3 rounded-2xl flex items-center justify-center gap-3">
                 <Flame size={18} className="text-red-400 shrink-0" />
                 <span className="text-xs font-bold uppercase tracking-[0.2em] truncate">{displayHeat}</span>
               </div>
             )}
             {step.timer && !timers.some(t => t.description === step.timer!.description && t.duration === step.timer!.duration * 60) && (
-              <div className="flex-1 bg-[#3A453F] rounded-2xl px-4 py-3 flex items-center justify-between border border-white/10 shadow-sm">
+              <div className="cm-cook-surface flex-1 rounded-2xl px-4 py-3 flex items-center justify-between">
                 <div className="flex flex-col min-w-0 pr-2">
                   <span className="text-[8px] font-bold uppercase tracking-widest text-heath-mid opacity-70 truncate">{step.timer.description}</span>
                   <span className="text-xl font-mono tracking-tighter text-[#F9F9F7] truncate">
@@ -248,7 +248,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
                       active: true
                     }]);
                   }}
-                  className="text-heath-mid hover:scale-110 transition-transform bg-white/5 p-2 rounded-xl border border-white/5 shrink-0"
+                  className="cm-cook-icon-button shrink-0"
                 >
                   <PlayCircle size={24} />
                 </button>
@@ -290,7 +290,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
         {/* Ingredients Compact Box */}
         {mentionedIngredients && mentionedIngredients.length > 0 && (
-          <div className="flex-none bg-white/5 rounded-xl p-2.5 border border-white/10 mt-2">
+          <div className="cm-cook-surface-subtle flex-none rounded-xl p-2.5 mt-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-1 mr-1">
                 <Beaker size={10} /> {levelMeta.ingredientLabel}:
@@ -309,7 +309,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
         {/* Next Step Preview */}
         {nextStep && (
-          <div className="flex-none bg-[#1A221E]/30 rounded-2xl p-4 border border-white/5">
+          <div className="cm-cook-surface-subtle flex-none rounded-2xl p-4">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-[8px] font-bold text-heath-mid/40 uppercase tracking-widest">{levelMeta.nextStepLabel}</h3>
               <span className="text-[8px] font-bold text-white/20">{currentStep + 2} / {steps.length}</span>
@@ -324,7 +324,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
         <button 
           onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
           disabled={currentStep === 0}
-          className="pointer-events-auto p-3 sm:p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all disabled:opacity-0 disabled:pointer-events-none border border-white/10 shadow-lg"
+          className="cm-cook-nav-button pointer-events-auto disabled:opacity-0 disabled:pointer-events-none"
         >
           <ChevronLeft size={24} className="sm:w-7 sm:h-7" />
         </button>
@@ -337,7 +337,7 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
               onCompleteCooking();
             }
           }}
-          className="pointer-events-auto p-3 sm:p-4 bg-black/40 backdrop-blur-md text-[#F9F9F7] hover:bg-black/60 rounded-full transition-all shadow-lg hover:scale-105 active:scale-95 border border-white/10"
+          className="cm-cook-nav-button pointer-events-auto"
         >
           {currentStep === steps.length - 1 ? <CheckCircle size={24} className="sm:w-7 sm:h-7" /> : <ChevronRight size={24} className="sm:w-7 sm:h-7" />}
         </button>
@@ -345,10 +345,10 @@ export function CookView({ recipe, userLevel, fontSize, setFontSize, initialStep
 
       {/* Ingredients Modal */}
       {showIngredients && (
-        <div className="absolute inset-0 z-50 flex flex-col bg-[#1A221E] animate-in slide-in-from-bottom-full duration-300">
-          <div className="flex justify-between items-center p-6 border-b border-white/10 bg-[#1A221E] shadow-sm">
+        <div className="cm-cook-shell absolute inset-0 z-50 flex flex-col animate-in slide-in-from-bottom-full duration-300">
+          <div className="cm-cook-topbar flex justify-between items-center p-6">
             <h2 className="text-xl font-serif text-[#F9F9F7]">Alle ingredienser</h2>
-            <button onClick={() => setShowIngredients(false)} className="p-3 text-[#F9F9F7] hover:bg-white/10 rounded-full transition-all border border-white/10 shadow-sm">
+            <button onClick={() => setShowIngredients(false)} className="cm-cook-icon-button">
               <X size={20} />
             </button>
           </div>

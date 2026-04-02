@@ -1497,10 +1497,10 @@ export default function App() {
   const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
     <button 
       onClick={onClick}
-      className={`flex flex-col items-center justify-center w-16 h-16 transition-all duration-300 ${active ? 'text-forest-dark dark:text-white scale-105' : 'text-forest-mid dark:text-white/70 opacity-60 hover:opacity-100'}`}
+      className={`cm-nav-item ${active ? 'cm-nav-item--active' : ''}`}
     >
-      <div className={`mb-1 ${active ? 'drop-shadow-[0_0_8px_rgba(44,53,49,0.3)]' : ''}`}>{icon}</div>
-      <span className={`text-[11px] font-bold tracking-widest uppercase transition-all ${active ? 'opacity-100' : 'opacity-80'}`}>{label}</span>
+      <span className="cm-nav-icon">{icon}</span>
+      <span className="cm-nav-label">{label}</span>
     </button>
   );
 
@@ -1890,8 +1890,8 @@ export default function App() {
 
       {/* Bottom Navigation */}
       {currentView !== 'cook' && currentView !== 'settings' && (
-        <nav className="relative w-full glass-brushed bg-white/70 dark:bg-black/70 border-t border-white/20 pb-[env(safe-area-inset-bottom)] z-50 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] print:hidden">
-          <div className="flex justify-around items-center h-20 px-2 sm:px-4 max-w-md mx-auto">
+        <nav className="cm-nav-dock relative w-full pb-[env(safe-area-inset-bottom)] z-50 rounded-t-[28px] print:hidden">
+          <div className="flex justify-around items-center min-h-[76px] px-4 pt-3 pb-3 max-w-md mx-auto">
             <NavItem icon={<Home size={22} />} label="Hjem" active={currentView === 'home'} onClick={() => navigateTo('home')} />
             <NavItem icon={<CookingPot size={22} />} label="I gang" active={currentView === 'active'} onClick={() => navigateTo('active')} />
             <NavItem icon={<PlusCircle size={22} />} label="Tilføj" active={currentView === 'import'} onClick={() => navigateTo('import')} />
