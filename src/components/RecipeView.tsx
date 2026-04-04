@@ -265,7 +265,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     return (
       <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
         <div className="cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10">
-          <button onClick={handleCancelEdit} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          <button onClick={handleCancelEdit} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
             <X size={22} />
           </button>
           <div className="flex gap-2 flex-wrap justify-end flex-1">
@@ -273,36 +273,36 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <button 
                 onClick={undo} 
                 disabled={historyIndex === 0}
-                className={`p-1.5 rounded-full transition-colors ${historyIndex === 0 ? 'text-forest-mid/20 dark:text-white/20' : 'text-forest-mid dark:text-white/85 hover:bg-white/60 dark:hover:bg-white/10'}`}
+                className={`p-1.5 rounded-full transition-colors ${historyIndex === 0 ? 'text-forest-mid/20 dark:text-black/20' : 'text-forest-mid cm-light-surface-icon hover:bg-white/60 dark:hover:bg-black/5'}`}
               >
                 <ArrowLeft size={18} />
               </button>
               <button 
                 onClick={redo} 
                 disabled={historyIndex === history.length - 1}
-                className={`p-1.5 rounded-full transition-colors ${historyIndex === history.length - 1 ? 'text-forest-mid/20 dark:text-white/20' : 'text-forest-mid dark:text-white/85 hover:bg-white/60 dark:hover:bg-white/10'}`}
+                className={`p-1.5 rounded-full transition-colors ${historyIndex === history.length - 1 ? 'text-forest-mid/20 dark:text-black/20' : 'text-forest-mid cm-light-surface-icon hover:bg-white/60 dark:hover:bg-black/5'}`}
               >
                 <ArrowRight size={18} />
               </button>
             </div>
-            <button onClick={() => updateEditData(recipe)} className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/80 hover:text-forest-dark dark:hover:text-white transition-colors">
+            <button onClick={() => updateEditData(recipe)} className="px-3 py-1 text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted hover:text-forest-dark dark:hover:text-[#202A24] transition-colors">
               Nulstil
             </button>
             {canMutateRecipe && (
               <button 
                 onClick={() => setShowSmartModal(true)} 
-                className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
+                className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed"
                 title="Smart Justering"
               >
                 {isSmartAdjusting ? <Loader2 size={22} className="animate-spin" /> : <Wand2 size={22} />}
               </button>
             )}
             {canMutateRecipe && (
-              <button onClick={onDelete} className="p-2 text-[#DC2626] hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+              <button onClick={onDelete} className="p-2 text-[#DC2626] hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
                 <Trash2 size={22} />
               </button>
             )}
-            <button onClick={handleSaveEdit} className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+            <button onClick={handleSaveEdit} className="p-2 text-heath-mid hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
               <Save size={22} />
             </button>
           </div>
@@ -315,7 +315,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               value={editData.title}
               onChange={e => updateEditData({...editData, title: e.target.value})}
               placeholder="Titel"
-              className="w-full text-3xl font-serif italic bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-3 text-forest-dark dark:text-white placeholder-forest-mid/50 dark:placeholder-white/30"
+              className="w-full text-3xl font-serif italic bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-3 text-forest-dark cm-light-surface-ink placeholder-forest-mid/50 cm-light-surface-placeholder"
             />
             <textarea 
               value={editData.summary || ''}
@@ -323,11 +323,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px'; }}
               placeholder="Kort beskrivelse..."
               rows={2}
-              className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-3 resize-none text-forest-mid dark:text-white/80 overflow-hidden text-sm leading-relaxed italic"
+              className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-3 resize-none text-forest-mid cm-light-surface-ink-muted overflow-hidden text-sm leading-relaxed italic"
             />
             <div className="flex flex-col sm:flex-row gap-6">
               <div className="flex-1">
-                <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Mappe</label>
+                <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Mappe</label>
                 {showNewFolderInput ? (
                   <div className="flex gap-2 items-center">
                     <input 
@@ -347,7 +347,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         }
                       }}
                       placeholder="Ny mappe..."
-                      className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
+                      className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark cm-light-surface-ink"
                       autoFocus
                     />
                     <button 
@@ -369,7 +369,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         setShowNewFolderInput(false);
                         setNewFolderName('');
                       }} 
-                      className="text-forest-mid dark:text-white/85 hover:text-forest-dark dark:hover:text-white"
+                      className="text-forest-mid cm-light-surface-icon hover:text-forest-dark dark:hover:text-[#202A24]"
                     >
                       <X size={14} />
                     </button>
@@ -396,7 +396,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         }
                       }
                     }}
-                    className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white appearance-none cursor-pointer pr-6"
+                    className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark cm-light-surface-ink appearance-none cursor-pointer pr-6"
                     style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232D4F39%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0 top 50%', backgroundSize: '.65rem auto' }}
                   >
                     <option value="" disabled>Vælg mappe</option>
@@ -410,7 +410,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 {selectedEditFolder && editRequiresPermissionConfirmation && (
                   <div className="mt-4 space-y-3">
                     <FolderVisibilityNotice folder={selectedEditFolder} currentUser={currentUser} />
-                    <label className="flex items-start gap-3 rounded-2xl border border-black/5 bg-white/40 px-4 py-3 text-sm text-forest-mid dark:text-white/85">
+                    <label className="flex items-start gap-3 rounded-2xl border border-black/5 bg-white/40 px-4 py-3 text-sm text-forest-mid cm-light-surface-ink-muted">
                       <input
                         type="checkbox"
                         checked={editPermissionConfirmed}
@@ -431,28 +431,28 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 )}
               </div>
               <div className="w-full sm:w-40">
-                <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Antal</label>
+                <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Antal</label>
                 <div className="flex gap-2 items-end">
                   <input 
                     type="number" 
                     value={editData.servings}
                     onChange={e => updateEditData({...editData, servings: Number(e.target.value)})}
-                    className="w-16 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
+                    className="w-16 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark cm-light-surface-ink"
                   />
                   <input 
                     type="text" 
                     value={editData.servingsUnit || 'pers.'}
                     onChange={e => updateEditData({...editData, servingsUnit: e.target.value})}
-                    className="w-20 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark dark:text-white"
+                    className="w-20 bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-1 text-sm text-forest-dark cm-light-surface-ink"
                   />
                 </div>
               </div>
             </div>
             <div className="relative">
-              <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-3 opacity-60 dark:opacity-100">Kategorier</label>
+              <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] block mb-3 opacity-60 dark:opacity-100">Kategorier</label>
               <div className="flex flex-wrap gap-2 mb-3">
                 {editCategories.map(cat => (
-                  <span key={cat} className="cm-surface-utility text-forest-mid dark:text-white/90 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
+                  <span key={cat} className="cm-surface-utility text-forest-mid cm-light-surface-ink text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
                     {cat}
                     <button onClick={() => updateEditData({...editData, categories: editCategories.filter(c => c !== cat)})} className="hover:text-heath-mid transition-colors"><X size={12}/></button>
                   </span>
@@ -475,7 +475,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   }
                 }}
                 placeholder="Søg eller tilføj kategori..."
-                className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-2 text-sm text-forest-dark dark:text-white"
+                className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-2 text-sm text-forest-dark cm-light-surface-ink"
               />
               {showCategoryDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-2 glass-brushed rounded-2xl shadow-xl z-20 max-h-48 overflow-y-auto">
@@ -488,7 +488,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         setCategorySearch('');
                         setShowCategoryDropdown(false);
                       }}
-                      className="w-full text-left px-5 py-3 text-sm text-forest-mid dark:text-white/85 hover:bg-white/60 dark:hover:bg-white/10 transition-colors border-b border-black/5 dark:border-white/10 last:border-0"
+                      className="w-full text-left px-5 py-3 text-sm text-forest-mid cm-light-surface-ink-muted hover:bg-white/60 dark:hover:bg-black/5 transition-colors border-b border-black/5 dark:border-white/10 last:border-0"
                     >
                       {cat}
                     </button>
@@ -501,7 +501,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                         setCategorySearch('');
                         setShowCategoryDropdown(false);
                       }}
-                      className="w-full text-left px-5 py-3 text-sm text-heath-mid hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+                      className="w-full text-left px-5 py-3 text-sm text-heath-mid hover:bg-white/60 dark:hover:bg-black/5 transition-colors"
                     >
                       + Opret "{categorySearch.trim()}"
                     </button>
@@ -510,14 +510,14 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               )}
             </div>
             <div>
-              <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Egne noter</label>
+              <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100">Egne noter</label>
               <textarea 
                 value={editData.notes || ''}
                 onChange={e => updateEditData({...editData, notes: e.target.value})}
                 onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px'; }}
                 placeholder="Tilføj dine egne noter her..."
                 rows={3}
-                className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-2 resize-none text-sm overflow-hidden text-forest-mid dark:text-white/80 leading-relaxed italic"
+                className="w-full bg-transparent border-b border-black/5 dark:border-white/10 focus:border-heath-mid outline-none pb-2 resize-none text-sm overflow-hidden text-forest-mid cm-light-surface-ink-muted leading-relaxed italic"
               />
             </div>
           </div>
@@ -553,7 +553,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                           }
                         }}
                         placeholder="Ingrediens (f.eks. Mælk)"
-                        className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-base outline-none focus:border-heath-mid text-forest-dark dark:text-white font-serif italic placeholder-forest-mid/50 dark:placeholder-white/30"
+                        className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-base outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic placeholder-forest-mid/50 cm-light-surface-placeholder"
                       />
                       {activeIngredientIndex === i && ing.name.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-2 glass-brushed rounded-2xl shadow-xl z-30 max-h-48 overflow-y-auto">
@@ -579,7 +579,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                                 setActiveIngredientIndex(null);
                                 setConfirmedIngredients({...confirmedIngredients, [ing.id]: true});
                               }}
-                              className="w-full text-left px-5 py-3 text-sm text-forest-dark dark:text-white/80 hover:bg-white/60 dark:hover:bg-white/10 transition-colors border-b border-black/5 dark:border-white/10 last:border-0"
+                              className="w-full text-left px-5 py-3 text-sm text-forest-dark cm-light-surface-ink-muted hover:bg-white/60 dark:hover:bg-black/5 transition-colors border-b border-black/5 dark:border-white/10 last:border-0"
                             >
                               {cat}
                             </button>
@@ -607,7 +607,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             const newIngs = editIngredients.filter((_, idx) => idx !== i);
                             setEditData({...editData, ingredients: newIngs});
                           }}
-                          className="p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors"
+                          className="p-3 rounded-xl bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid cm-light-surface-icon hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors"
                           title="Slet ingrediens"
                         >
                           <Trash2 size={20} />
@@ -630,7 +630,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                               updateEditData({...editData, ingredients: newIngs});
                             }}
                             placeholder="Enhed"
-                            className="w-full bg-white/80 dark:bg-black/20 px-3 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white font-serif italic pr-8 placeholder-forest-mid/50 dark:placeholder-white/30"
+                            className="w-full bg-white/80 dark:bg-black/20 px-3 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic pr-8 placeholder-forest-mid/50 cm-light-surface-placeholder"
                           />
                           <datalist id="units-list">
                             {COMMON_RECIPE_UNITS.map(u => <option key={u} value={u} />)}
@@ -654,7 +654,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             updateEditData({...editData, ingredients: newIngs});
                           }}
                           placeholder="Mængde"
-                          className="w-24 flex-1 min-w-[80px] bg-white/80 dark:bg-black/20 px-3 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white font-serif italic placeholder-forest-mid/50 dark:placeholder-white/30"
+                          className="w-24 flex-1 min-w-[80px] bg-white/80 dark:bg-black/20 px-3 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic placeholder-forest-mid/50 cm-light-surface-placeholder"
                         />
                       </div>
                       <div className="flex gap-2 shrink-0 w-full sm:w-auto justify-end">
@@ -665,7 +665,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             newIngs[i].locked = !newIngs[i].locked;
                             updateEditData({...editData, ingredients: newIngs});
                           }}
-                className={`p-2 rounded-lg transition-all flex-1 sm:flex-none flex justify-center ${ing.locked ? 'bg-forest-mid text-white shadow-sm' : 'cm-surface-utility text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white'}`}
+                className={`p-2 rounded-lg transition-all flex-1 sm:flex-none flex justify-center ${ing.locked ? 'bg-forest-mid text-white shadow-sm' : 'cm-surface-utility text-forest-mid cm-light-surface-ink hover:text-forest-dark dark:hover:text-[#202A24]'}`}
                           title={ing.locked ? "Lås op" : "Lås fast"}
                         >
                           {ing.locked ? <Lock size={16} /> : <Unlock size={16} />}
@@ -676,7 +676,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             const newIngs = editIngredients.filter((_, idx) => idx !== i);
                             setEditData({...editData, ingredients: newIngs});
                           }}
-                          className="p-2 rounded-lg cm-surface-utility text-forest-mid dark:text-white/90 hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors flex-1 sm:flex-none flex justify-center"
+                          className="p-2 rounded-lg cm-surface-utility text-forest-mid cm-light-surface-icon hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors flex-1 sm:flex-none flex justify-center"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -693,7 +693,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   updateEditData({...editData, ingredients: [...editIngredients, newIng]});
                   setConfirmedIngredients({...confirmedIngredients, [newIng.id]: false});
                 }}
-                className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-2 glass-brushed px-6 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10"
+                className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-2 glass-brushed px-6 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-black/5 transition-all border border-black/5 dark:border-white/10"
                 title="Tilføj ingrediens"
               >
                 <Plus size={16} /> Tilføj ingrediens
@@ -734,11 +734,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                       onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px'; }}
                       placeholder="Beskriv trinnet..."
                       rows={2}
-                      className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-base outline-none focus:border-heath-mid text-forest-dark dark:text-white font-serif italic resize-none overflow-hidden box-border leading-relaxed placeholder-forest-mid/50 dark:placeholder-white/30"
+                      className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-base outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic resize-none overflow-hidden box-border leading-relaxed placeholder-forest-mid/50 cm-light-surface-placeholder"
                     />
                     <div className="flex flex-col sm:flex-row gap-3 w-full">
                       <div className="relative flex-1">
-                        <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-wider block mb-1.5 opacity-60 dark:opacity-100 ml-1">Varme</label>
+                        <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-wider block mb-1.5 opacity-60 dark:opacity-100 ml-1">Varme</label>
                         <input 
                           type="text" 
                           value={step.heat || ''}
@@ -748,11 +748,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             updateEditData({...editData, steps: newSteps});
                           }}
                           placeholder="f.eks. Induktion - 5"
-                          className="w-full bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white placeholder-forest-mid/50 dark:placeholder-white/30"
+                          className="w-full bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink placeholder-forest-mid/50 cm-light-surface-placeholder"
                         />
                       </div>
                       <div className="relative flex-1">
-                        <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-wider block mb-1.5 opacity-60 dark:opacity-100 ml-1">Husk (Påmindelse)</label>
+                        <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-wider block mb-1.5 opacity-60 dark:opacity-100 ml-1">Husk (Påmindelse)</label>
                         <input 
                           type="text" 
                           value={step.reminder || ''}
@@ -762,12 +762,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                             updateEditData({...editData, steps: newSteps});
                           }}
                           placeholder="f.eks. Gem pastavand"
-                          className="w-full bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white placeholder-forest-mid/50 dark:placeholder-white/30"
+                          className="w-full bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink placeholder-forest-mid/50 cm-light-surface-placeholder"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5 w-full">
-                        <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-wider block mb-1.5 opacity-60 dark:opacity-100 ml-1">Timer</label>
+                        <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-wider block mb-1.5 opacity-60 dark:opacity-100 ml-1">Timer</label>
                         <div className="flex gap-2 w-full">
                           <input 
                             type="number" 
@@ -783,7 +783,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                               updateEditData({...editData, steps: newSteps});
                             }}
                             placeholder="Min"
-                            className="w-20 shrink-0 bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white placeholder-forest-mid/50 dark:placeholder-white/30"
+                            className="w-20 shrink-0 bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink placeholder-forest-mid/50 cm-light-surface-placeholder"
                           />
                           <div className="relative flex-1">
                             <input 
@@ -800,7 +800,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                                 updateEditData({...editData, steps: newSteps});
                               }}
                               placeholder="Beskrivelse"
-                              className="w-full bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white placeholder-forest-mid/50 dark:placeholder-white/30"
+                              className="w-full bg-white/60 dark:bg-black/20 px-3 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink placeholder-forest-mid/50 cm-light-surface-placeholder"
                             />
                             <datalist id="timer-descriptions">
                               <option value="Kogetid" />
@@ -819,7 +819,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                       const newSteps = editSteps.filter((_, idx) => idx !== i);
                       updateEditData({...editData, steps: newSteps});
                     }}
-                    className="p-2 rounded-lg bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors shrink-0 mt-1"
+                    className="p-2 rounded-lg bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 text-forest-mid cm-light-surface-icon hover:text-[#DC2626] hover:border-red-200 dark:hover:border-red-500/50 transition-colors shrink-0 mt-1"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -829,7 +829,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="pt-2 flex justify-center">
               <button 
                 onClick={() => updateEditData({...editData, steps: [...editSteps, { id: Date.now().toString(), text: '' }]})}
-                className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-2 glass-brushed px-6 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10"
+                className="text-xs font-bold uppercase tracking-widest text-heath-mid flex items-center gap-2 glass-brushed px-6 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-black/5 transition-all border border-black/5 dark:border-white/10"
                 title="Tilføj trin"
               >
                 <Plus size={16} /> Tilføj trin
@@ -909,12 +909,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {/* Header */}
       <div className="recipe-print-header cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10 print:hidden">
         <div className="flex gap-2">
-          <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2 hidden sm:inline">Tilbage</span>
           </button>
           {hasForward && onForward && (
-            <button onClick={onForward} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+            <button onClick={onForward} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
               <ArrowRight size={22} />
             </button>
           )}
@@ -930,17 +930,17 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </button>
           )}
           {canMutateRecipe && (
-            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 cm-surface-utility text-forest-mid dark:text-white/85 rounded-full transition-colors hover:bg-white/40 dark:hover:bg-white/10">
+            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 cm-surface-utility text-forest-mid cm-light-surface-ink rounded-full transition-colors hover:bg-white/40 dark:hover:bg-black/5">
               <Edit3 size={18} />
               <span className="text-sm font-medium hidden sm:inline">Rediger</span>
             </button>
           )}
           {canMutateRecipe && (
-            <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+            <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
               <Heart size={22} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} />
             </button>
           )}
-          <button onClick={() => window.print()} className="p-2 text-forest-mid dark:text-white/85 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          <button onClick={() => window.print()} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
             <Printer size={22} />
           </button>
         </div>
@@ -962,15 +962,15 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       <div className="mb-8 space-y-6">
         <div className="glass-brushed p-6 sm:p-8 rounded-[2.5rem]">
           <h1 className="text-4xl font-serif text-forest-dark dark:text-white mb-4 leading-tight italic text-engraved">{recipe.title}</h1>
-          {recipe.summary && <p className="text-forest-mid dark:text-white/80 mb-6 leading-relaxed italic text-sm opacity-80">{recipe.summary}</p>}
+          {recipe.summary && <p className="text-forest-mid cm-light-surface-ink-muted mb-6 leading-relaxed italic text-sm opacity-80 dark:opacity-100">{recipe.summary}</p>}
           {(recipe.updatedAt || recipe.createdAt) && (
-            <p className="text-xs text-forest-mid dark:text-white/80 italic mb-4 opacity-80 dark:opacity-100">
+            <p className="text-xs text-forest-mid cm-light-surface-ink-muted italic mb-4 opacity-80 dark:opacity-100">
               Sidst gemt: {new Date(recipe.updatedAt || recipe.createdAt!).toLocaleString('da-DK')}
             </p>
           )}
           <div className="mb-4 flex items-center gap-3">
             <OwnershipBadge ownership={ownership} />
-            <p className="text-xs text-forest-mid dark:text-white/80 opacity-80 dark:opacity-100">{ownership.detail}</p>
+            <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">{ownership.detail}</p>
           </div>
           {!canMutateRecipe && (
             <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
@@ -1008,7 +1008,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <button 
                 onClick={() => setShowTipsModal(true)}
                 disabled={isAdjusting || aiDisabled}
-                className="cm-surface-utility flex items-center gap-2 text-forest-mid dark:text-white/85 hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all hover:bg-white dark:hover:bg-white/10"
+                className="cm-surface-utility flex items-center gap-2 text-forest-mid cm-light-surface-ink hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all hover:bg-white dark:hover:bg-black/5"
               >
                 {isGeneratingTips ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
                 Tips & Tricks
@@ -1021,7 +1021,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </span>
             )}
             {recipeCategories.map((cat, i) => (
-              <span key={i} className="cm-surface-utility text-forest-mid dark:text-white/85 px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
+              <span key={i} className="cm-surface-utility text-forest-mid cm-light-surface-ink px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
                 {cat}
               </span>
             ))}
@@ -1041,7 +1041,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="cm-surface-secondary p-6 rounded-3xl mt-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
               <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-3 opacity-60 dark:opacity-100 text-engraved">Mine noter</h4>
-              <p className="text-sm text-forest-mid dark:text-white/80 whitespace-pre-wrap leading-relaxed italic">{recipe.notes}</p>
+              <p className="text-sm text-forest-mid cm-light-surface-ink-muted whitespace-pre-wrap leading-relaxed italic">{recipe.notes}</p>
             </div>
           )}
         </div>
@@ -1057,14 +1057,14 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
             <h3 className="font-serif text-xl text-forest-dark dark:text-white italic text-engraved">AI Tilpasning</h3>
           </div>
-          <p className="text-sm text-forest-mid dark:text-white/80 leading-relaxed whitespace-pre-wrap mb-8 italic">
+          <p className="text-sm text-forest-mid cm-light-surface-ink-muted leading-relaxed whitespace-pre-wrap mb-8 italic">
             {recipe.aiRationale}
           </p>
           <div className="flex gap-3">
             {recipe.originalRecipeId && onUndoAI && (
               <button 
                 onClick={() => onUndoAI(recipe.originalRecipeId!)}
-                className="cm-surface-utility flex-1 py-3 text-forest-mid dark:text-white/85 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all"
+                className="cm-surface-utility flex-1 py-3 text-forest-mid cm-light-surface-ink rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-black/5 transition-all"
               >
                 Fortryd
               </button>
@@ -1170,7 +1170,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   updateEditData({...recipe, ingredients: [...(recipe.ingredients || []), newIng]});
                   setConfirmedIngredients({...confirmedIngredients, [newIng.id]: false});
                 }}
-                className="text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/90 flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all shadow-sm"
+                className="text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-black/5 transition-all shadow-sm"
                 title="Tilføj ingrediens"
               >
                 <Plus size={14} />
@@ -1180,9 +1180,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           </div>
           <div className="cm-surface-utility flex items-center gap-4 rounded-2xl px-4 py-2 w-full justify-center print:border-none print:shadow-none print:bg-transparent print:p-0">
-            <button onClick={() => handleScale(((recipe.servings * scale) - 1) / recipe.servings)} className="text-forest-mid dark:text-white/90 hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">-</button>
-            <span className="text-xs font-bold text-forest-dark dark:text-white text-center uppercase tracking-widest min-w-[4rem]">{Math.round(recipe.servings * scale)} {recipe.servingsUnit || 'pers.'}</span>
-            <button onClick={() => handleScale(((recipe.servings * scale) + 1) / recipe.servings)} className="text-forest-mid dark:text-white/90 hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">+</button>
+            <button onClick={() => handleScale(((recipe.servings * scale) - 1) / recipe.servings)} className="text-forest-mid cm-light-surface-icon hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">-</button>
+            <span className="text-xs font-bold text-forest-dark cm-light-surface-ink text-center uppercase tracking-widest min-w-[4rem]">{Math.round(recipe.servings * scale)} {recipe.servingsUnit || 'pers.'}</span>
+            <button onClick={() => handleScale(((recipe.servings * scale) + 1) / recipe.servings)} className="text-forest-mid cm-light-surface-icon hover:text-heath-mid dark:hover:text-heath-mid w-8 h-8 flex items-center justify-center font-bold transition-colors print:hidden">+</button>
           </div>
         </div>
 
@@ -1194,7 +1194,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
         {Object.entries(groupedIngredients).map(([group, ingredients]) => (
           <div key={group} className="space-y-4">
-            <h3 className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] opacity-60 dark:opacity-100 flex items-center gap-3">
+            <h3 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 flex items-center gap-3">
               {group}
               <div className="flex-1 h-px bg-black/5 dark:bg-white/10" />
             </h3>
@@ -1202,10 +1202,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               {ingredients.map((ing, i) => (
                 <li key={ing.id || i} className="flex justify-between items-center gap-4 group/item">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => toggleLock(ing.id)} className="p-1.5 hover:bg-white/60 dark:hover:bg-white/10 rounded-lg transition-all text-forest-mid dark:text-white/90 opacity-40 group-hover/item:opacity-100" title={ing.locked ? "Lås op" : "Lås mængde"}>
+                    <button onClick={() => toggleLock(ing.id)} className="p-1.5 hover:bg-white/60 dark:hover:bg-black/5 rounded-lg transition-all text-forest-mid cm-light-surface-icon opacity-40 group-hover/item:opacity-100" title={ing.locked ? "Lås op" : "Lås mængde"}>
                       {ing.locked ? <Lock size={14} className="text-heath-mid" /> : <Unlock size={14} />}
                     </button>
-                    <span className="text-forest-dark dark:text-white font-serif italic">{ing.name}</span>
+                    <span className="text-forest-dark cm-light-surface-ink font-serif italic">{ing.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-heath-mid text-sm tracking-tight">
@@ -1238,7 +1238,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <Flame className="text-heath-mid shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Varmeguide</h4>
-                <ul className="text-sm text-forest-mid dark:text-white/80 space-y-2 italic leading-relaxed">
+                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-2 italic leading-relaxed">
                   {recipeHeatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{formatHeatGuideEntry(g)}</li>)}
                 </ul>
               </div>
@@ -1249,8 +1249,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <div className="absolute top-0 left-0 w-1 h-full bg-forest-mid/20" />
               <Lightbulb className="text-heath-mid shrink-0" size={24} />
               <div>
-                <h4 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Smagsboostere</h4>
-                <ul className="text-sm text-forest-mid dark:text-white/80 space-y-2 italic leading-relaxed">
+                <h4 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Smagsboostere</h4>
+                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-2 italic leading-relaxed">
                   {recipeFlavorBoosts.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
@@ -1262,7 +1262,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <AlertTriangle className="text-[#DC2626] shrink-0" size={24} />
               <div>
                 <h4 className="text-xs font-bold text-[#DC2626] uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Faldgruber</h4>
-                <ul className="text-sm text-forest-mid dark:text-white/80 space-y-2 italic leading-relaxed">
+                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-2 italic leading-relaxed">
                   {recipePitfalls.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
@@ -1279,7 +1279,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <Flame className="text-heath-mid" size={24} />
               Fremgangsmåde
             </h2>
-            <p className="mt-2 text-sm text-forest-mid dark:text-white/80 italic">
+            <p className="mt-2 text-sm text-forest-mid cm-light-surface-ink-muted italic">
               Brug AI til at gennemgå trin, varme og tider, så opskriften fungerer bedre i cookmode.
             </p>
           </div>
@@ -1309,7 +1309,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     </div>
                   )}
                   {step.timer && (
-                    <div className="cm-surface-utility inline-flex items-center gap-2 text-forest-mid dark:text-white/85 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
+                    <div className="cm-surface-utility inline-flex items-center gap-2 text-forest-mid cm-light-surface-ink px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
                       <Clock size={12} /> {step.timer.duration} min: {step.timer.description}
                     </div>
                   )}
@@ -1513,8 +1513,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             onClick={() => onStartCook(recipe, scale)}
             className="btn-wood-light w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
           >
-            <ChefHat size={20} className="text-forest-mid dark:text-white/85" />
-            <span className="font-serif italic text-xl text-forest-dark dark:text-white">Start madlavning</span>
+            <ChefHat size={20} className="text-forest-mid cm-light-surface-icon" />
+            <span className="font-serif italic text-xl text-forest-dark cm-light-surface-ink">Start madlavning</span>
           </button>
         </div>
       </div>

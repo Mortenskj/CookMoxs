@@ -19,7 +19,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           <Sprout size={28} className="text-forest-dark dark:text-white" />
           <h1 className="text-3xl font-serif text-forest-dark dark:text-white tracking-tight italic text-engraved">CookMoxs</h1>
         </div>
-        <button onClick={() => onNavigate('settings')} className="p-2 text-forest-mid dark:text-white/80 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+        <button onClick={() => onNavigate('settings')} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
           <Settings size={22} />
         </button>
       </div>
@@ -33,8 +33,8 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           >
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-xl font-serif text-forest-dark dark:text-white mb-2 group-hover:text-forest-mid dark:group-hover:text-white/80 transition-colors truncate">{activeRecipe.title}</h3>
-                <p className="text-xs font-medium text-forest-mid dark:text-white/80 flex items-center gap-1.5 uppercase tracking-wider">
+                <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink mb-2 group-hover:text-forest-mid dark:group-hover:text-[#314038] transition-colors truncate">{activeRecipe.title}</h3>
+                <p className="text-xs font-medium text-forest-mid cm-light-surface-ink-muted flex items-center gap-1.5 uppercase tracking-wider">
                   <PlayCircle size={14} className="animate-pulse" /> Fortsæt madlavning
                 </p>
               </div>
@@ -52,42 +52,42 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
                 <ChefHat size={22} />
               </div>
               <div>
-                <h2 className="text-xl font-serif italic text-forest-dark dark:text-white">Kom godt i gang</h2>
-                <p className="text-sm text-forest-mid dark:text-white/85 leading-relaxed mt-1">CookMoxs er klar. Start med at importere din første opskrift, vælg dit niveau i køkkenet og gem dine egne favoritter efterhånden.</p>
+                <h2 className="text-xl font-serif italic text-forest-dark cm-light-surface-ink">Kom godt i gang</h2>
+                <p className="text-sm text-forest-mid cm-light-surface-ink-muted leading-relaxed mt-1">CookMoxs er klar. Start med at importere din første opskrift, vælg dit niveau i køkkenet og gem dine egne favoritter efterhånden.</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 mb-4">
               <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
-                <PlusCircle size={18} className="text-forest-mid mt-0.5" />
+                <PlusCircle size={18} className="text-forest-mid cm-light-surface-icon mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-forest-dark">Importér din første opskrift</p>
-                  <p className="text-xs text-forest-mid opacity-80">Fra link, tekst, PDF eller billede.</p>
+                  <p className="text-sm font-semibold text-forest-dark cm-light-surface-ink">Importér din første opskrift</p>
+                  <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">Fra link, tekst, PDF eller billede.</p>
                 </div>
               </div>
               <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
-                <Settings size={18} className="text-forest-mid mt-0.5" />
+                <Settings size={18} className="text-forest-mid cm-light-surface-icon mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-forest-dark">Tilpas oplevelsen</p>
-                  <p className="text-xs text-forest-mid opacity-80">Vælg køkkenniveau, tema og tekststørrelse til Cook mode.</p>
+                  <p className="text-sm font-semibold text-forest-dark cm-light-surface-ink">Tilpas oplevelsen</p>
+                  <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">Vælg køkkenniveau, tema og tekststørrelse til Cook mode.</p>
                 </div>
               </div>
               <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
-                {isOnline ? <Cloud size={18} className="text-forest-mid mt-0.5" /> : <WifiOff size={18} className="text-forest-mid mt-0.5" />}
+                {isOnline ? <Cloud size={18} className="text-forest-mid cm-light-surface-icon mt-0.5" /> : <WifiOff size={18} className="text-forest-mid cm-light-surface-icon mt-0.5" />}
                 <div>
-                  <p className="text-sm font-semibold text-forest-dark">{currentUser ? 'Cloud er aktiv' : 'Brug lokalt eller log ind'}</p>
-                  <p className="text-xs text-forest-mid opacity-80">{currentUser ? 'Dine opskrifter kan synkroniseres mellem enheder.' : 'Log ind med Google senere, hvis du vil have cloud-sync og backup i skyen.'}</p>
+                  <p className="text-sm font-semibold text-forest-dark cm-light-surface-ink">{currentUser ? 'Cloud er aktiv' : 'Brug lokalt eller log ind'}</p>
+                  <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">{currentUser ? 'Dine opskrifter kan synkroniseres mellem enheder.' : 'Log ind med Google senere, hvis du vil have cloud-sync og backup i skyen.'}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => onNavigate('import')} className="btn-wood-light flex-1 p-4 rounded-[1.5rem] flex items-center justify-center gap-2">
-                <PlusCircle size={18} className="text-forest-mid dark:text-white/80" />
-                <span className="font-serif text-lg italic text-forest-dark dark:text-white">Start nu</span>
+                <PlusCircle size={18} className="text-forest-mid cm-light-surface-icon" />
+                <span className="font-serif text-lg italic text-forest-dark cm-light-surface-ink">Start nu</span>
               </button>
               <button onClick={() => onNavigate('settings')} className="glass-brushed px-5 py-4 rounded-[1.5rem] flex items-center justify-center gap-2 border border-black/5">
-                <BookOpen size={18} className="text-forest-mid dark:text-white/80" />
+                <BookOpen size={18} className="text-forest-mid cm-light-surface-icon" />
               </button>
             </div>
           </div>
@@ -100,8 +100,8 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           onClick={() => onNavigate('import')}
           className="btn-wood-light w-full p-5 rounded-[2rem] flex items-center justify-center gap-3"
         >
-          <PlusCircle size={22} className="text-forest-mid dark:text-white/80" />
-          <span className="font-serif text-xl italic text-forest-dark dark:text-white">Ny opskrift</span>
+          <PlusCircle size={22} className="text-forest-mid cm-light-surface-icon" />
+          <span className="font-serif text-xl italic text-forest-dark cm-light-surface-ink">Ny opskrift</span>
         </button>
       </section>
 
@@ -117,8 +117,8 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
                 onClick={() => onOpenRecipe(recipe)}
                 className="glass-brushed p-4 rounded-2xl cursor-pointer hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 flex justify-between items-center group"
               >
-                <span className="font-medium text-forest-dark dark:text-white truncate pr-4 group-hover:translate-x-1 transition-transform">{recipe.title}</span>
-                <span className="text-xs font-bold text-forest-mid dark:text-white/80 opacity-50 dark:opacity-100 whitespace-nowrap uppercase tracking-wider">
+                <span className="font-medium text-forest-dark cm-light-surface-ink truncate pr-4 group-hover:translate-x-1 transition-transform">{recipe.title}</span>
+                <span className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted opacity-50 dark:opacity-100 whitespace-nowrap uppercase tracking-wider">
                   {recipe.lastUsed ? new Date(recipe.lastUsed).toLocaleDateString('da-DK') : ''}
                 </span>
               </div>

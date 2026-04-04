@@ -33,6 +33,10 @@
   --season-panel-saturation: 112%;
   --season-panel-shadow: 0 10px 28px rgba(26, 30, 26, 0.1);
   --season-shadow-color: rgba(44, 53, 49, 0.12);
+  --season-light-surface-ink: #2C3531;
+  --season-light-surface-ink-muted: #56645C;
+  --season-light-surface-ink-soft: #6A7870;
+  --season-light-surface-icon: #4B5B52;
   --season-illustration-opacity: 0.015;
   --season-motion-duration: 0.5s;
   --season-motion-ease: ease-in-out;
@@ -79,6 +83,10 @@
   --season-panel-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
   --season-shadow-color: rgba(0, 0, 0, 0.28);
   --season-loading-accent: color-mix(in srgb, #C0D0C5 78%, white);
+  --season-light-surface-ink: #202A24;
+  --season-light-surface-ink-muted: #49574F;
+  --season-light-surface-ink-soft: #607068;
+  --season-light-surface-icon: #394740;
 }
 
 .theme-spring {
@@ -486,6 +494,51 @@
     color: #F3EEE5;
     text-shadow: none;
   }
+
+  .dark .glass-brushed .text-engraved,
+  .dark .cm-surface-secondary .text-engraved,
+  .dark .cm-surface-utility .text-engraved,
+  .dark .cm-search-shell .text-engraved,
+  .dark .cm-topbar-surface .text-engraved {
+    color: var(--season-light-surface-ink);
+  }
+
+  .cm-light-surface-ink {
+    color: var(--season-text-primary);
+  }
+
+  .dark .cm-light-surface-ink {
+    color: var(--season-light-surface-ink) !important;
+  }
+
+  .cm-light-surface-ink-muted {
+    color: var(--season-text-secondary);
+  }
+
+  .dark .cm-light-surface-ink-muted {
+    color: var(--season-light-surface-ink-muted) !important;
+  }
+
+  .cm-light-surface-ink-soft {
+    color: color-mix(in srgb, var(--season-text-secondary) 88%, transparent);
+  }
+
+  .dark .cm-light-surface-ink-soft {
+    color: var(--season-light-surface-ink-soft) !important;
+  }
+
+  .cm-light-surface-icon {
+    color: color-mix(in srgb, var(--season-text-secondary) 86%, transparent);
+  }
+
+  .dark .cm-light-surface-icon {
+    color: var(--season-light-surface-icon) !important;
+  }
+
+  .dark .cm-light-surface-placeholder::placeholder {
+    color: color-mix(in srgb, var(--season-light-surface-ink-soft) 76%, transparent) !important;
+    opacity: 1;
+  }
   
   .bg-noise {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
@@ -625,14 +678,14 @@
   }
 
   .dark .btn-wood-light {
-    background: rgba(255, 248, 240, 0.22);
-    color: #F3EEE5;
-    border-color: rgba(255, 255, 255, 0.26);
+    background: rgba(255, 248, 240, 0.74);
+    color: var(--season-light-surface-ink);
+    border-color: rgba(39, 42, 38, 0.14);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
   }
 
   .dark .btn-wood-light:hover {
-    background: rgba(255, 248, 240, 0.28);
+    background: rgba(255, 248, 240, 0.82);
   }
 
   .btn-botanical:active,
@@ -722,9 +775,9 @@
   }
 
   .dark .cm-nav-dock {
-    background: color-mix(in srgb, var(--theme-panel-strong) 99%, transparent);
-    border-top-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent);
-    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.32);
+    background: rgba(245, 242, 236, 0.88);
+    border-top-color: rgba(39, 42, 38, 0.14);
+    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.22);
   }
 
   .cm-nav-item {
@@ -739,7 +792,7 @@
   }
 
   .dark .cm-nav-item {
-    color: rgba(243, 238, 229, 0.9);
+    color: rgba(46, 52, 46, 0.72);
   }
 
   .cm-nav-item:hover {
@@ -747,7 +800,7 @@
   }
 
   .dark .cm-nav-item:hover {
-    background: rgba(255, 248, 240, 0.18);
+    background: rgba(46, 52, 46, 0.08);
   }
 
   .cm-nav-item--active {
@@ -757,9 +810,9 @@
   }
 
   .dark .cm-nav-item--active {
-    background: rgba(255, 248, 240, 0.26);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: rgba(243, 238, 229, 1);
+    background: rgba(59, 68, 61, 0.12);
+    border-color: rgba(39, 42, 38, 0.16);
+    color: rgba(32, 40, 35, 0.98);
   }
 
   .cm-nav-label {

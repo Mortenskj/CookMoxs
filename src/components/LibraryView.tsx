@@ -93,7 +93,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
             if (selectedFolderId) setSelectedFolderId(null);
             else if (selectedCategory) setSelectedCategory(null);
             else setActiveSection('home');
-          }} className="flex items-center gap-1 p-2 -ml-2 text-forest-mid dark:text-white/80 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed">
+          }} className="flex items-center gap-1 p-2 -ml-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2">Tilbage</span>
           </button>
@@ -105,18 +105,18 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
       </div>
 
       <div className="relative mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-forest-mid dark:text-white/90 opacity-50 dark:opacity-100" size={20} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-forest-mid cm-light-surface-icon opacity-50 dark:opacity-100" size={20} />
         <input 
           type="text" 
           placeholder="Søg i ingredienser, tags eller navn..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-10 py-4 glass-brushed cm-search-shell rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-forest-mid/10 focus:border-forest-mid/30 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/55 font-medium"
+          className="w-full pl-12 pr-10 py-4 glass-brushed cm-search-shell rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-forest-mid/10 focus:border-forest-mid/30 transition-all text-forest-dark cm-light-surface-ink placeholder-forest-mid/40 cm-light-surface-placeholder font-medium"
         />
         {searchQuery && (
           <button 
             onClick={() => setSearchQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-forest-mid cm-light-surface-icon hover:text-forest-dark dark:hover:text-[#202A24]"
           >
             <X size={18} />
           </button>
@@ -146,8 +146,8 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   <Save size={24} />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">{DEFAULT_FOLDER_NAME}</h3>
-                  <p className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-widest opacity-70 dark:opacity-100">
+                  <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">{DEFAULT_FOLDER_NAME}</h3>
+                  <p className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest opacity-70 dark:opacity-100">
                     {savedRecipes.filter(r => r.folder === DEFAULT_FOLDER_NAME).length} nye opskrifter
                   </p>
                 </div>
@@ -165,8 +165,8 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 <Heart size={24} className="fill-current" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">Favoritter</h3>
-                <p className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-widest opacity-50 dark:opacity-100">{savedRecipes.filter(r => r.isFavorite).length} opskrifter</p>
+                <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">Favoritter</h3>
+                <p className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest opacity-50 dark:opacity-100">{savedRecipes.filter(r => r.isFavorite).length} opskrifter</p>
               </div>
             </div>
             <ChevronRight size={20} className="text-forest-mid group-hover:translate-x-1 transition-transform" />
@@ -181,8 +181,8 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 <Book size={24} />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">Kogebøger</h3>
-                <p className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-widest opacity-50 dark:opacity-100">{allFolders.length} mapper</p>
+                <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">Kogebøger</h3>
+                <p className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest opacity-50 dark:opacity-100">{allFolders.length} mapper</p>
               </div>
             </div>
             <ChevronRight size={20} className="text-forest-mid group-hover:translate-x-1 transition-transform" />
@@ -197,8 +197,8 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 <List size={24} />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">Alle opskrifter</h3>
-                <p className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-widest opacity-50 dark:opacity-100">{savedRecipes.length} opskrifter</p>
+                <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">Alle opskrifter</h3>
+                <p className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest opacity-50 dark:opacity-100">{savedRecipes.length} opskrifter</p>
               </div>
             </div>
             <ChevronRight size={20} className="text-forest-mid group-hover:translate-x-1 transition-transform" />
@@ -213,8 +213,8 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 <Tag size={24} />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-serif text-forest-dark dark:text-white italic text-engraved">Kategorier</h3>
-                <p className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-widest opacity-50 dark:opacity-100">{allCategories.length} tags</p>
+                <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">Kategorier</h3>
+                <p className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest opacity-50 dark:opacity-100">{allCategories.length} tags</p>
               </div>
             </div>
             <ChevronRight size={20} className="text-forest-mid group-hover:translate-x-1 transition-transform" />
@@ -238,18 +238,18 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
             <div className="flex justify-between items-center mb-6">
               <div className="flex flex-col">
                 <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved">
-                  <Folder size={20} className="text-forest-mid dark:text-white/90"/> {selectedFolder.name}
+                  <Folder size={20} className="text-forest-mid cm-light-surface-icon"/> {selectedFolder.name}
                 </h2>
                 <div className="ml-7 mt-2 flex items-center gap-2">
                   <OwnershipBadge ownership={folderOwnership} />
-                  <span className="text-xs text-forest-mid dark:text-white/80 opacity-70 dark:opacity-100">{folderOwnership.detail}</span>
+                  <span className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-70 dark:opacity-100">{folderOwnership.detail}</span>
                 </div>
               </div>
               <div className="flex gap-2">
                 {selectedFolder.ownerUID === currentUser?.uid && (
                   <button 
                     onClick={() => onCreateInFolder(selectedFolder)}
-                    className="p-2 text-forest-mid dark:text-white/80 hover:bg-white/60 dark:hover:bg-white/10 glass-brushed rounded-xl transition-colors"
+                    className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/60 dark:hover:bg-black/5 glass-brushed rounded-xl transition-colors"
                     title="Opret ny opskrift i denne mappe"
                   >
                     <Plus size={18} />
@@ -259,7 +259,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   <>
                     <button 
                       onClick={() => setShowShareModal(selectedFolder.id)}
-                      className="p-2 text-forest-mid dark:text-white/80 hover:bg-white/60 dark:hover:bg-white/10 glass-brushed rounded-xl transition-colors"
+                      className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/60 dark:hover:bg-black/5 glass-brushed rounded-xl transition-colors"
                       title="Del mappe"
                     >
                       <Share2 size={18} />
@@ -269,7 +269,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                         setEditingFolderId(selectedFolder.id);
                         setEditFolderName(selectedFolder.name);
                       }} 
-                      className="p-2 text-forest-mid dark:text-white/80 hover:bg-white/60 dark:hover:bg-white/10 glass-brushed rounded-xl transition-colors"
+                      className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/60 dark:hover:bg-black/5 glass-brushed rounded-xl transition-colors"
                     >
                       <Edit3 size={18} />
                     </button>
@@ -306,7 +306,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                     }
                   }}
                   placeholder="Nyt mappenavn..."
-                  className="flex-1 cm-surface-secondary text-forest-dark dark:text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-forest-mid/10"
+                  className="flex-1 cm-surface-secondary text-forest-dark cm-light-surface-ink text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-forest-mid/10"
                   autoFocus
                 />
                 <button 
@@ -339,7 +339,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   </button>
                   <button 
                     onClick={() => setFolderIdToDelete(null)}
-                    className="glass-brushed text-forest-mid dark:text-white/80 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest"
+                    className="glass-brushed text-forest-mid cm-light-surface-ink-muted px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest"
                   >
                     Annuller
                   </button>
@@ -352,10 +352,10 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         ) : (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Book size={20} className="text-forest-mid dark:text-white/90"/> Kogebøger</h2>
+              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Book size={20} className="text-forest-mid cm-light-surface-icon"/> Kogebøger</h2>
               <button 
                 onClick={() => setShowNewFolderInput(true)}
-                className="text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/80 flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 transition-all"
+                className="text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-black/5 transition-all"
               >
                 <Plus size={14} /> Ny mappe
               </button>
@@ -367,7 +367,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   value={newFolderName}
                   onChange={e => setNewFolderName(e.target.value)}
                   placeholder="Mappenavn..."
-                  className="flex-1 cm-surface-secondary text-forest-dark dark:text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-forest-mid/10"
+                  className="flex-1 cm-surface-secondary text-forest-dark cm-light-surface-ink text-sm rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-forest-mid/10"
                   autoFocus
                   onKeyDown={e => {
                     if (e.key === 'Enter' && newFolderName.trim()) {
@@ -403,16 +403,16 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   <button
                     key={folder.id}
                     onClick={() => setSelectedFolderId(folder.id)}
-                    className="flex flex-col items-start p-6 glass-brushed rounded-[2rem] hover:bg-white/60 dark:hover:bg-white/10 transition-all text-left group relative"
+                    className="flex flex-col items-start p-6 glass-brushed rounded-[2rem] hover:bg-white/60 dark:hover:bg-black/5 transition-all text-left group relative"
                   >
-                    <Folder size={28} className="text-forest-mid dark:text-white/90 mb-4 group-hover:scale-110 transition-transform" />
+                    <Folder size={28} className="text-forest-mid cm-light-surface-icon mb-4 group-hover:scale-110 transition-transform" />
                     {isShared && (
-                      <div className="absolute top-4 right-4 text-forest-mid dark:text-white/80 opacity-60 dark:opacity-90">
+                      <div className="absolute top-4 right-4 text-forest-mid cm-light-surface-ink-muted opacity-60 dark:opacity-90">
                         <UserPlus size={14} />
                       </div>
                     )}
-                    <span className="font-serif text-lg text-forest-dark dark:text-white line-clamp-1 italic text-engraved">{folder.name}</span>
-                    <span className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-widest opacity-50 dark:opacity-100 mt-1">{count} opskrifter</span>
+                    <span className="font-serif text-lg text-forest-dark cm-light-surface-ink line-clamp-1 italic text-engraved">{folder.name}</span>
+                    <span className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest opacity-50 dark:opacity-100 mt-1">{count} opskrifter</span>
                     <div className="mt-3">
                       <OwnershipBadge ownership={folderOwnership} />
                     </div>
@@ -449,10 +449,10 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className="flex items-center gap-2 px-5 py-3 glass-brushed rounded-full hover:bg-white/60 dark:hover:bg-white/10 transition-all group"
+                    className="flex items-center gap-2 px-5 py-3 glass-brushed rounded-full hover:bg-white/60 dark:hover:bg-black/5 transition-all group"
                   >
-                    <span className="text-sm font-medium text-forest-dark dark:text-white group-hover:text-forest-mid dark:group-hover:text-white/80 transition-colors">{cat}</span>
-                    <span className="cm-surface-utility text-forest-mid dark:text-white/80 text-xs font-bold px-2 py-0.5 rounded-full">{count}</span>
+                    <span className="text-sm font-medium text-forest-dark cm-light-surface-ink group-hover:text-forest-mid dark:group-hover:text-[#314038] transition-colors">{cat}</span>
+                    <span className="cm-surface-utility text-forest-mid cm-light-surface-ink-muted text-xs font-bold px-2 py-0.5 rounded-full">{count}</span>
                   </button>
                 );
               })}

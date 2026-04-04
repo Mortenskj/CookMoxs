@@ -166,7 +166,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         <div className="flex items-center gap-4 mb-8 pt-4">
           <button
             onClick={() => setActiveTab(null)}
-            className="flex items-center gap-1 p-2 text-forest-mid dark:text-white/80 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors glass-brushed"
+            className="flex items-center gap-1 p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed"
           >
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2">Tilbage</span>
@@ -195,7 +195,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   Du er offline. Linket bliver gemt lokalt i køen og kan behandles senere.
                 </div>
               )}
-              <label className="block text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt link</label>
+              <label className="block text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt link</label>
               <input
                 type="url"
                 value={url}
@@ -204,10 +204,10 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   if (e.key === 'Enter' && url) handleSubmit();
                 }}
                 placeholder="https://..."
-                className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/50 transition-all text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/30 font-serif italic"
+                className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-black/20 transition-all text-forest-dark cm-light-surface-ink placeholder-forest-mid/40 cm-light-surface-placeholder font-serif italic"
                 autoFocus
               />
-              <p className="text-xs text-forest-mid dark:text-white/90 italic opacity-70 dark:opacity-100">
+              <p className="text-xs text-forest-mid cm-light-surface-ink-muted italic opacity-70 dark:opacity-100">
                 {isOnline ? 'Vi prøver grundimport først og bruger kun AI, hvis siden kræver det.' : 'Offline links gemmes nu i køen til senere behandling.'}
               </p>
             </div>
@@ -220,13 +220,13 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   {textAndFileDisabledReason}
                 </div>
               )}
-              <label className="block text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt tekst</label>
+              <label className="block text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt tekst</label>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Kopier og indsæt opskriften her..."
                 rows={8}
-                className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-white/50 transition-all resize-none text-forest-dark dark:text-white placeholder-forest-mid/40 dark:placeholder-white/30 font-serif italic"
+                className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-black/20 transition-all resize-none text-forest-dark cm-light-surface-ink placeholder-forest-mid/40 cm-light-surface-placeholder font-serif italic"
                 autoFocus
                 disabled={Boolean(textAndFileDisabledReason)}
               />
@@ -250,12 +250,12 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading || Boolean(textAndFileDisabledReason)}
-                className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid dark:text-white/80 hover:bg-white/80 dark:hover:bg-white/20 transition-all disabled:opacity-50"
+                className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid cm-light-surface-icon hover:bg-white/80 dark:hover:bg-black/5 transition-all disabled:opacity-50"
               >
                 {loading ? <Loader2 size={32} className="animate-spin" /> : <FileUp size={32} />}
               </button>
-              <p className="text-forest-dark dark:text-white font-serif text-xl italic">Upload PDF eller dokument</p>
-              <p className="text-sm text-forest-mid dark:text-white/85 italic opacity-60 dark:opacity-100">Denne importtype kræver AI.</p>
+              <p className="text-forest-dark cm-light-surface-ink font-serif text-xl italic">Upload PDF eller dokument</p>
+              <p className="text-sm text-forest-mid cm-light-surface-ink-muted italic opacity-60 dark:opacity-100">Denne importtype kræver AI.</p>
             </div>
           )}
 
@@ -291,34 +291,34 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 <button
                   onClick={() => cameraInputRef.current?.click()}
                   disabled={loading || Boolean(imageDisabledReason)}
-                  className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+                  className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all disabled:opacity-50"
                 >
-                  <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark dark:text-white">
+                  <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark cm-light-surface-ink">
                     <Camera size={24} />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-forest-dark dark:text-white">Kamera</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-forest-dark cm-light-surface-ink">Kamera</span>
                 </button>
                 <button
                   onClick={() => galleryInputRef.current?.click()}
                   disabled={loading || Boolean(imageDisabledReason)}
-                  className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all disabled:opacity-50"
+                  className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all disabled:opacity-50"
                 >
-                  <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark dark:text-white">
+                  <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark cm-light-surface-ink">
                     <ImageIcon size={24} />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-forest-dark dark:text-white">Galleri</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-forest-dark cm-light-surface-ink">Galleri</span>
                 </button>
               </div>
 
               {loading && (
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 size={32} className="animate-spin text-forest-mid dark:text-white/80" />
-                  <p className="text-sm text-forest-mid dark:text-white/80 italic">Analyserer billede...</p>
+                  <Loader2 size={32} className="animate-spin text-forest-mid cm-light-surface-icon" />
+                  <p className="text-sm text-forest-mid cm-light-surface-ink-muted italic">Analyserer billede...</p>
                 </div>
               )}
 
-              <p className="text-forest-dark dark:text-white font-serif text-xl italic">Scan en opskrift</p>
-              <p className="text-sm text-forest-mid dark:text-white/85 italic opacity-60 dark:opacity-100">
+              <p className="text-forest-dark cm-light-surface-ink font-serif text-xl italic">Scan en opskrift</p>
+              <p className="text-sm text-forest-mid cm-light-surface-ink-muted italic opacity-60 dark:opacity-100">
                 {isOnline ? 'Billedimport kræver AI.' : 'Offline billeder gemmes nu i køen.'}
               </p>
             </div>
@@ -326,10 +326,10 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
           {activeTab === 'manual' && (
             <div className="space-y-6 text-center py-10">
-              <div className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid dark:text-white/80">
+              <div className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid cm-light-surface-icon">
                 <PenTool size={32} />
               </div>
-              <p className="text-forest-dark dark:text-white font-serif text-xl italic">Skriv din egen opskrift fra bunden</p>
+              <p className="text-forest-dark cm-light-surface-ink font-serif text-xl italic">Skriv din egen opskrift fra bunden</p>
               <button
                 onClick={onCreateManual}
                 className="btn-wood-light mt-6 px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest"
@@ -358,7 +358,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               className="btn-wood-light w-full mt-10 py-5 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
             >
               {loading ? (
-                <><Loader2 size={20} className="animate-spin text-forest-mid dark:text-white/80" /> Analyserer...</>
+                <><Loader2 size={20} className="animate-spin text-forest-mid cm-light-surface-icon" /> Analyserer...</>
               ) : (
                 'Importer opskrift'
               )}
@@ -394,9 +394,9 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 cat.id === 'manual' ? onCreateManual() : setActiveTab(cat.id);
               }}
               disabled={disabled}
-              className={`glass-brushed p-6 rounded-[2rem] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 hover:bg-white/60 dark:hover:bg-white/10 transition-all group text-center shadow-sm ${index === 4 ? 'col-span-2' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`glass-brushed p-6 rounded-[2rem] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all group text-center shadow-sm ${index === 4 ? 'col-span-2' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <div className="w-16 h-16 cm-surface-secondary rounded-2xl flex items-center justify-center text-forest-mid dark:text-white/80 group-hover:bg-forest-dark dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-black transition-all mb-2 relative">
+              <div className="w-16 h-16 cm-surface-secondary rounded-2xl flex items-center justify-center text-forest-mid cm-light-surface-icon group-hover:bg-forest-dark dark:group-hover:bg-[#314038] group-hover:text-white dark:group-hover:text-[#F6F2EA] transition-all mb-2 relative">
                 {cat.icon}
                 {cat.id === 'url' && pendingCount > 0 && (
                   <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -410,8 +410,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 )}
               </div>
               <div>
-                <h3 className="text-lg font-serif text-forest-dark dark:text-white italic leading-tight">{cat.label}</h3>
-                <p className="text-xs text-forest-mid dark:text-white/80 italic opacity-60 dark:opacity-100 uppercase tracking-widest mt-1">{cat.description}</p>
+                <h3 className="text-lg font-serif text-forest-dark cm-light-surface-ink italic leading-tight">{cat.label}</h3>
+                <p className="text-xs text-forest-mid cm-light-surface-ink-muted italic opacity-60 dark:opacity-100 uppercase tracking-widest mt-1">{cat.description}</p>
                 {AI_TEXT_FILE_TABS.includes(cat.id) && (
                   <p className="text-[10px] text-heath-mid italic uppercase tracking-widest mt-2">Kræver AI</p>
                 )}
