@@ -64,15 +64,10 @@ function SettingsToggle({
       aria-checked={enabled}
       aria-label={enabled ? enabledLabel : disabledLabel}
       onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-12 w-22 items-center rounded-full border border-black/5 p-1.5 transition-all shadow-inner ${
-        enabled ? 'bg-forest-dark/85' : 'bg-white/70'
-      }`}
+      data-state={enabled ? 'on' : 'off'}
+      className="cm-settings-toggle"
     >
-      <span
-        className={`absolute top-1/2 h-9 w-9 -translate-y-1/2 rounded-full transition-all ${
-          enabled ? 'left-[calc(100%-2.625rem)] bg-white shadow-md' : 'left-1.5 bg-forest-dark shadow-sm'
-        }`}
-      />
+      <span className="cm-settings-toggle-thumb" />
     </button>
   );
 }
@@ -135,13 +130,13 @@ export function SettingsView({
       </div>
 
       <div className="space-y-8">
-        <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <section className="cm-settings-card">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <User size={14} /> Konto
           </h2>
 
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="cm-settings-row">
+            <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">Google Login</p>
               <p className="text-xs text-forest-mid italic opacity-70">
                 {user ? `Logget ind som ${user.displayName || user.email}` : 'Log ind for at gemme og dele opskrifter'}
@@ -151,14 +146,14 @@ export function SettingsView({
               {user ? (
                 <button
                   onClick={onLogout}
-                  className="px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-forest-dark text-white shadow-sm flex items-center gap-2 hover:bg-forest-mid transition-colors"
+                  className="btn-heath"
                 >
                   <LogOut size={14} /> Log ud
                 </button>
               ) : (
                 <button
                   onClick={onLogin}
-                  className="px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-forest-dark text-white shadow-sm flex items-center gap-2 hover:bg-forest-mid transition-colors"
+                  className="btn-heath"
                 >
                   <LogIn size={14} /> Log ind
                 </button>
@@ -173,7 +168,7 @@ export function SettingsView({
           ) : null}
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <section className="cm-settings-card">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Cloud size={14} /> Data og backup
           </h2>
@@ -187,8 +182,8 @@ export function SettingsView({
               </p>
             </div>
 
-            <div className="cm-surface-secondary rounded-2xl p-4 flex items-start justify-between gap-4">
-              <div>
+            <div className="cm-settings-row items-start">
+              <div className="cm-settings-copy">
                 <p className="font-serif text-lg text-forest-dark italic mb-1">Cloud-status</p>
                 <p className="text-xs text-forest-mid leading-relaxed opacity-80">
                   {cloudSyncMessage || (user ? 'Cloud aktiv' : 'Kun lokal lagring aktiv')}
@@ -205,13 +200,13 @@ export function SettingsView({
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onExportBackup}
-                className="flex-1 px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm flex items-center justify-center gap-2 hover:bg-forest-mid transition-colors"
+                className="btn-heath flex-1"
               >
                 <Download size={14} /> Eksportér backup
               </button>
               <button
                 onClick={onImportBackup}
-                className="flex-1 px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl border border-black/10 text-forest-dark shadow-sm flex items-center justify-center gap-2 hover:bg-white/60 transition-colors"
+                className="btn-wood-light flex-1"
               >
                 <Upload size={14} /> Gendan backup
               </button>
@@ -223,7 +218,7 @@ export function SettingsView({
           </div>
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <section className="cm-settings-card">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <ChefHat size={14} /> Dit niveau i køkkenet
           </h2>
@@ -234,7 +229,8 @@ export function SettingsView({
                 <button
                   key={level}
                   onClick={() => setUserLevel(level)}
-                  className={`p-4 rounded-2xl border transition-all text-left ${selected ? 'border-forest-dark bg-white/70 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+                  data-active={selected}
+                  className="cm-settings-choice-card"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="font-serif text-base text-forest-dark italic">{level}</span>
@@ -251,7 +247,7 @@ export function SettingsView({
           </div>
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <section className="cm-settings-card">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Palette size={14} /> Tema (Årstider)
           </h2>
@@ -261,7 +257,8 @@ export function SettingsView({
               <button
                 key={option.id}
                 onClick={() => setTheme(option.id)}
-                className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${theme === option.id ? 'border-forest-dark bg-white/60 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+                data-active={theme === option.id}
+                className="cm-settings-choice-card flex flex-col items-center gap-2"
               >
                 <div
                   className="w-12 h-12 rounded-full shadow-inner border border-black/10"
@@ -273,40 +270,42 @@ export function SettingsView({
           </div>
         </section>
 
-        <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <section className="cm-settings-card">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Thermometer size={14} /> Præferencer
           </h2>
 
-          <div className="flex items-center justify-between mb-8">
-            <div>
+          <div className="cm-settings-row mb-8">
+            <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">Udseende</p>
               <p className="text-xs text-forest-mid italic opacity-70">Lyst eller mørkt tema</p>
             </div>
-            <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
+            <div className="cm-settings-segmented">
               <button
                 onClick={() => onDarkModeChange(false)}
-                className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all ${!isDarkMode ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+                data-active={!isDarkMode}
+                className="cm-settings-segment-button"
               >
                 <Sun size={14} />
               </button>
               <button
                 onClick={() => onDarkModeChange(true)}
-                className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all ${isDarkMode ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+                data-active={isDarkMode}
+                className="cm-settings-segment-button"
               >
                 <Moon size={14} />
               </button>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="cm-settings-row">
+            <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">Temperatur</p>
               <p className="text-xs text-forest-mid italic opacity-70">Vælg din foretrukne enhed</p>
             </div>
-            <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
-              <button className="px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-xl bg-forest-dark text-white shadow-sm">°C</button>
-              <button className="px-5 py-2 text-xs font-bold uppercase tracking-widest rounded-xl text-forest-mid hover:bg-white/40 transition-all">°F</button>
+            <div className="cm-settings-segmented">
+              <button data-active className="cm-settings-segment-button">°C</button>
+              <button className="cm-settings-segment-button">°F</button>
             </div>
           </div>
 
@@ -323,7 +322,8 @@ export function SettingsView({
                 <button
                   key={option.value}
                   onClick={() => setImportPreference(option.value)}
-                  className={`p-4 rounded-2xl border transition-all text-left ${importPreference === option.value ? 'border-forest-dark bg-white/70 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+                  data-active={importPreference === option.value}
+                  className="cm-settings-choice-card"
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
@@ -343,8 +343,8 @@ export function SettingsView({
                   <p className="text-xs text-forest-mid italic opacity-70">Til test: kør altid en AI-berigelse oven på vellykket grundimport af links.</p>
                 </div>
               </div>
-              <div className="cm-surface-secondary flex items-center justify-between rounded-2xl p-4">
-                <div>
+              <div className="cm-settings-row">
+                <div className="cm-settings-copy">
                   <p className="font-serif text-lg text-forest-dark italic">{autoAiImportEnhancement ? 'Altid aktiv' : 'Kun grundimport'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
                     Når den er slået til, kræver linkimport også en efterfølgende AI-tilpasning, så du kan teste hele importkæden.
@@ -372,8 +372,8 @@ export function SettingsView({
                   <p className="text-xs text-forest-mid italic opacity-70">Slå produktopslag og opskriftsnær nutrition til eller fra i denne browser.</p>
                 </div>
               </div>
-              <div className="cm-surface-secondary flex items-center justify-between rounded-2xl p-4">
-                <div>
+              <div className="cm-settings-row">
+                <div className="cm-settings-copy">
                   <p className="font-serif text-lg text-forest-dark italic">{nutritionToolsEnabled ? 'Modul aktivt' : 'Modul skjult'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
                     Når modulet er slået fra, skjules nutrition-opslag i Indstillinger og på opskriftssiden.
@@ -384,8 +384,8 @@ export function SettingsView({
                   onChange={setNutritionToolsEnabled}
                 />
               </div>
-              <div className="cm-surface-utility mt-4 flex items-center justify-between rounded-2xl p-4">
-                <div>
+              <div className="cm-settings-row cm-settings-row--subtle mt-4">
+                <div className="cm-settings-copy">
                   <p className="font-serif text-lg text-forest-dark italic">
                     {recipeNutritionVisible ? 'Produktdata vises paa opskriftssiden' : 'Produktdata skjules paa opskriftssiden'}
                   </p>
@@ -399,8 +399,8 @@ export function SettingsView({
                 />
               </div>
               {recipeNutritionVisible && (
-                <div className="cm-surface-utility mt-4 flex items-center justify-between rounded-2xl p-4">
-                  <div>
+                <div className="cm-settings-row cm-settings-row--subtle mt-4">
+                  <div className="cm-settings-copy">
                     <p className="font-serif text-lg text-forest-dark italic">
                       {recipeNutritionEstimateVisible ? 'AI-makroestimat vises' : 'AI-makroestimat skjules'}
                     </p>
@@ -415,8 +415,8 @@ export function SettingsView({
                 </div>
               )}
               {recipeNutritionVisible && (
-                <div className="cm-surface-utility mt-4 flex items-center justify-between rounded-2xl p-4">
-                  <div>
+                <div className="cm-settings-row cm-settings-row--subtle mt-4">
+                  <div className="cm-settings-copy">
                     <p className="font-serif text-lg text-forest-dark italic">
                       {recipeNutritionExpandedByDefault ? 'Produktdata vises aabent' : 'Produktdata skjules som standard'}
                     </p>
@@ -439,8 +439,8 @@ export function SettingsView({
                 <p className="text-xs text-forest-mid italic opacity-70">Vælg om cook mode skal starte med et ekstra trin til at finde og klargøre ingredienser.</p>
               </div>
             </div>
-            <div className="cm-surface-secondary flex items-center justify-between rounded-2xl p-4 mb-8">
-              <div>
+            <div className="cm-settings-row mb-8">
+              <div className="cm-settings-copy">
                 <p className="font-serif text-lg text-forest-dark italic">{includePrep ? 'Forberedelses-trin aktivt' : 'Forberedelses-trin skjult'}</p>
                 <p className="text-xs text-forest-mid opacity-75">
                   Når det er slået fra, starter cook mode direkte på første egentlige tilberedningstrin.
@@ -464,7 +464,8 @@ export function SettingsView({
                 <button
                   key={size}
                   onClick={() => setCookFontSize(size)}
-                  className={`p-4 rounded-2xl border transition-all text-left ${cookFontSize === size ? 'border-forest-dark bg-white/70 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+                  data-active={cookFontSize === size}
+                  className="cm-settings-choice-card"
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-serif text-sm text-forest-dark italic">{COOK_FONT_META[size].label}</span>
@@ -487,7 +488,7 @@ export function SettingsView({
           aiDisabledReason={aiDisabledReason}
         />
 
-        <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <section className="cm-settings-card">
           <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
             <Info size={14} /> Om appen
           </h2>
