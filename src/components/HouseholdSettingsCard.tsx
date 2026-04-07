@@ -196,17 +196,17 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
             <div className="cm-surface-secondary rounded-2xl p-4">
               <p className="font-serif text-lg text-forest-dark italic">Opret din første husstand</p>
               <p className="mt-1 text-xs text-forest-mid opacity-80">Brug husstande til familie- eller hjemmedeling uden at brede UI ud endnu.</p>
-              <div className="mt-4 flex flex-col sm:flex-row gap-3">
+              <div className="cm-settings-inline-form cm-settings-inline-form--create mt-4">
                 <input
                   value={householdName}
                   onChange={(event) => setHouseholdName(event.target.value)}
                   placeholder="Fx Familien Madsen"
-                  className="flex-1 rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
+                  className="cm-settings-field"
                 />
                 <button
                   onClick={() => void handleCreateHousehold()}
                   disabled={!householdName.trim() || !isOnline || busyKey === 'create'}
-                  className="px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50"
+                  className="btn-heath disabled:opacity-50"
                 >
                   Opret husstand
                 </button>
@@ -234,9 +234,11 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                       {currentRole === 'owner' ? 'Du ejer denne husstand.' : currentRole === 'admin' ? 'Du er admin i denne husstand.' : 'Du er medlem af denne husstand.'}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-700">
-                    {members.length} medlemmer
-                  </span>
+                  <div className="cm-settings-badge-stack">
+                    <span className="shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-700">
+                      {members.length} medlemmer
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-4 space-y-4">
@@ -259,7 +261,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                 <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Ukendt medlem'}</p>
                                 <p className="text-xs text-forest-mid opacity-75">{member.email || member.uid || 'Afventer invitation'}</p>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="cm-settings-badge-stack">
                                 <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-forest-dark text-white">
                                   {roleLabel[member.role]}
                                 </span>
@@ -271,26 +273,20 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
                             {canManage ? (
                               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                                <div className="flex flex-1 gap-2">
+                                <div className="cm-settings-segmented flex-1">
                                   <button
                                     onClick={() => void handleRoleChange(household.id, member, 'member')}
                                     disabled={!isOnline || isUpdatingRole || member.role === 'member'}
-                                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
-                                      member.role === 'member'
-                                        ? 'bg-forest-dark text-white shadow-md'
-                                        : 'glass-brushed text-forest-mid'
-                                    } disabled:opacity-50`}
+                                    data-active={member.role === 'member'}
+                                    className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                   >
                                     <Shield size={12} /> Medlem
                                   </button>
                                   <button
                                     onClick={() => void handleRoleChange(household.id, member, 'admin')}
                                     disabled={!isOnline || isUpdatingRole || member.role === 'admin'}
-                                    className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
-                                      member.role === 'admin'
-                                        ? 'bg-forest-dark text-white shadow-md'
-                                        : 'glass-brushed text-forest-mid'
-                                    } disabled:opacity-50`}
+                                    data-active={member.role === 'admin'}
+                                    className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                   >
                                     <ShieldCheck size={12} /> Admin
                                   </button>
@@ -298,7 +294,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                 <button
                                   onClick={() => void handleRemoveMember(household.id, member)}
                                   disabled={!isOnline || isRemoving}
-                                  className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-red-700 glass-brushed disabled:opacity-50"
+                                  className="btn-wood-light text-red-700 disabled:opacity-50"
                                 >
                                   <Trash2 size={12} /> Fjern
                                 </button>
@@ -338,7 +334,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                   <p className="text-sm font-medium text-forest-dark">{member.displayName || member.email || 'Invitation uden navn'}</p>
                                   <p className="text-xs text-forest-mid opacity-75">{member.email || 'Afventer invitation'}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="cm-settings-badge-stack">
                                   <span className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-forest-dark text-white">
                                     {roleLabel[member.role]}
                                   </span>
@@ -350,26 +346,20 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
                               {canManage ? (
                                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                                  <div className="flex flex-1 gap-2">
+                                  <div className="cm-settings-segmented flex-1">
                                     <button
                                       onClick={() => void handleRoleChange(household.id, member, 'member')}
                                       disabled={!isOnline || isUpdatingRole || member.role === 'member'}
-                                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
-                                        member.role === 'member'
-                                          ? 'bg-forest-dark text-white shadow-md'
-                                          : 'glass-brushed text-forest-mid'
-                                      } disabled:opacity-50`}
+                                      data-active={member.role === 'member'}
+                                      className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                     >
                                       <Shield size={12} /> Medlem
                                     </button>
                                     <button
                                       onClick={() => void handleRoleChange(household.id, member, 'admin')}
                                       disabled={!isOnline || isUpdatingRole || member.role === 'admin'}
-                                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-all ${
-                                        member.role === 'admin'
-                                          ? 'bg-forest-dark text-white shadow-md'
-                                          : 'glass-brushed text-forest-mid'
-                                      } disabled:opacity-50`}
+                                      data-active={member.role === 'admin'}
+                                      className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                     >
                                       <ShieldCheck size={12} /> Admin
                                     </button>
@@ -377,7 +367,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                   <button
                                     onClick={() => void handleRemoveMember(household.id, member)}
                                     disabled={!isOnline || isRemoving}
-                                    className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-red-700 glass-brushed disabled:opacity-50"
+                                    className="btn-wood-light text-red-700 disabled:opacity-50"
                                   >
                                     <Trash2 size={12} /> Fjern
                                   </button>
@@ -407,17 +397,17 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                       <Home size={14} />
                       <p className="text-xs font-bold uppercase tracking-widest">Inviter til husstand</p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="cm-settings-inline-form cm-settings-inline-form--invite">
                       <input
                         value={inviteEmailByHousehold[household.id] || ''}
                         onChange={(event) => setInviteEmailByHousehold((prev) => ({ ...prev, [household.id]: event.target.value }))}
                         placeholder="navn@email.dk"
-                        className="flex-1 rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
+                        className="cm-settings-field"
                       />
                       <select
                         value={inviteRoleByHousehold[household.id] || 'member'}
                         onChange={(event) => setInviteRoleByHousehold((prev) => ({ ...prev, [household.id]: event.target.value as ManageableHouseholdRole }))}
-                        className="rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
+                        className="cm-settings-select"
                       >
                         <option value="member">Medlem</option>
                         <option value="admin">Admin</option>
@@ -425,7 +415,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                       <button
                         onClick={() => void handleInvite(household.id)}
                         disabled={!inviteEmailByHousehold[household.id]?.trim() || !isOnline || busyKey === `invite:${household.id}`}
-                        className="px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50"
+                        className="btn-heath disabled:opacity-50"
                       >
                         Inviter
                       </button>
@@ -440,8 +430,8 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
             <p className="text-sm text-forest-mid italic opacity-80">Ingen husstandsdata fundet endnu.</p>
           )}
 
-          {statusMessage && <p className="text-sm text-emerald-800">{statusMessage}</p>}
-          {error && <p className="text-sm text-red-700">{error}</p>}
+          {statusMessage && <p className="cm-settings-status-message cm-settings-status-message--success">{statusMessage}</p>}
+          {error && <p className="cm-settings-status-message cm-settings-status-message--error">{error}</p>}
         </div>
       )}
     </section>

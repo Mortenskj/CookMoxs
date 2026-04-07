@@ -79,21 +79,23 @@ export function LearningFeedbackCard() {
         </p>
       </div>
 
-      <div className="cm-surface-secondary mt-5 flex items-center justify-between gap-4 rounded-2xl p-4">
-        <div>
+      <div className="cm-settings-row mt-5">
+        <div className="cm-settings-copy">
           <p className="font-serif text-lg text-forest-dark italic">Aktiver eksplicit feedback</p>
           <p className="text-xs text-forest-mid opacity-75">Du kan slaa det til eller fra uden at påvirke resten af appen.</p>
         </div>
-        <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
+        <div className="cm-settings-segmented">
           <button
             onClick={() => handleEnableChange(false)}
-            className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${!enabled ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+            data-active={!enabled}
+            className="cm-settings-segment-button"
           >
             Fra
           </button>
           <button
             onClick={() => handleEnableChange(true)}
-            className={`px-4 py-2 rounded-xl transition-all text-xs font-bold uppercase tracking-widest ${enabled ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+            data-active={enabled}
+            className="cm-settings-segment-button"
           >
             Til
           </button>
@@ -107,11 +109,14 @@ export function LearningFeedbackCard() {
               <button
                 key={item.value}
                 onClick={() => setArea(item.value)}
-                className={`p-4 rounded-2xl border transition-all text-left ${area === item.value ? 'border-forest-dark bg-white/70 shadow-md' : 'border-black/5 bg-white/20 hover:bg-white/40'}`}
+                data-active={area === item.value}
+                className="cm-settings-choice-card"
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="font-serif text-sm text-forest-dark italic">{item.label}</span>
-                  {area === item.value && <span className="text-[10px] font-bold uppercase tracking-widest text-forest-dark">Valgt</span>}
+                  <span data-active={area === item.value} className="cm-settings-choice-badge">
+                    {area === item.value ? 'Valgt' : 'Feedback'}
+                  </span>
                 </div>
                 <p className="text-xs text-forest-mid opacity-75">{item.description}</p>
               </button>

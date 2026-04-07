@@ -253,20 +253,29 @@ export function SettingsView({
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
-            {SEASONAL_THEME_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => setTheme(option.id)}
-                data-active={theme === option.id}
-                className="cm-settings-choice-card flex flex-col items-center gap-2"
-              >
-                <div
-                  className="w-12 h-12 rounded-full shadow-inner border border-black/10"
-                  style={{ backgroundColor: option.swatch }}
-                ></div>
-                <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
-              </button>
-            ))}
+            {SEASONAL_THEME_OPTIONS.map((option) => {
+              const selected = theme === option.id;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setTheme(option.id)}
+                  data-active={selected}
+                  className="cm-settings-choice-card flex flex-col items-center gap-3"
+                >
+                  <div
+                    data-active={selected}
+                    className="cm-settings-theme-swatch"
+                    style={{ backgroundColor: option.swatch }}
+                  />
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
+                    <span data-active={selected} className="cm-settings-choice-badge">
+                      {selected ? 'Aktiv' : 'Tema'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -469,7 +478,9 @@ export function SettingsView({
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-serif text-sm text-forest-dark italic">{COOK_FONT_META[size].label}</span>
-                    <span className="text-xs font-bold uppercase tracking-widest text-forest-mid">{COOK_FONT_META[size].preview}</span>
+                    <span data-active={cookFontSize === size} className="cm-settings-choice-badge">
+                      {cookFontSize === size ? 'Aktiv' : COOK_FONT_META[size].preview}
+                    </span>
                   </div>
                   <p className="text-xs text-forest-mid opacity-75">Forhåndsvisning i ca. {COOK_FONT_META[size].px}px</p>
                 </button>
