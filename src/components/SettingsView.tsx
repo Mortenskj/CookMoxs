@@ -7,7 +7,6 @@ import { useNutritionToolsEnabled } from '../hooks/useNutritionToolsEnabled';
 import { useRecipeNutritionEstimateVisible } from '../hooks/useRecipeNutritionEstimateVisible';
 import { useRecipeNutritionVisible } from '../hooks/useRecipeNutritionVisible';
 import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
-import { NutritionLookupCard } from './NutritionLookupCard';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 import { LearningFeedbackCard } from './LearningFeedbackCard';
 import { LearningProfileTransparencyCard } from './LearningProfileTransparencyCard';
@@ -103,18 +102,9 @@ export function SettingsView({
   aiDisabledReason,
 }: SettingsViewProps) {
   const { enabled: nutritionToolsEnabled, setEnabled: setNutritionToolsEnabled } = useNutritionToolsEnabled();
-  const {
-    visible: recipeNutritionVisible,
-    setVisible: setRecipeNutritionVisible,
-  } = useRecipeNutritionVisible();
-  const {
-    visible: recipeNutritionEstimateVisible,
-    setVisible: setRecipeNutritionEstimateVisible,
-  } = useRecipeNutritionEstimateVisible();
-  const {
-    expandedByDefault: recipeNutritionExpandedByDefault,
-    setExpandedByDefault: setRecipeNutritionExpandedByDefault,
-  } = useRecipeNutritionExpandedByDefault();
+  const { visible: recipeNutritionVisible, setVisible: setRecipeNutritionVisible } = useRecipeNutritionVisible();
+  const { visible: recipeNutritionEstimateVisible, setVisible: setRecipeNutritionEstimateVisible } = useRecipeNutritionEstimateVisible();
+  const { expandedByDefault: recipeNutritionExpandedByDefault, setExpandedByDefault: setRecipeNutritionExpandedByDefault } = useRecipeNutritionExpandedByDefault();
 
   return (
     <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
@@ -131,30 +121,24 @@ export function SettingsView({
 
       <div className="space-y-8">
         <section className="cm-settings-card">
-          <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+          <h2 className="cm-settings-section-heading">
             <User size={14} /> Konto
           </h2>
 
           <div className="cm-settings-row">
             <div className="cm-settings-copy">
-              <p className="font-serif text-lg text-forest-dark italic">Google Login</p>
+              <p className="font-serif text-lg text-forest-dark italic">Google-login</p>
               <p className="text-xs text-forest-mid italic opacity-70">
-                {user ? `Logget ind som ${user.displayName || user.email}` : 'Log ind for at gemme og dele opskrifter'}
+                {user ? `Logget ind som ${user.displayName || user.email}` : 'Giver synkronisering, deling og gendannelse på tværs af enheder.'}
               </p>
             </div>
             <div className="flex">
               {user ? (
-                <button
-                  onClick={onLogout}
-                  className="btn-heath"
-                >
+                <button onClick={onLogout} className="btn-heath">
                   <LogOut size={14} /> Log ud
                 </button>
               ) : (
-                <button
-                  onClick={onLogin}
-                  className="btn-heath"
-                >
+                <button onClick={onLogin} className="btn-heath">
                   <LogIn size={14} /> Log ind
                 </button>
               )}
@@ -169,16 +153,15 @@ export function SettingsView({
         </section>
 
         <section className="cm-settings-card">
-          <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+          <h2 className="cm-settings-section-heading">
             <Cloud size={14} /> Data og backup
           </h2>
 
           <div className="space-y-5">
             <div className="cm-surface-secondary rounded-2xl p-4">
-              <p className="font-serif text-lg text-forest-dark italic mb-1">Cloud er synkronisering - ikke rigtig backup</p>
+              <p className="font-serif text-lg text-forest-dark italic mb-1">Cloud er synkronisering, ikke backup</p>
               <p className="text-xs text-forest-mid leading-relaxed opacity-80">
-                Når du er logget ind, ligger dine data i skyen via Firestore. Men hvis noget bliver overskrevet eller slettet ved en fejl,
-                er det stadig den samme aktuelle sandhed. Eksport giver dig et særskilt gendannelsespunkt.
+                Cloud holder den aktuelle version opdateret. Eksport er den version, du kan gemme som sikkerhedskopi.
               </p>
             </div>
 
@@ -186,7 +169,7 @@ export function SettingsView({
               <div className="cm-settings-copy">
                 <p className="font-serif text-lg text-forest-dark italic mb-1">Cloud-status</p>
                 <p className="text-xs text-forest-mid leading-relaxed opacity-80">
-                  {cloudSyncMessage || (user ? 'Cloud aktiv' : 'Kun lokal lagring aktiv')}
+                  {cloudSyncMessage || (user ? 'Denne browser synkroniserer med cloud.' : 'Denne browser gemmer kun lokalt.')}
                 </p>
                 <p className="text-xs text-forest-mid leading-relaxed opacity-70 mt-2">
                   Netværk: {isOnline ? 'Online' : 'Offline'}
@@ -198,28 +181,22 @@ export function SettingsView({
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={onExportBackup}
-                className="btn-heath flex-1"
-              >
+              <button onClick={onExportBackup} className="btn-heath flex-1">
                 <Download size={14} /> Eksportér backup
               </button>
-              <button
-                onClick={onImportBackup}
-                className="btn-wood-light flex-1"
-              >
+              <button onClick={onImportBackup} className="btn-wood-light flex-1">
                 <Upload size={14} /> Gendan backup
               </button>
             </div>
 
             <p className="text-xs text-forest-mid italic opacity-70">
-              {lastBackupAt ? `Seneste eksport: ${new Date(lastBackupAt).toLocaleString('da-DK')}` : 'Ingen lokal backup eksporteret endnu i denne browser.'}
+              {lastBackupAt ? `Seneste eksport: ${new Date(lastBackupAt).toLocaleString('da-DK')}` : 'Ingen backup er eksporteret endnu i denne browser.'}
             </p>
           </div>
         </section>
 
         <section className="cm-settings-card">
-          <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+          <h2 className="cm-settings-section-heading">
             <ChefHat size={14} /> Dit niveau i køkkenet
           </h2>
           <div className="grid grid-cols-2 gap-4">
@@ -230,15 +207,13 @@ export function SettingsView({
                   key={level}
                   onClick={() => setUserLevel(level)}
                   data-active={selected}
-                  className="cm-settings-choice-card"
+                  className="cm-settings-choice-card cm-settings-choice-card--level"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="font-serif text-base text-forest-dark italic">{level}</span>
-                    {selected && (
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-forest-dark">Aktiv</span>
-                    )}
+                  {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">AKTIV</span> : null}
+                  <div className="mb-2">
+                    <span className="font-serif text-base text-forest-dark italic cm-settings-choice-card__title">{level}</span>
                   </div>
-                  <p className="text-xs text-forest-mid leading-relaxed opacity-80">
+                  <p className="cm-settings-choice-card__description text-xs text-forest-mid leading-relaxed opacity-80">
                     {LEVEL_META[level].cookIntro}
                   </p>
                 </button>
@@ -248,8 +223,8 @@ export function SettingsView({
         </section>
 
         <section className="cm-settings-card">
-          <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
-            <Palette size={14} /> Tema (Årstider)
+          <h2 className="cm-settings-section-heading">
+            <Palette size={14} /> Tema og årstid
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
@@ -260,19 +235,15 @@ export function SettingsView({
                   key={option.id}
                   onClick={() => setTheme(option.id)}
                   data-active={selected}
-                  className="cm-settings-choice-card flex flex-col items-center gap-3"
+                  className="cm-settings-choice-card cm-settings-choice-card--centered cm-settings-choice-card--theme flex flex-col items-center gap-2"
                 >
+                  {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">AKTIV</span> : null}
                   <div
                     data-active={selected}
                     className="cm-settings-theme-swatch"
                     style={{ backgroundColor: option.swatch }}
                   />
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
-                    <span data-active={selected} className="cm-settings-choice-badge">
-                      {selected ? 'Aktiv' : 'Tema'}
-                    </span>
-                  </div>
+                  <span className="font-serif text-sm text-forest-dark italic cm-settings-choice-card__title">{option.label}</span>
                 </button>
               );
             })}
@@ -280,28 +251,20 @@ export function SettingsView({
         </section>
 
         <section className="cm-settings-card">
-          <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+          <h2 className="cm-settings-section-heading">
             <Thermometer size={14} /> Præferencer
           </h2>
 
           <div className="cm-settings-row mb-8">
             <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">Udseende</p>
-              <p className="text-xs text-forest-mid italic opacity-70">Lyst eller mørkt tema</p>
+              <p className="text-xs text-forest-mid italic opacity-70">Gælder hele appen i denne browser.</p>
             </div>
             <div className="cm-settings-segmented">
-              <button
-                onClick={() => onDarkModeChange(false)}
-                data-active={!isDarkMode}
-                className="cm-settings-segment-button"
-              >
+              <button onClick={() => onDarkModeChange(false)} data-active={!isDarkMode} className="cm-settings-segment-button">
                 <Sun size={14} />
               </button>
-              <button
-                onClick={() => onDarkModeChange(true)}
-                data-active={isDarkMode}
-                className="cm-settings-segment-button"
-              >
+              <button onClick={() => onDarkModeChange(true)} data-active={isDarkMode} className="cm-settings-segment-button">
                 <Moon size={14} />
               </button>
             </div>
@@ -310,7 +273,7 @@ export function SettingsView({
           <div className="cm-settings-row">
             <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">Temperatur</p>
-              <p className="text-xs text-forest-mid italic opacity-70">Vælg din foretrukne enhed</p>
+              <p className="text-xs text-forest-mid italic opacity-70">Styrer hvordan temperatur vises i opskrifter og cook mode.</p>
             </div>
             <div className="cm-settings-segmented">
               <button data-active className="cm-settings-segment-button">°C</button>
@@ -323,53 +286,53 @@ export function SettingsView({
               <ChefHat size={14} className="text-forest-mid mt-1" />
               <div>
                 <p className="font-serif text-lg text-forest-dark italic">Import med eller uden AI</p>
-                <p className="text-xs text-forest-mid italic opacity-70">Vælg om opskriftimport skal forbedres automatisk eller holde sig til grundimport.</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Styrer hvor meget hjælp linkimport må bruge.</p>
               </div>
             </div>
             <div className="grid gap-3 mb-8">
-              {IMPORT_PREFERENCE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setImportPreference(option.value)}
-                  data-active={importPreference === option.value}
-                  className="cm-settings-choice-card"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-serif text-sm text-forest-dark italic">{option.label}</span>
-                    {importPreference === option.value && (
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-forest-dark">Aktiv</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-forest-mid opacity-75">{option.description}</p>
-                </button>
-              ))}
+              {IMPORT_PREFERENCE_OPTIONS.map((option) => {
+                const selected = importPreference === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => setImportPreference(option.value)}
+                    data-active={selected}
+                    className="cm-settings-choice-card"
+                  >
+                    {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">AKTIV</span> : null}
+                    <div className="mb-1">
+                      <span className="font-serif text-sm text-forest-dark italic cm-settings-choice-card__title">{option.label}</span>
+                    </div>
+                    <p className="cm-settings-choice-card__description text-xs text-forest-mid opacity-75">{option.description}</p>
+                  </button>
+                );
+              })}
             </div>
+
             <div className="mb-8">
               <div className="flex items-start gap-3 mb-4">
                 <Sparkles size={14} className="text-forest-mid mt-1" />
                 <div>
-                  <p className="font-serif text-lg text-forest-dark italic">AI-tilpas efter linkimport</p>
-                  <p className="text-xs text-forest-mid italic opacity-70">Til test: kør altid en AI-berigelse oven på vellykket grundimport af links.</p>
+                  <p className="font-serif text-lg text-forest-dark italic">AI efter linkimport</p>
+                  <p className="text-xs text-forest-mid italic opacity-70">Tester om import også skal køre et ekstra AI-trin bagefter.</p>
                 </div>
               </div>
               <div className="cm-settings-row">
                 <div className="cm-settings-copy">
                   <p className="font-serif text-lg text-forest-dark italic">{autoAiImportEnhancement ? 'Altid aktiv' : 'Kun grundimport'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
-                    Når den er slået til, kræver linkimport også en efterfølgende AI-tilpasning, så du kan teste hele importkæden.
+                    Til: linkimport kører også AI bagefter. Fra: import stopper efter grundimport, hvis den allerede virker.
                   </p>
                 </div>
-                <SettingsToggle
-                  enabled={autoAiImportEnhancement}
-                  onChange={setAutoAiImportEnhancement}
-                />
+                <SettingsToggle enabled={autoAiImportEnhancement} onChange={setAutoAiImportEnhancement} />
               </div>
             </div>
+
             {aiDisabledReason && (
               <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-amber-900">AI-status</p>
                 <p className="mt-2 text-sm text-amber-900">{aiDisabledReason}</p>
-                <p className="mt-2 text-xs text-amber-900/80">Linkimport med struktureret data, manuel oprettelse og cook mode virker stadig.</p>
+                <p className="mt-2 text-xs text-amber-900/80">Import med struktureret data, manuel oprettelse og cook mode virker stadig uden AI.</p>
               </div>
             )}
 
@@ -378,66 +341,49 @@ export function SettingsView({
                 <Sparkles size={14} className="text-forest-mid mt-1" />
                 <div>
                   <p className="font-serif text-lg text-forest-dark italic">Ernæring og stregkode</p>
-                  <p className="text-xs text-forest-mid italic opacity-70">Slå produktopslag og opskriftsnær nutrition til eller fra i denne browser.</p>
+                  <p className="text-xs text-forest-mid italic opacity-70">Gælder kun i denne browser.</p>
                 </div>
               </div>
               <div className="cm-settings-row">
                 <div className="cm-settings-copy">
-                  <p className="font-serif text-lg text-forest-dark italic">{nutritionToolsEnabled ? 'Modul aktivt' : 'Modul skjult'}</p>
+                  <p className="font-serif text-lg text-forest-dark italic">{nutritionToolsEnabled ? 'Funktion aktiv' : 'Funktion skjult'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
-                    Når modulet er slået fra, skjules nutrition-opslag i Indstillinger og på opskriftssiden.
+                    Til: opskriftssider kan vise produktdata, stregkodeopslag og AI-makroestimat. Fra: de elementer skjules.
                   </p>
                 </div>
-                <SettingsToggle
-                  enabled={nutritionToolsEnabled}
-                  onChange={setNutritionToolsEnabled}
-                />
+                <SettingsToggle enabled={nutritionToolsEnabled} onChange={setNutritionToolsEnabled} />
               </div>
-              <div className="cm-settings-row cm-settings-row--subtle mt-4">
-                <div className="cm-settings-copy">
-                  <p className="font-serif text-lg text-forest-dark italic">
-                    {recipeNutritionVisible ? 'Produktdata vises paa opskriftssiden' : 'Produktdata skjules paa opskriftssiden'}
-                  </p>
-                  <p className="text-xs text-forest-mid opacity-75">
-                    Styr om sektionen for produktdata nederst i opskriften overhovedet vises i denne browser.
-                  </p>
-                </div>
-                <SettingsToggle
-                  enabled={recipeNutritionVisible}
-                  onChange={setRecipeNutritionVisible}
-                />
-              </div>
-              {recipeNutritionVisible && (
-                <div className="cm-settings-row cm-settings-row--subtle mt-4">
-                  <div className="cm-settings-copy">
-                    <p className="font-serif text-lg text-forest-dark italic">
-                      {recipeNutritionEstimateVisible ? 'AI-makroestimat vises' : 'AI-makroestimat skjules'}
-                    </p>
-                    <p className="text-xs text-forest-mid opacity-75">
-                      Styr om AI-kortet med kcal og makrofordeling overhovedet vises i opskriften i denne browser.
-                    </p>
+
+              {nutritionToolsEnabled && (
+                <>
+                  <div className="cm-settings-row cm-settings-row--subtle mt-4">
+                    <div className="cm-settings-copy">
+                      <p className="font-serif text-lg text-forest-dark italic">{recipeNutritionVisible ? 'Produktdata vises' : 'Produktdata skjules'}</p>
+                      <p className="text-xs text-forest-mid opacity-75">Styrer om kortet med produktdata kan vises på opskriftssider.</p>
+                    </div>
+                    <SettingsToggle enabled={recipeNutritionVisible} onChange={setRecipeNutritionVisible} />
                   </div>
-                  <SettingsToggle
-                    enabled={recipeNutritionEstimateVisible}
-                    onChange={setRecipeNutritionEstimateVisible}
-                  />
-                </div>
-              )}
-              {recipeNutritionVisible && (
-                <div className="cm-settings-row cm-settings-row--subtle mt-4">
-                  <div className="cm-settings-copy">
-                    <p className="font-serif text-lg text-forest-dark italic">
-                      {recipeNutritionExpandedByDefault ? 'Produktdata vises aabent' : 'Produktdata skjules som standard'}
-                    </p>
-                    <p className="text-xs text-forest-mid opacity-75">
-                      Styr om sektionen for produktdata nederst i opskriften er foldet ud, naar du aabner en opskrift.
-                    </p>
-                  </div>
-                  <SettingsToggle
-                    enabled={recipeNutritionExpandedByDefault}
-                    onChange={setRecipeNutritionExpandedByDefault}
-                  />
-                </div>
+
+                  {recipeNutritionVisible && (
+                    <div className="cm-settings-row cm-settings-row--subtle mt-4">
+                      <div className="cm-settings-copy">
+                        <p className="font-serif text-lg text-forest-dark italic">{recipeNutritionEstimateVisible ? 'AI-makroestimat vises' : 'AI-makroestimat skjules'}</p>
+                        <p className="text-xs text-forest-mid opacity-75">Styrer om AI-kortet med kcal og makroer kan vises på opskriftssider.</p>
+                      </div>
+                      <SettingsToggle enabled={recipeNutritionEstimateVisible} onChange={setRecipeNutritionEstimateVisible} />
+                    </div>
+                  )}
+
+                  {recipeNutritionVisible && (
+                    <div className="cm-settings-row cm-settings-row--subtle mt-4">
+                      <div className="cm-settings-copy">
+                        <p className="font-serif text-lg text-forest-dark italic">{recipeNutritionExpandedByDefault ? 'Produktdata starter åbent' : 'Produktdata starter lukket'}</p>
+                        <p className="text-xs text-forest-mid opacity-75">Gælder kun når produktdata er synligt på opskriftssiden.</p>
+                      </div>
+                      <SettingsToggle enabled={recipeNutritionExpandedByDefault} onChange={setRecipeNutritionExpandedByDefault} />
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -445,46 +391,44 @@ export function SettingsView({
               <Type size={14} className="text-forest-mid mt-1" />
               <div>
                 <p className="font-serif text-lg text-forest-dark italic">Forberedelses-trin i cook mode</p>
-                <p className="text-xs text-forest-mid italic opacity-70">Vælg om cook mode skal starte med et ekstra trin til at finde og klargøre ingredienser.</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Styrer om cook mode starter med et trin til at finde og klargøre ingredienser.</p>
               </div>
             </div>
             <div className="cm-settings-row mb-8">
               <div className="cm-settings-copy">
                 <p className="font-serif text-lg text-forest-dark italic">{includePrep ? 'Forberedelses-trin aktivt' : 'Forberedelses-trin skjult'}</p>
                 <p className="text-xs text-forest-mid opacity-75">
-                  Når det er slået fra, starter cook mode direkte på første egentlige tilberedningstrin.
+                  Til: cook mode starter med et ekstra forberedelsestrin. Fra: cook mode går direkte til første tilberedningstrin.
                 </p>
               </div>
-              <SettingsToggle
-                enabled={includePrep}
-                onChange={setIncludePrep}
-              />
+              <SettingsToggle enabled={includePrep} onChange={setIncludePrep} />
             </div>
 
             <div className="flex items-start gap-3 mb-4">
               <Type size={14} className="text-forest-mid mt-1" />
               <div>
                 <p className="font-serif text-lg text-forest-dark italic">Tekst i cook mode</p>
-                <p className="text-xs text-forest-mid italic opacity-70">Vælg en fast tekststørrelse til madlavningstrin</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Styrer tekststørrelsen for trin og hjælpetekst i cook mode.</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {COOK_FONT_SIZES.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setCookFontSize(size)}
-                  data-active={cookFontSize === size}
-                  className="cm-settings-choice-card"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-serif text-sm text-forest-dark italic">{COOK_FONT_META[size].label}</span>
-                    <span data-active={cookFontSize === size} className="cm-settings-choice-badge">
-                      {cookFontSize === size ? 'Aktiv' : COOK_FONT_META[size].preview}
-                    </span>
-                  </div>
-                  <p className="text-xs text-forest-mid opacity-75">Forhåndsvisning i ca. {COOK_FONT_META[size].px}px</p>
-                </button>
-              ))}
+              {COOK_FONT_SIZES.map((size) => {
+                const selected = cookFontSize === size;
+                return (
+                  <button
+                    key={size}
+                    onClick={() => setCookFontSize(size)}
+                    data-active={selected}
+                    className="cm-settings-choice-card cm-settings-choice-card--compact"
+                  >
+                    {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">AKTIV</span> : null}
+                    <div className="mb-1">
+                      <span className="font-serif text-sm text-forest-dark italic cm-settings-choice-card__title">{COOK_FONT_META[size].label}</span>
+                    </div>
+                    <p className="cm-settings-choice-card__description text-xs text-forest-mid opacity-75">Vises som cirka {COOK_FONT_META[size].px}px i cook mode.</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -500,7 +444,7 @@ export function SettingsView({
         />
 
         <section className="cm-settings-card">
-          <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+          <h2 className="cm-settings-section-heading">
             <Info size={14} /> Om appen
           </h2>
 
@@ -523,10 +467,10 @@ export function SettingsView({
               <strong className="text-forest-dark not-italic font-bold text-xs uppercase tracking-widest">CookMoxs v1 Showcase</strong> er din personlige madlavningsassistent.
             </p>
             <p className="opacity-80">
-              Når en opskrift angiver varme (f.eks. "Induktion - 5"), antager vi, at du bruger et standard induktionskomfur (skala 1-9).
+              Når en opskrift angiver varme, for eksempel &quot;Induktion - 5&quot;, antager appen et standard induktionskomfur på skala 1-9.
             </p>
             <p className="opacity-80">
-              Appen er designet til at gøre det nemt at importere opskrifter fra nettet, tilpasse dem til dine behov, og have en rolig, fokuseret oplevelse, når du står i køkkenet.
+              Appen er lavet til at importere opskrifter, tilpasse dem og gøre cook mode rolig at bruge i praksis.
             </p>
           </div>
         </section>
@@ -534,7 +478,6 @@ export function SettingsView({
         <HouseholdSettingsCard user={user} isOnline={isOnline} />
         <LearningFeedbackCard />
         <LearningProfileTransparencyCard />
-        {nutritionToolsEnabled ? <NutritionLookupCard isOnline={isOnline} /> : null}
       </div>
     </div>
   );

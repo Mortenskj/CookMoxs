@@ -11,10 +11,10 @@ import {
 } from '../services/learningProfileStore';
 
 const FEEDBACK_AREAS: Array<{ value: LearningFeedbackArea; label: string; eventName: LearningSignalEventName; description: string }> = [
-  { value: 'general', label: 'Generel oplevelse', eventName: 'module_enabled', description: 'Brug dette til overordnet feedback om appens nytte.' },
-  { value: 'import', label: 'Import', eventName: 'recipe_import_succeeded', description: 'Fortæl om importflowet føles brugbart eller frustrerende.' },
-  { value: 'cook_mode', label: 'Cook mode', eventName: 'cook_mode_completed', description: 'Fortæl om cook mode hjælper dig i praksis.' },
-  { value: 'library', label: 'Bibliotek', eventName: 'recipe_saved', description: 'Fortæl om gemme- og biblioteksoverblikket føles godt.' },
+  { value: 'general', label: 'Generel oplevelse', eventName: 'module_enabled', description: 'Brug dette til overordnet feedback om appen.' },
+  { value: 'import', label: 'Import', eventName: 'recipe_import_succeeded', description: 'Fortæl om import fra links og kilder virker som forventet.' },
+  { value: 'cook_mode', label: 'Cook mode', eventName: 'cook_mode_completed', description: 'Fortæl om cook mode hjælper, når du laver mad.' },
+  { value: 'library', label: 'Bibliotek', eventName: 'recipe_saved', description: 'Fortæl om det er let at gemme og finde opskrifter.' },
 ];
 
 export function LearningFeedbackCard() {
@@ -39,7 +39,7 @@ export function LearningFeedbackCard() {
     setLearningProfileFeedbackEnabled(nextEnabled);
     setEnabled(nextEnabled);
     setMessage(nextEnabled
-      ? 'Eksplicit feedback er nu aktiv i denne browser. Det bruges kun som frivillig learning-feedback og bliver ikke sendt til cloud i dette step.'
+      ? 'Eksplicit feedback er aktiv i denne browser. Den sendes ikke til cloud i dette step.'
       : 'Eksplicit feedback er slået fra, og lokal feedbackhistorik er ryddet.');
 
     if (!nextEnabled) {
@@ -60,7 +60,7 @@ export function LearningFeedbackCard() {
         note: note.trim() || undefined,
       });
       setNote('');
-      setMessage('Tak. Din feedback er gemt lokalt som frivillig learning-feedback i denne browser og er ikke lagt ind i dine opskrifter eller cloud-data.');
+      setMessage('Feedback er gemt lokalt i denne browser. Den påvirker ikke opskrifter eller cloud-data.');
     } finally {
       setSaving(false);
     }
@@ -68,35 +68,27 @@ export function LearningFeedbackCard() {
 
   return (
     <section className="glass-brushed p-8 rounded-[2.5rem]">
-      <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+      <h2 className="cm-settings-section-heading">
         <MessageSquareHeart size={14} /> Frivillig feedback
       </h2>
 
       <div className="cm-surface-secondary rounded-2xl p-4">
-        <p className="font-serif text-lg text-forest-dark italic">Hjælp kun hvis du vil</p>
+        <p className="font-serif text-lg text-forest-dark italic">Kun hvis du vil hjælpe</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
-          Denne feedback er frivillig, tydelig og lokal for denne browser. Den bruges ikke til skjult scoring, ligger ikke i dine opskrifter eller backups, og ændrer ikke automatisk dine opskrifter.
+          Feedback her er frivillig og lokal for denne browser. Den ændrer ikke automatisk dine opskrifter.
         </p>
       </div>
 
       <div className="cm-settings-row mt-5">
         <div className="cm-settings-copy">
           <p className="font-serif text-lg text-forest-dark italic">Aktiver eksplicit feedback</p>
-          <p className="text-xs text-forest-mid opacity-75">Du kan slaa det til eller fra uden at påvirke resten af appen.</p>
+          <p className="text-xs text-forest-mid opacity-75">Styrer om denne browser må gemme frivillig feedback.</p>
         </div>
         <div className="cm-settings-segmented">
-          <button
-            onClick={() => handleEnableChange(false)}
-            data-active={!enabled}
-            className="cm-settings-segment-button"
-          >
+          <button onClick={() => handleEnableChange(false)} data-active={!enabled} className="cm-settings-segment-button">
             Fra
           </button>
-          <button
-            onClick={() => handleEnableChange(true)}
-            data-active={enabled}
-            className="cm-settings-segment-button"
-          >
+          <button onClick={() => handleEnableChange(true)} data-active={enabled} className="cm-settings-segment-button">
             Til
           </button>
         </div>
@@ -105,22 +97,23 @@ export function LearningFeedbackCard() {
       {enabled && (
         <div className="mt-5 space-y-5">
           <div className="grid gap-3">
-            {FEEDBACK_AREAS.map((item) => (
-              <button
-                key={item.value}
-                onClick={() => setArea(item.value)}
-                data-active={area === item.value}
-                className="cm-settings-choice-card"
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="font-serif text-sm text-forest-dark italic">{item.label}</span>
-                  <span data-active={area === item.value} className="cm-settings-choice-badge">
-                    {area === item.value ? 'Valgt' : 'Feedback'}
-                  </span>
-                </div>
-                <p className="text-xs text-forest-mid opacity-75">{item.description}</p>
-              </button>
-            ))}
+            {FEEDBACK_AREAS.map((item) => {
+              const selected = area === item.value;
+              return (
+                <button
+                  key={item.value}
+                  onClick={() => setArea(item.value)}
+                  data-active={selected}
+                  className="cm-settings-choice-card"
+                >
+                  {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">Aktiv</span> : null}
+                  <div className="mb-1">
+                    <span className="font-serif text-sm text-forest-dark italic cm-settings-choice-card__title">{item.label}</span>
+                  </div>
+                  <p className="text-xs text-forest-mid opacity-75">{item.description}</p>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex gap-3">
@@ -148,7 +141,7 @@ export function LearningFeedbackCard() {
             value={note}
             onChange={(event) => setNote(event.target.value)}
             rows={3}
-            placeholder="Valgfri note: Hvad fungerede eller fungerede ikke?"
+            placeholder="Valgfri note: Hvad fungerede, og hvad gjorde ikke?"
             className="w-full rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
           />
 

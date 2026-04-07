@@ -95,6 +95,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const ownership = getRecipeOwnershipDisplay(recipe, allFolders, currentUser);
   const currentFolder = findFolderForRecipe(recipe, allFolders);
   const selectedEditFolder = findFolderForRecipe(editData, allFolders);
+  const activeFolderLabel = recipe.folder === DEFAULT_FOLDER_NAME ? 'HJEM' : recipe.folder;
   const pendingFolderSave = pendingFolderSaveId ? allFolders.find((folder) => folder.id === pendingFolderSaveId) || null : null;
   const recipeIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const recipeSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
@@ -905,7 +906,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   }
 
   return (
-    <div className="recipe-print-root p-4 pb-32 max-w-md mx-auto min-h-screen">
+    <div className="recipe-print-root p-4 pb-48 sm:pb-36 max-w-md mx-auto min-h-screen">
       {/* Header */}
       <div className="recipe-print-header cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10 print:hidden">
         <div className="flex gap-2">
@@ -968,19 +969,22 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               Sidst gemt: {new Date(recipe.updatedAt || recipe.createdAt!).toLocaleString('da-DK')}
             </p>
           )}
-          <div className="mb-4 flex items-center gap-3">
-            <OwnershipBadge ownership={ownership} />
-            <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">{ownership.detail}</p>
-          </div>
-          {!canMutateRecipe && (
-            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-              Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult i denne stabiliserings-pass.
+          <div className="cm-recipe-meta-block">
+            <div className="cm-recipe-private-row">
+              <OwnershipBadge ownership={ownership} />
+              <div className="cm-recipe-private-copy">
+                <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">{ownership.detail}</p>
+              </div>
             </div>
-          )}
-          
-          <div className="flex flex-wrap gap-2 mb-6">
+            {!canMutateRecipe && (
+              <div className="cm-recipe-inline-status rounded-2xl border border-amber-200 bg-amber-50/80 text-sm text-amber-900">
+                Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult i denne stabiliserings-pass.
+              </div>
+            )}
+
+            <div className="cm-recipe-utility-row">
             {canMutateRecipe && (
-            <div className="relative">
+            <div className="cm-recipe-ai-shell relative">
               <select 
                 onChange={(e) => {
                   if (e.target.value && onApplyPrefix) {
@@ -989,7 +993,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   }
                 }}
                 disabled={isAdjusting || aiDisabled}
-                className="cm-surface-utility text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase outline-none appearance-none cursor-pointer pr-10 relative hover:bg-white dark:hover:bg-white/10 transition-all"
+                className="cm-recipe-ai-select"
                 style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%238A5A7D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right .8rem top 50%', backgroundSize: '.6rem auto' }}
               >
                 <option value="">✨ AI Varianter</option>
@@ -1004,39 +1008,46 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
             )}
 
+            {recipe.folder && (
+              <span className="cm-recipe-chip cm-recipe-chip--active">
+                {activeFolderLabel}
+              </span>
+            )}
+
             {canMutateRecipe && onGenerateTips && (
               <button 
                 onClick={() => setShowTipsModal(true)}
                 disabled={isAdjusting || aiDisabled}
-                className="cm-surface-utility flex items-center gap-2 text-forest-mid cm-light-surface-ink hover:text-heath-mid dark:hover:text-heath-mid px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase transition-all hover:bg-white dark:hover:bg-black/5"
+                className="cm-recipe-chip flex items-center gap-2 hover:bg-white dark:hover:bg-black/5 transition-all"
               >
                 {isGeneratingTips ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
                 Tips & Tricks
               </button>
             )}
+            </div>
 
-            {recipe.folder && (
-              <span className="bg-forest-mid text-white px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase shadow-sm">
-                📁 {recipe.folder}
-              </span>
+            {recipeCategories.length > 0 && (
+              <div className="cm-recipe-chip-row">
+                {recipeCategories.map((cat, i) => (
+                  <span key={i} className="cm-recipe-chip">
+                    {cat}
+                  </span>
+                ))}
+              </div>
             )}
-            {recipeCategories.map((cat, i) => (
-              <span key={i} className="cm-surface-utility text-forest-mid cm-light-surface-ink px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase">
-                {cat}
-              </span>
-            ))}
-          </div>
-          {aiDisabledReason && (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-              AI-hjælp er midlertidigt slået fra. {aiDisabledReason}
-            </div>
-          )}
 
-          {error && (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+            {aiDisabledReason && (
+              <div className="cm-recipe-inline-status rounded-2xl border border-amber-200 bg-amber-50/80 text-sm text-amber-900">
+                AI-hjælp er midlertidigt slået fra. {aiDisabledReason}
+              </div>
+            )}
+
+            {error && (
+              <div className="cm-recipe-inline-status rounded-2xl border border-red-200 bg-red-50/80 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
           {recipe.notes && (
             <div className="cm-surface-secondary p-6 rounded-3xl mt-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
@@ -1119,7 +1130,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </div>
               <h3 className="font-serif text-2xl text-forest-dark dark:text-white italic text-engraved">Tips & Tricks</h3>
             </div>
-            
+
             {recipeTips.length > 0 ? (
               <ul className="space-y-5 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                 {recipeTips.map((tip, idx) => (
@@ -1135,7 +1146,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 <p className="text-xs opacity-60 dark:opacity-100">Få AI til at generere smarte tips og tricks til denne opskrift.</p>
               </div>
             )}
-            
+
             {canMutateRecipe && onGenerateTips && (
               <button 
                 onClick={() => {

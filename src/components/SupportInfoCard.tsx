@@ -59,7 +59,7 @@ export function SupportInfoCard({
 
   return (
     <section className="glass-brushed p-8 rounded-[2.5rem]">
-      <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+      <h2 className="cm-settings-section-heading">
         <LifeBuoy size={14} /> {SUPPORT_INFO.title}
       </h2>
 
@@ -67,7 +67,7 @@ export function SupportInfoCard({
         <div className="flex items-start gap-3">
           <Info size={16} className="text-forest-mid mt-0.5" />
           <div>
-            <p className="font-serif text-lg text-forest-dark italic">Lettere beta-hjælp</p>
+            <p className="font-serif text-lg text-forest-dark italic">Hvis noget driller</p>
             <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
               {SUPPORT_INFO.reportHelpText}
             </p>
@@ -110,9 +110,7 @@ export function SupportInfoCard({
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-forest-mid opacity-60">{item.label}</p>
                 <p className="mt-2 text-sm text-forest-dark">{item.summary}</p>
-                {item.detail && (
-                  <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">{item.detail}</p>
-                )}
+                {item.detail && <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">{item.detail}</p>}
               </div>
               <span className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${item.state === 'problem' ? 'bg-red-100 text-red-800' : item.state === 'attention' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
                 {item.state === 'problem' ? 'Problem' : item.state === 'attention' ? 'Obs' : 'OK'}
@@ -124,12 +122,8 @@ export function SupportInfoCard({
 
       <div className="cm-surface-secondary mt-5 rounded-2xl p-4">
         <p className="text-xs font-bold uppercase tracking-widest text-forest-mid opacity-60">Supportvej</p>
-        <p className="mt-2 text-sm text-forest-mid leading-relaxed">
-          {SUPPORT_INFO.reportPathHint}
-        </p>
-        <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-75">
-          {SUPPORT_INFO.diagnosticsHint}
-        </p>
+        <p className="mt-2 text-sm text-forest-mid leading-relaxed">{SUPPORT_INFO.reportPathHint}</p>
+        <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-75">{SUPPORT_INFO.diagnosticsHint}</p>
       </div>
 
       <div className="cm-surface-secondary mt-5 rounded-2xl p-4">

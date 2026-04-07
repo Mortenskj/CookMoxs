@@ -55,14 +55,14 @@ export function LearningProfileTransparencyCard() {
 
   return (
     <section className="glass-brushed p-8 rounded-[2.5rem]">
-      <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+      <h2 className="cm-settings-section-heading">
         <Eye size={14} /> Hvad modulet ved
       </h2>
 
       <div className="cm-surface-secondary rounded-2xl p-4">
         <p className="font-serif text-lg text-forest-dark italic">Forklarligt og gennemsigtigt</p>
         <p className="mt-2 text-xs text-forest-mid leading-relaxed opacity-80">
-          Denne visning viser kun den eksplicitte feedback, du selv har valgt at gemme i denne browser. Der er ingen skjult score, ingen automatiske anbefalinger i dette step, og intet her bliver lagt ind i dine opskrifter eller backups.
+          Denne visning viser kun den feedback, du selv har valgt at gemme i denne browser.
         </p>
       </div>
 
@@ -91,7 +91,7 @@ export function LearningProfileTransparencyCard() {
           Grænser i dette step
         </div>
         <p className="mt-2">
-          Modulet ser kun din eksplicitte feedback og eventuelle separate learning-signaler. Det skriver ikke ind i opskrifter, backup eller cloud-data i den nuværende beta.
+          Modulet skriver ikke i opskrifter, backup eller cloud-data i den nuværende beta.
         </p>
       </div>
 
@@ -99,12 +99,12 @@ export function LearningProfileTransparencyCard() {
         <p className="font-serif text-lg text-forest-dark italic">Seneste eksplicitte feedback</p>
         {!snapshot.status.feedbackEnabled && (
           <p className="mt-2 text-sm text-forest-mid opacity-80">
-            Feedback er slået fra, så der vises ingen aktiv learning-profil her.
+            Feedback er slået fra, så der vises ingen aktiv profil her.
           </p>
         )}
         {snapshot.status.feedbackEnabled && snapshot.recentFeedback.length === 0 && (
           <p className="mt-2 text-sm text-forest-mid opacity-80">
-            Der er endnu ingen feedback gemt, selv om modulet er slået til.
+            Der er endnu ingen feedback gemt.
           </p>
         )}
         {snapshot.recentFeedback.length > 0 && (
@@ -120,9 +120,7 @@ export function LearningProfileTransparencyCard() {
                     {new Date(entry.createdAt).toLocaleString('da-DK')}
                   </span>
                 </div>
-                {entry.note && (
-                  <p className="mt-3 text-sm text-forest-mid leading-relaxed">{entry.note}</p>
-                )}
+                {entry.note && <p className="mt-3 text-sm text-forest-mid leading-relaxed">{entry.note}</p>}
               </div>
             ))}
           </div>

@@ -100,6 +100,15 @@ function formatMacroValue(value: number | null | undefined) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+function formatMacroPercent(value: number) {
+  if (!Number.isFinite(value)) {
+    return '0%';
+  }
+
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
+
 export function RecipeNutritionAttachmentCard({
   attachment,
   estimate,
@@ -204,6 +213,7 @@ export function RecipeNutritionAttachmentCard({
       grams: number;
       macroKcal: number;
       share: number;
+      percent: number;
       stroke: string;
       softBg: string;
       pillText: string;
@@ -214,6 +224,7 @@ export function RecipeNutritionAttachmentCard({
         grams: selectedSnapshot.fatGrams ?? 0,
         macroKcal: (selectedSnapshot.fatGrams ?? 0) * 9,
         share: 0,
+        percent: 0,
         stroke: MACRO_META.fat.stroke,
         softBg: MACRO_META.fat.softBg,
         pillText: MACRO_META.fat.pillText,
@@ -224,6 +235,7 @@ export function RecipeNutritionAttachmentCard({
         grams: selectedSnapshot.proteinGrams ?? 0,
         macroKcal: (selectedSnapshot.proteinGrams ?? 0) * 4,
         share: 0,
+        percent: 0,
         stroke: MACRO_META.protein.stroke,
         softBg: MACRO_META.protein.softBg,
         pillText: MACRO_META.protein.pillText,
@@ -234,6 +246,7 @@ export function RecipeNutritionAttachmentCard({
         grams: selectedSnapshot.carbsGrams ?? 0,
         macroKcal: (selectedSnapshot.carbsGrams ?? 0) * 4,
         share: 0,
+        percent: 0,
         stroke: MACRO_META.carbs.stroke,
         softBg: MACRO_META.carbs.softBg,
         pillText: MACRO_META.carbs.pillText,
@@ -244,6 +257,7 @@ export function RecipeNutritionAttachmentCard({
     return macros.map((macro) => ({
       ...macro,
       share: totalMacroKcal > 0 ? macro.macroKcal / totalMacroKcal : 0,
+      percent: totalMacroKcal > 0 ? (macro.macroKcal / totalMacroKcal) * 100 : 0,
     }));
   }, [selectedSnapshot]);
   const donutSegments = useMemo(() => {
@@ -256,7 +270,7 @@ export function RecipeNutritionAttachmentCard({
     let offset = 0;
 
     return macroOverview.map((macro) => {
-      const dashLength = macro.share * circumference;
+      const dashLength = (macro.percent / 100) * circumference;
       const segment = {
         ...macro,
         radius,
@@ -324,8 +338,8 @@ export function RecipeNutritionAttachmentCard({
   };
 
   return (
-    <section className="mb-8 glass-brushed p-6 sm:p-8 rounded-[2.5rem] border border-black/5 dark:border-white/10">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+    <section className="cm-nutrition-section mb-8 glass-brushed p-6 sm:p-8 rounded-[2.5rem] border border-black/5 dark:border-white/10">
+      <div className="cm-nutrition-header mb-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-white/60 dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/10">
             <Link2 size={18} className="text-heath-mid" />
@@ -337,7 +351,7 @@ export function RecipeNutritionAttachmentCard({
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="cm-nutrition-actions">
           {canTriggerEstimate && (
             <button
               type="button"
@@ -363,7 +377,7 @@ export function RecipeNutritionAttachmentCard({
 
       {displayEstimate && recipeNutritionEstimateVisible && (
         <div className="mb-4 rounded-3xl border border-[#D4B886]/40 bg-[#FFF8EA]/80 p-5 text-sm text-forest-mid shadow-sm dark:border-[#D4B886]/20 dark:bg-[#2A1F1A]/50 dark:text-white/80">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="cm-nutrition-estimate-head">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-serif text-lg italic text-forest-dark dark:text-white">AI-estimat for opskriften</p>
@@ -375,7 +389,7 @@ export function RecipeNutritionAttachmentCard({
                 Vejledende beregning ud fra ingredienslisten. Ikke producentdata. Senest opdateret {new Date(displayEstimate.generatedAt).toLocaleString('da-DK')}.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="cm-nutrition-badges">
               <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
                 {estimateCoverageLabel}
               </span>
@@ -403,23 +417,23 @@ export function RecipeNutritionAttachmentCard({
             )}
           </div>
           <div className="mt-4 rounded-[2rem] border border-black/5 bg-[linear-gradient(135deg,rgba(255,255,255,0.85),rgba(255,248,234,0.92))] p-5 shadow-sm print:hidden dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(28,22,19,0.92),rgba(42,31,26,0.88))]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="cm-nutrition-overview-head">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.24em] opacity-60">Makrofordeling</p>
                 <p className="mt-1 text-xs opacity-75">Diagrammet viser kaloriefordelingen mellem fedt, protein og kulhydrat.</p>
               </div>
-              <div className="flex rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
+              <div className="cm-nutrition-macro-tabs rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
                 <button
                   type="button"
                   onClick={() => setMacroBasis('perPortion')}
-                  className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'perPortion' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
+                  className={`cm-nutrition-macro-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'perPortion' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
                 >
                   Pr. portion
                 </button>
                 <button
                   type="button"
                   onClick={() => setMacroBasis('per100g')}
-                  className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'per100g' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
+                  className={`cm-nutrition-macro-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'per100g' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
                 >
                   Pr. 100 g
                 </button>
@@ -427,8 +441,8 @@ export function RecipeNutritionAttachmentCard({
             </div>
 
             {canRenderMacroOverview && selectedSnapshot && macroOverview ? (
-              <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,240px)_1fr] lg:items-center">
-                <div className="mx-auto flex w-full max-w-[240px] flex-col items-center">
+              <div className="cm-nutrition-macro-card mt-6">
+                <div className="cm-nutrition-donut-wrap">
                   <div className="relative flex h-[220px] w-[220px] items-center justify-center">
                     <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
                       <circle
@@ -465,22 +479,19 @@ export function RecipeNutritionAttachmentCard({
                     </div>
                   </div>
                 </div>
-
-                <div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {macroOverview.map((macro) => (
-                      <div key={macro.key} className={`rounded-[1.5rem] border border-black/5 px-4 py-4 dark:border-white/10 ${macro.softBg}`}>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.24em] opacity-60">{macro.label}</p>
-                        <p className={`mt-3 text-2xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
-                        <p className="mt-1 text-xs opacity-75">{Math.round(macro.share * 100)}% af makro-kalorierne</p>
+                <div className="cm-nutrition-macro-grid">
+                  {macroOverview.map((macro) => (
+                    <div key={macro.key} className={`rounded-[1.5rem] border border-black/5 px-4 py-4 dark:border-white/10 ${macro.softBg}`}>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] opacity-60">{macro.label}</p>
+                      <p className={`mt-3 text-2xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
+                        <p className="mt-2 text-xs opacity-75">{formatMacroPercent(macro.percent)} af makro-kalorierne</p>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs opacity-75">
-                    <span>Samlet vægt: {formatMacroValue(displayEstimate.estimatedTotalWeightGrams)} g</span>
-                    <span>Visning: {sourceBasisLabel}</span>
-                  </div>
+                <div className="cm-nutrition-stat-grid text-xs opacity-75">
+                  <span>Samlet vægt: {formatMacroValue(displayEstimate.estimatedTotalWeightGrams)} g</span>
+                  <span>Visning: {sourceBasisLabel}</span>
                 </div>
               </div>
             ) : (
@@ -514,7 +525,7 @@ export function RecipeNutritionAttachmentCard({
           </div>
           {ingredientBreakdown.length > 0 && (
             <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="cm-nutrition-source-head">
                 <div>
                   <p className="font-bold uppercase tracking-widest opacity-60">Makrokilder</p>
                   <p className="mt-1 opacity-75">Se hvor {MACRO_META[activeMacroTab].label.toLowerCase()} kommer fra i estimatet.</p>
@@ -532,13 +543,13 @@ export function RecipeNutritionAttachmentCard({
 
               {showMacroSources && (
                 <>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="cm-nutrition-lookup-tabs mt-4">
                     {(['protein', 'fat', 'carbs'] as MacroTab[]).map((tab) => (
                       <button
                         key={tab}
                         type="button"
                         onClick={() => setActiveMacroTab(tab)}
-                        className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${
+                        className={`cm-nutrition-source-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${
                           activeMacroTab === tab
                             ? 'bg-[#2A1F1A] text-[#F5E7C6]'
                             : 'bg-white/70 text-forest-mid hover:bg-white/90 dark:bg-black/20 dark:text-white/75 dark:hover:bg-black/30'
@@ -553,10 +564,10 @@ export function RecipeNutritionAttachmentCard({
                     Viser bidrag {sourceBasisLabel}. Ingredienserne er sorteret efter stoerste bidrag.
                   </p>
 
-                  <ul className="mt-3 space-y-2">
+                  <ul className="cm-nutrition-source-list mt-3">
                     {macroSourceItems.map((item) => (
-                      <li key={`${activeMacroTab}-${item.ingredientName}`} className="rounded-2xl bg-white/60 px-3 py-3 dark:bg-black/20">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
+                      <li key={`${activeMacroTab}-${item.ingredientName}`} className="cm-nutrition-source-item rounded-2xl bg-white/60 px-3 py-3 dark:bg-black/20">
+                        <div className="cm-nutrition-source-item-row">
                           <div>
                             <p className="font-medium text-forest-dark dark:text-white">{item.ingredientName}</p>
                             <p className="mt-1 opacity-80">
@@ -609,7 +620,7 @@ export function RecipeNutritionAttachmentCard({
 
       {isExpanded && (attachment ? (
         <div className="mt-4 rounded-3xl border border-black/5 dark:border-white/10 bg-white/45 dark:bg-black/20 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="cm-nutrition-attachment-head">
             <div>
               <p className="font-serif text-lg text-forest-dark dark:text-white italic">{attachment.title}</p>
               <p className="mt-1 text-xs text-forest-mid dark:text-white/70 opacity-75">
@@ -630,7 +641,7 @@ export function RecipeNutritionAttachmentCard({
             {getRecipeNutritionSummaryLine(attachment)}
           </p>
           {attachment.nutrition && (
-            <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-forest-mid dark:text-white/80">
+            <div className="cm-nutrition-attachment-grid mt-4 text-xs text-forest-mid dark:text-white/80">
               <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">kcal/100g: {attachment.nutrition.energyKcalPer100g ?? '-'}</div>
               <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">Fedt: {attachment.nutrition.fatPer100g ?? '-'} g</div>
               <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">Kulhydrat: {attachment.nutrition.carbsPer100g ?? '-'} g</div>
@@ -665,22 +676,22 @@ export function RecipeNutritionAttachmentCard({
 
       {isExpanded && canAttach && (
         <>
-          <div className="mt-5 flex bg-white/40 dark:bg-black/10 rounded-2xl p-1.5 border border-black/5 dark:border-white/10">
+          <div className="cm-nutrition-lookup-tabs mt-5 bg-white/40 dark:bg-black/10 rounded-2xl p-1.5 border border-black/5 dark:border-white/10">
             <button
               onClick={() => setMode('barcode')}
-              className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'barcode' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10'}`}
+              className={`cm-nutrition-lookup-tab px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'barcode' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10'}`}
             >
               <Barcode size={14} /> Stregkode
             </button>
             <button
               onClick={() => setMode('text_search')}
-              className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'text_search' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10'}`}
+              className={`cm-nutrition-lookup-tab px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'text_search' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid dark:text-white/70 hover:bg-white/40 dark:hover:bg-white/10'}`}
             >
               <Search size={14} /> Produktsogning
             </button>
           </div>
 
-          <div className="mt-4 flex flex-col sm:flex-row gap-3">
+          <div className="cm-nutrition-search mt-4">
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -746,6 +757,8 @@ export function RecipeNutritionAttachmentCard({
           )}
         </>
       )}
+
+      <div className="cm-nutrition-mobile-clearance" aria-hidden="true" />
     </section>
   );
 }

@@ -75,13 +75,17 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     setLoading(true);
     setError(null);
 
-    const unsubscribe = listenToAccessibleHouseholds(user.uid, (nextHouseholds) => {
-      setHouseholds(nextHouseholds);
-      setLoading(false);
-    }, () => {
-      setError('Husstandsdata kunne ikke hentes lige nu.');
-      setLoading(false);
-    });
+    const unsubscribe = listenToAccessibleHouseholds(
+      user.uid,
+      (nextHouseholds) => {
+        setHouseholds(nextHouseholds);
+        setLoading(false);
+      },
+      () => {
+        setError('Husstandsdata kunne ikke hentes lige nu.');
+        setLoading(false);
+      },
+    );
 
     return () => unsubscribe();
   }, [user]);
@@ -128,7 +132,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
         role: inviteRoleByHousehold[householdId] || 'member',
       });
       setInviteEmailByHousehold((prev) => ({ ...prev, [householdId]: '' }));
-      setStatusMessage('Invitationen er gemt i husstanden.');
+      setStatusMessage('Invitationen er sendt til husstanden.');
     } catch {
       setError('Invitationen kunne ikke gemmes.');
     } finally {
@@ -148,7 +152,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
       await updateHouseholdMemberRole(householdId, getMemberRef(member), role);
       setStatusMessage(`${member.displayName || member.email || 'Medlemmet'} er nu ${roleLabel[role].toLowerCase()} i husstanden.`);
     } catch {
-      setError('Medlemsrollen kunne ikke opdateres.');
+      setError('Rollen kunne ikke opdateres.');
     } finally {
       setBusyKey(null);
     }
@@ -164,7 +168,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
     try {
       await removeHouseholdMember(householdId, getMemberRef(member));
-      setStatusMessage(member.status === 'invited' ? 'Invitationen er fjernet fra husstanden.' : 'Medlemmet er fjernet fra husstanden.');
+      setStatusMessage(member.status === 'invited' ? 'Invitationen er fjernet.' : 'Medlemmet er fjernet.');
     } catch {
       setError(member.status === 'invited' ? 'Invitationen kunne ikke fjernes.' : 'Medlemmet kunne ikke fjernes.');
     } finally {
@@ -174,28 +178,28 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
   return (
     <section className="glass-brushed p-8 rounded-[2.5rem]">
-      <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
+      <h2 className="cm-settings-section-heading">
         <Users size={14} /> Husstand
       </h2>
 
       {!user ? (
         <div className="cm-surface-secondary rounded-2xl p-4">
           <p className="font-serif text-lg text-forest-dark italic">Log ind for at bruge husstande</p>
-          <p className="mt-2 text-xs text-forest-mid opacity-80">Her kommer den mindste household-flade: opret en husstand, se medlemmer og deres roller.</p>
+          <p className="mt-2 text-xs text-forest-mid opacity-80">Her kan du oprette en husstand, invitere medlemmer og styre roller.</p>
         </div>
       ) : (
         <div className="space-y-5">
           {!isOnline && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-amber-900">Offline</p>
-              <p className="mt-2 text-sm text-amber-900">Husstandsændringer kræver internetforbindelse. Du kan stadig se den seneste husstandsstatus, hvis den er hentet.</p>
+              <p className="mt-2 text-sm text-amber-900">Husstandsændringer kræver internet. Du kan stadig se den seneste hentede status.</p>
             </div>
           )}
 
           {ownedHouseholds.length === 0 && (
             <div className="cm-surface-secondary rounded-2xl p-4">
               <p className="font-serif text-lg text-forest-dark italic">Opret din første husstand</p>
-              <p className="mt-1 text-xs text-forest-mid opacity-80">Brug husstande til familie- eller hjemmedeling uden at brede UI ud endnu.</p>
+              <p className="mt-1 text-xs text-forest-mid opacity-80">Brug husstanden til at samle familiens opskrifter og roller ét sted.</p>
               <div className="cm-settings-inline-form cm-settings-inline-form--create mt-4">
                 <input
                   value={householdName}
@@ -305,7 +309,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                   ? 'Ejeren styres ikke fra denne flade.'
                                   : currentRole === 'admin'
                                     ? 'Admins kan kun ændre almindelige medlemmer.'
-                                    : 'Kun owner eller admin kan ændre medlemmer.'}
+                                    : 'Kun ejer eller admin kan ændre medlemmer.'}
                               </p>
                             )}
                           </div>
@@ -376,7 +380,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                 <p className="mt-3 text-xs text-forest-mid opacity-70">
                                   {currentRole === 'admin'
                                     ? 'Admins kan kun ændre invitationer til almindelige medlemmer.'
-                                    : 'Kun owner eller admin kan ændre invitationer.'}
+                                    : 'Kun ejer eller admin kan ændre invitationer.'}
                                 </p>
                               )}
                             </div>
@@ -397,7 +401,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                       <Home size={14} />
                       <p className="text-xs font-bold uppercase tracking-widest">Inviter til husstand</p>
                     </div>
-                    <div className="cm-settings-inline-form cm-settings-inline-form--invite">
+                    <div className="cm-settings-inline-form cm-settings-inline-form--invite cm-household-invite-form">
                       <input
                         value={inviteEmailByHousehold[household.id] || ''}
                         onChange={(event) => setInviteEmailByHousehold((prev) => ({ ...prev, [household.id]: event.target.value }))}
@@ -430,8 +434,12 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
             <p className="text-sm text-forest-mid italic opacity-80">Ingen husstandsdata fundet endnu.</p>
           )}
 
-          {statusMessage && <p className="cm-settings-status-message cm-settings-status-message--success">{statusMessage}</p>}
-          {error && <p className="cm-settings-status-message cm-settings-status-message--error">{error}</p>}
+          {(statusMessage || error) && (
+            <div className="cm-household-status-stack">
+              {statusMessage && <p className="cm-settings-status-message cm-settings-status-message--success">{statusMessage}</p>}
+              {error && <p className="cm-settings-status-message cm-settings-status-message--error">{error}</p>}
+            </div>
+          )}
         </div>
       )}
     </section>
