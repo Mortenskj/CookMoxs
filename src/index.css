@@ -47,7 +47,7 @@
   --season-motion-glow-duration: 2.4s;
   --season-motion-loader-duration: 1.8s;
   --season-loading-accent: color-mix(in srgb, var(--season-accent) 80%, white);
-  --season-bg-image: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/approved/autumn-master.png');
   --cm-motion-fast: 140ms;
   --cm-motion-medium: 180ms;
   --cm-motion-slow: 220ms;
@@ -131,7 +131,7 @@
   --season-motion-glow-duration: 2.1s;
   --season-motion-loader-duration: 1.6s;
   --season-loading-accent: color-mix(in srgb, #88B794 74%, white);
-  --season-bg-image: url('/backgrounds/seasonal/spring-hero-1600x900.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/approved/spring-master.png');
 }
 
 .dark.theme-spring {
@@ -195,7 +195,7 @@
   --season-motion-glow-duration: 2.5s;
   --season-motion-loader-duration: 1.95s;
   --season-loading-accent: color-mix(in srgb, #E6C287 76%, white);
-  --season-bg-image: url('/backgrounds/seasonal/summer-hero-1600x900.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/approved/summer-master.png');
 }
 
 .dark.theme-summer {
@@ -259,7 +259,7 @@
   --season-motion-glow-duration: 2.3s;
   --season-motion-loader-duration: 1.8s;
   --season-loading-accent: color-mix(in srgb, #8C9A8E 76%, white);
-  --season-bg-image: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/approved/autumn-master.png');
 }
 
 .dark.theme-autumn {
@@ -323,7 +323,7 @@
   --season-motion-glow-duration: 2.8s;
   --season-motion-loader-duration: 2.1s;
   --season-loading-accent: color-mix(in srgb, #A2B5C6 74%, white);
-  --season-bg-image: url('/backgrounds/seasonal/winter-hero-1600x900.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/approved/winter-master.png');
 }
 
 .dark.theme-winter {

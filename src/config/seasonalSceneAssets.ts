@@ -12,49 +12,49 @@ type SeasonalSceneAssetMap = Record<Season, Record<SeasonalSceneVariant, Seasona
 export const SEASONAL_SCENE_ASSETS: SeasonalSceneAssetMap = {
   autumn: {
     desktop: {
-      path: '/backgrounds/seasonal/autumn-hero-1600x900.jpg',
-      position: 'center 18%',
-      scale: 1.02,
+      path: '/backgrounds/seasonal/approved/autumn-master.png',
+      position: 'center center',
+      scale: 1,
     },
     mobile: {
-      path: '/backgrounds/seasonal/autumn-mobile-1080x1920.jpg',
-      position: 'center 12%',
+      path: '/backgrounds/seasonal/approved/autumn-master.png',
+      position: 'center center',
       scale: 1,
     },
   },
   spring: {
     desktop: {
-      path: '/backgrounds/seasonal/spring-hero-1600x900.jpg',
-      position: 'center 20%',
-      scale: 1.01,
+      path: '/backgrounds/seasonal/approved/spring-master.png',
+      position: 'center center',
+      scale: 1,
     },
     mobile: {
-      path: '/backgrounds/seasonal/spring-mobile-1080x1920.jpg',
-      position: 'center 10%',
+      path: '/backgrounds/seasonal/approved/spring-master.png',
+      position: 'center center',
       scale: 1,
     },
   },
   summer: {
     desktop: {
-      path: '/backgrounds/seasonal/summer-hero-1600x900.jpg',
-      position: 'center 22%',
-      scale: 1.01,
+      path: '/backgrounds/seasonal/approved/summer-master.png',
+      position: 'center center',
+      scale: 1,
     },
     mobile: {
-      path: '/backgrounds/seasonal/summer-mobile-1080x1920.jpg',
-      position: 'center 14%',
+      path: '/backgrounds/seasonal/approved/summer-master.png',
+      position: 'center center',
       scale: 1,
     },
   },
   winter: {
     desktop: {
-      path: '/backgrounds/seasonal/winter-hero-1600x900.jpg',
-      position: 'center 20%',
-      scale: 1.01,
+      path: '/backgrounds/seasonal/approved/winter-master.png',
+      position: 'center center',
+      scale: 1,
     },
     mobile: {
-      path: '/backgrounds/seasonal/winter-mobile-1080x1920.jpg',
-      position: 'center 10%',
+      path: '/backgrounds/seasonal/approved/winter-master.png',
+      position: 'center center',
       scale: 1,
     },
   },
