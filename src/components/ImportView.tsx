@@ -1,10 +1,10 @@
 ﻿import React, { useRef, useState } from 'react';
-import { ArrowLeft, Camera, FileText, FileUp, Image as ImageIcon, Link, Loader2, PenTool } from 'lucide-react';
+import { ArrowLeft, Camera, FileText, FileUp, Image as ImageIcon, Link, PenTool } from 'lucide-react';
 import type { ImportPreference } from '../config/importPreferences';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { usePendingQueue } from '../hooks/usePendingQueue';
 import { enqueueOfflineQueueItem } from '../services/offlineQueueService';
-import { LoadingAnimation } from './LoadingAnimation';
+import { InlineLoadingGlyph, InlineLoadingLabel, LoadingAnimation } from './LoadingAnimation';
 
 interface ImportViewProps {
   onImport: (content: string | { data: string, mimeType: string }, type: 'url' | 'text' | 'file' | 'image') => Promise<void>;
@@ -289,10 +289,15 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 disabled={loading || Boolean(textAndFileDisabledReason) || Boolean(submittingTab)}
                 className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid cm-light-surface-icon hover:bg-white/80 dark:hover:bg-black/5 transition-all disabled:opacity-50"
               >
-                {loading ? <Loader2 size={32} className="animate-spin" /> : <FileUp size={32} />}
+                {submittingTab === 'file' ? <InlineLoadingGlyph className="cm-light-surface-icon" /> : <FileUp size={32} />}
               </button>
               <p className="text-forest-dark cm-light-surface-ink font-serif text-xl italic">Upload PDF eller dokument</p>
               <p className="text-sm text-forest-mid cm-light-surface-ink-muted italic opacity-60 dark:opacity-100">Denne importtype kræver AI.</p>
+              {submittingTab === 'file' && (
+                <div className="cm-feedback-enter flex justify-center">
+                  <InlineLoadingLabel label="Klargør fil til import" />
+                </div>
+              )}
             </div>
           )}
 
@@ -347,10 +352,9 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 </button>
               </div>
 
-              {loading && (
+              {submittingTab === 'image' && (
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 size={32} className="animate-spin text-forest-mid cm-light-surface-icon" />
-                  <p className="text-sm text-forest-mid cm-light-surface-ink-muted italic">Analyserer billede...</p>
+                  <InlineLoadingLabel label={isOnline ? 'Analyserer billede' : 'Gemmer billede i kø'} />
                 </div>
               )}
 
@@ -378,13 +382,13 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
           )}
 
           {queueMessage && (
-            <div className="mt-8 p-5 bg-emerald-50/60 text-emerald-900 rounded-2xl text-sm border border-emerald-200/70 italic font-serif">
+            <div className="cm-feedback-enter mt-8 p-5 bg-emerald-50/60 text-emerald-900 rounded-2xl text-sm border border-emerald-200/70 italic font-serif">
               {queueMessage}
             </div>
           )}
 
           {error && (
-            <div className="mt-8 p-5 bg-red-50/50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl text-sm border border-red-100 dark:border-red-900/30 italic font-serif">
+            <div className="cm-feedback-enter mt-8 p-5 bg-red-50/50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl text-sm border border-red-100 dark:border-red-900/30 italic font-serif">
               {error}
             </div>
           )}
@@ -395,8 +399,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               disabled={loading || Boolean(submittingTab) || (activeTab === 'url' && (!url || Boolean(urlDisabledReason))) || (activeTab === 'text' && (!text || Boolean(textAndFileDisabledReason)))}
               className="btn-wood-light w-full mt-10 py-5 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
             >
-              {loading || submittingTab ? (
-                <><Loader2 size={20} className="animate-spin text-forest-mid cm-light-surface-icon" /> Analyserer...</>
+              {submittingTab ? (
+                <InlineLoadingLabel label={activeTab === 'url' && !isOnline ? 'Gemmer link i kø' : 'Analyserer opskrift'} />
               ) : (
                 'Importer opskrift'
               )}
@@ -479,13 +483,13 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
       )}
 
       {queueMessage && (
-        <div className="mt-6 p-5 bg-emerald-50/60 text-emerald-900 rounded-2xl text-sm border border-emerald-200/70 italic font-serif">
+        <div className="cm-feedback-enter mt-6 p-5 bg-emerald-50/60 text-emerald-900 rounded-2xl text-sm border border-emerald-200/70 italic font-serif">
           {queueMessage}
         </div>
       )}
 
       {error && (
-        <div className="mt-8 p-5 bg-red-50/50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl text-sm border border-red-100 dark:border-red-900/30 italic font-serif">
+        <div className="cm-feedback-enter mt-8 p-5 bg-red-50/50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-2xl text-sm border border-red-100 dark:border-red-900/30 italic font-serif">
           {error}
         </div>
       )}

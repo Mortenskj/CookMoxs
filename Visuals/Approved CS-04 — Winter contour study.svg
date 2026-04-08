@@ -1,0 +1,71 @@
+<svg width="1080" height="420" viewBox="0 0 1080 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>CookMoxs CS-04 v1 Winter contour study</title>
+  <desc>Winter contour foundation with restrained, spacious, crisp, elegant canopy logic. Natural silhouette first, hidden Vivaldi rhythm second.</desc>
+
+  <rect width="1080" height="420" fill="#EEF1F0"/>
+
+  <!-- structural field: quieter and more spacious than the other seasons -->
+  <path d="
+      M0 184
+      C34 176, 70 171, 108 172
+      C146 173, 182 180, 218 189
+      C254 198, 290 204, 326 203
+      C362 202, 398 194, 434 182
+      C470 170, 506 159, 542 157
+      C578 155, 614 161, 650 171
+      C686 181, 722 190, 758 190
+      C794 190, 830 181, 866 169
+      C902 157, 938 147, 974 146
+      C1010 145, 1046 152, 1080 166
+      L1080 420
+      L0 420
+      Z"
+      fill="#AEB8B5" opacity="0.14"/>
+
+  <!-- main contour: 7 meaningful rises/falls, cleaner spacing, firmer winter cadence -->
+  <path d="
+      M0 176
+      C28 168, 56 163, 86 163
+      C116 163, 146 170, 176 179
+      C206 188, 236 195, 268 195
+      C300 195, 332 188, 364 177
+      C396 166, 428 154, 462 145
+      C496 136, 530 131, 564 133
+      C598 135, 632 144, 666 155
+      C700 166, 734 175, 768 175
+      C802 175, 836 166, 870 154
+      C904 142, 938 131, 972 128
+      C1006 125, 1042 131, 1080 144"
+      stroke="#58686C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- secondary contour: tighter, more precise echo without becoming decorative -->
+  <path d="
+      M0 196
+      C30 190, 60 186, 92 186
+      C124 186, 156 192, 188 199
+      C220 206, 252 211, 284 211
+      C316 211, 348 205, 380 196
+      C412 187, 444 177, 476 170
+      C508 163, 540 160, 572 163
+      C604 166, 636 173, 668 181
+      C700 189, 732 195, 764 195
+      C796 195, 828 188, 860 179
+      C892 170, 924 162, 958 159
+      C992 156, 1032 160, 1080 170"
+      stroke="#708085" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.82"/>
+
+  <!-- support contour: keeps the center alive but leaves winter negative space intact -->
+  <path d="
+      M0 230
+      C38 226, 76 224, 114 225
+      C152 226, 190 230, 228 234
+      C266 238, 304 241, 342 239
+      C380 237, 418 232, 456 226
+      C494 220, 532 216, 570 217
+      C608 218, 646 223, 684 229
+      C722 235, 760 238, 798 236
+      C836 234, 874 228, 912 222
+      C950 216, 988 213, 1028 215
+      C1048 216, 1065 218, 1080 220"
+      stroke="#8C9997" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.48"/>
+</svg>

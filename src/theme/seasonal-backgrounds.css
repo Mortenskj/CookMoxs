@@ -1,6 +1,9 @@
 @import "./seasonal.tokens.css";
 
 .cm-seasonal-scene {
+  --cm-scene-image: none;
+  --cm-scene-position: center 18%;
+  --cm-scene-scale: 1.02;
   position: relative;
   min-height: 100dvh;
   color: var(--season-text-primary);
@@ -26,7 +29,7 @@
   z-index: -4;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-    var(--cm-scene-desktop),
+    var(--cm-scene-image),
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--cm-bg) 95%, white 5%),
@@ -34,14 +37,14 @@
     );
   background-position:
     center top,
-    var(--cm-scene-position-desktop),
+    var(--cm-scene-position),
     center center;
   background-repeat: no-repeat;
   background-size:
     cover,
     cover,
     cover;
-  transform: scale(var(--cm-scene-scale-desktop));
+  transform: scale(var(--cm-scene-scale));
   transform-origin: center top;
   filter: saturate(0.96) contrast(1.02) brightness(0.95);
 }
@@ -157,22 +160,6 @@
 }
 
 @media (max-width: 820px) {
-  .cm-seasonal-scene::before {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-      var(--cm-scene-mobile),
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--cm-bg) 95%, white 5%),
-        var(--cm-bg)
-      );
-    background-position:
-      center top,
-      var(--cm-scene-position-mobile),
-      center center;
-    transform: scale(var(--cm-scene-scale-mobile));
-  }
-
   .cm-seasonal-scene::after {
     background:
       linear-gradient(
