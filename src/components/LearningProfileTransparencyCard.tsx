@@ -25,13 +25,20 @@ const VALUE_LABELS: Record<LearningFeedbackValue, string> = {
 
 export function LearningProfileTransparencyCard() {
   const [snapshot, setSnapshot] = useState<LearningProfileTransparencySnapshot | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const loadSnapshot = async () => {
-      const nextSnapshot = await getLearningProfileTransparencySnapshot();
-      if (!cancelled) {
-        setSnapshot(nextSnapshot);
+      try {
+        const nextSnapshot = await getLearningProfileTransparencySnapshot();
+        if (!cancelled) {
+          setSnapshot(nextSnapshot);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -48,6 +55,19 @@ export function LearningProfileTransparencyCard() {
       window.removeEventListener(LEARNING_PROFILE_CHANGED_EVENT, handleProfileChanged);
     };
   }, []);
+
+  if (isLoading) {
+    return (
+      <section className="glass-brushed p-8 rounded-[2.5rem]">
+        <h2 className="cm-settings-section-heading">
+          <Eye size={14} /> Hvad modulet ved
+        </h2>
+        <div className="cm-inline-feedback cm-inline-feedback--info">
+          Henter lokal profilstatus...
+        </div>
+      </section>
+    );
+  }
 
   if (!snapshot?.status.available) {
     return null;

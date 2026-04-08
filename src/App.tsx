@@ -186,6 +186,8 @@ export default function App() {
   const [cloudLastSyncAt, setCloudLastSyncAt] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.lastCloudSyncAt));
   const [aiUnavailableMessage, setAiUnavailableMessage] = useState<string | null>(null);
   const [authErrorMessage, setAuthErrorMessage] = useState<string | null>(null);
+  const [authAction, setAuthAction] = useState<'login' | 'logout' | null>(null);
+  const [backupAction, setBackupAction] = useState<'export' | 'import' | null>(null);
   const [undoDeleteRecipe, setUndoDeleteRecipe] = useState<{ recipe: Recipe; index: number; timeoutId: any } | null>(null);
   const [undoDeleteFolder, setUndoDeleteFolder] = useState<{ folder: Folder; prevFolders: Folder[]; prevRecipes: Recipe[]; movedRecipes: Recipe[]; timeoutId: any } | null>(null);
   const backupImportRef = useRef<HTMLInputElement | null>(null);
@@ -616,6 +618,9 @@ export default function App() {
   };
 
   const handleExportBackup = () => {
+    if (backupAction) return;
+
+    setBackupAction('export');
     const payload = createBackupPayload({
       recipes: savedRecipes,
       folders,
@@ -637,11 +642,19 @@ export default function App() {
       recipeCount: savedRecipes.length,
       folderCount: folders.length,
     });
+    window.setTimeout(() => setBackupAction((current) => (current === 'export' ? null : current)), 600);
   };
 
   const handleBackupImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (backupAction) {
+      event.target.value = '';
+      return;
+    }
+
+    setBackupAction('import');
 
     try {
       const raw = await file.text();
@@ -700,6 +713,7 @@ export default function App() {
     } catch (err: any) {
       setError(err?.message || 'Kunne ikke gendanne backupfilen.');
     } finally {
+      setBackupAction(null);
       event.target.value = '';
     }
   };
@@ -1308,7 +1322,10 @@ export default function App() {
   };
 
   const handleLogin = async () => {
+    if (authAction) return;
+
     try {
+      setAuthAction('login');
       setAuthErrorMessage(null);
       markCloudSyncing('Logger ind...');
       const credential = await signInWithPopup(auth, googleProvider);
@@ -1320,11 +1337,16 @@ export default function App() {
       setAuthErrorMessage(message);
       markCloudError(message);
       setError(message);
+    } finally {
+      setAuthAction(null);
     }
   };
 
   const handleLogout = async () => {
+    if (authAction) return;
+
     try {
+      setAuthAction('logout');
       await signOut(auth);
       setAuthErrorMessage(null);
       setSavedRecipes([]);
@@ -1334,6 +1356,8 @@ export default function App() {
       navigateTo('home');
     } catch (error) {
       console.error("Logout failed", error);
+    } finally {
+      setAuthAction(null);
     }
   };
 
@@ -1709,10 +1733,12 @@ export default function App() {
           includePrep={includePrep}
           setIncludePrep={setIncludePrep}
           cookFontSize={cookFontSize}
-          setCookFontSize={setCookFontSize}
-          onExportBackup={handleExportBackup}
-          onImportBackup={() => backupImportRef.current?.click()}
-          lastBackupAt={lastBackupAt}
+            setCookFontSize={setCookFontSize}
+            onExportBackup={handleExportBackup}
+            onImportBackup={() => backupImportRef.current?.click()}
+            authAction={authAction}
+            backupAction={backupAction}
+            lastBackupAt={lastBackupAt}
           cloudSyncStatus={cloudSyncStatus}
           cloudSyncMessage={cloudSyncMessage}
           cloudLastSyncAt={cloudLastSyncAt}

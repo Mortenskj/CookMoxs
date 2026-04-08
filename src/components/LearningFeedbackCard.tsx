@@ -23,7 +23,7 @@ export function LearningFeedbackCard() {
   const [value, setValue] = useState<LearningFeedbackValue>('positive');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ kind: 'success' | 'info' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     const status = getLearningProfileStoreStatus();
@@ -36,11 +36,14 @@ export function LearningFeedbackCard() {
   const selectedArea = FEEDBACK_AREAS.find((item) => item.value === area) || FEEDBACK_AREAS[0];
 
   const handleEnableChange = (nextEnabled: boolean) => {
+    setMessage(null);
     setLearningProfileFeedbackEnabled(nextEnabled);
     setEnabled(nextEnabled);
-    setMessage(nextEnabled
-      ? 'Eksplicit feedback er aktiv i denne browser. Den sendes ikke til cloud i dette step.'
-      : 'Eksplicit feedback er slået fra, og lokal feedbackhistorik er ryddet.');
+    setMessage(
+      nextEnabled
+        ? { kind: 'info', text: 'Eksplicit feedback er aktiv i denne browser.' }
+        : { kind: 'info', text: 'Eksplicit feedback er slået fra, og lokal historik er ryddet.' },
+    );
 
     if (!nextEnabled) {
       void clearLearningProfileRecord();
@@ -49,6 +52,8 @@ export function LearningFeedbackCard() {
   };
 
   const handleSubmit = async () => {
+    if (saving) return;
+
     setSaving(true);
     setMessage(null);
 
@@ -60,7 +65,9 @@ export function LearningFeedbackCard() {
         note: note.trim() || undefined,
       });
       setNote('');
-      setMessage('Feedback er gemt lokalt i denne browser. Den påvirker ikke opskrifter eller cloud-data.');
+      setMessage({ kind: 'success', text: 'Feedback er gemt lokalt.' });
+    } catch {
+      setMessage({ kind: 'error', text: 'Kunne ikke gemme. Prøv igen.' });
     } finally {
       setSaving(false);
     }
@@ -85,10 +92,10 @@ export function LearningFeedbackCard() {
           <p className="text-xs text-forest-mid opacity-75">Styrer om denne browser må gemme frivillig feedback.</p>
         </div>
         <div className="cm-settings-segmented">
-          <button onClick={() => handleEnableChange(false)} data-active={!enabled} className="cm-settings-segment-button">
+          <button onClick={() => handleEnableChange(false)} data-active={!enabled} className="cm-settings-segment-button" disabled={saving}>
             Fra
           </button>
-          <button onClick={() => handleEnableChange(true)} data-active={enabled} className="cm-settings-segment-button">
+          <button onClick={() => handleEnableChange(true)} data-active={enabled} className="cm-settings-segment-button" disabled={saving}>
             Til
           </button>
         </div>
@@ -102,9 +109,13 @@ export function LearningFeedbackCard() {
               return (
                 <button
                   key={item.value}
-                  onClick={() => setArea(item.value)}
+                  onClick={() => {
+                    setArea(item.value);
+                    setMessage(null);
+                  }}
                   data-active={selected}
                   className="cm-settings-choice-card"
+                  disabled={saving}
                 >
                   {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">AKTIV</span> : null}
                   <div className="mb-1">
@@ -118,19 +129,31 @@ export function LearningFeedbackCard() {
 
           <div className="flex gap-3">
             <button
-              onClick={() => setValue('positive')}
+              onClick={() => {
+                setValue('positive');
+                setMessage(null);
+              }}
+              disabled={saving}
               className={`flex-1 px-4 py-3 rounded-2xl border text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${value === 'positive' ? 'border-emerald-700 bg-emerald-50 text-emerald-800' : 'border-black/5 bg-white/40 text-forest-mid'}`}
             >
               <ThumbsUp size={14} /> Hjælpsomt
             </button>
             <button
-              onClick={() => setValue('neutral')}
+              onClick={() => {
+                setValue('neutral');
+                setMessage(null);
+              }}
+              disabled={saving}
               className={`flex-1 px-4 py-3 rounded-2xl border text-xs font-bold uppercase tracking-widest ${value === 'neutral' ? 'border-slate-600 bg-slate-50 text-slate-700' : 'border-black/5 bg-white/40 text-forest-mid'}`}
             >
               Neutralt
             </button>
             <button
-              onClick={() => setValue('negative')}
+              onClick={() => {
+                setValue('negative');
+                setMessage(null);
+              }}
+              disabled={saving}
               className={`flex-1 px-4 py-3 rounded-2xl border text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 ${value === 'negative' ? 'border-rose-700 bg-rose-50 text-rose-800' : 'border-black/5 bg-white/40 text-forest-mid'}`}
             >
               <ThumbsDown size={14} /> Ikke godt
@@ -139,16 +162,20 @@ export function LearningFeedbackCard() {
 
           <textarea
             value={note}
-            onChange={(event) => setNote(event.target.value)}
+            onChange={(event) => {
+              setNote(event.target.value);
+              setMessage(null);
+            }}
             rows={3}
             placeholder="Valgfri note: Hvad fungerede, og hvad gjorde ikke?"
             className="w-full rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
+            disabled={saving}
           />
 
           <button
             onClick={() => void handleSubmit()}
             disabled={saving}
-            className="w-full px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50"
+            className="w-full px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Gemmer...' : 'Gem feedback lokalt'}
           </button>
@@ -156,8 +183,8 @@ export function LearningFeedbackCard() {
       )}
 
       {message && (
-        <div className="cm-surface-secondary mt-5 rounded-2xl p-4 text-sm text-forest-mid">
-          {message}
+        <div className={`cm-inline-feedback mt-5 ${message.kind === 'success' ? 'cm-inline-feedback--success' : message.kind === 'error' ? 'cm-inline-feedback--error' : 'cm-inline-feedback--info'}`}>
+          {message.text}
         </div>
       )}
     </section>

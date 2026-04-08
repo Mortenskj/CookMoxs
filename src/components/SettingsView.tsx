@@ -34,6 +34,8 @@ interface SettingsViewProps {
   setCookFontSize: (size: CookFontSize) => void;
   onExportBackup: () => void;
   onImportBackup: () => void;
+  authAction?: 'login' | 'logout' | null;
+  backupAction?: 'export' | 'import' | null;
   lastBackupAt?: string | null;
   cloudSyncStatus?: 'idle' | 'syncing' | 'saved' | 'error';
   cloudSyncMessage?: string | null;
@@ -127,6 +129,8 @@ export function SettingsView({
   setCookFontSize,
   onExportBackup,
   onImportBackup,
+  authAction = null,
+  backupAction = null,
   lastBackupAt,
   cloudSyncStatus = 'idle',
   cloudSyncMessage,
@@ -170,12 +174,12 @@ export function SettingsView({
             </div>
             <div className="flex">
               {user ? (
-                <button onClick={onLogout} className="btn-heath">
-                  <LogOut size={14} /> Log ud
+                <button onClick={onLogout} className="btn-heath disabled:opacity-50 disabled:cursor-not-allowed" disabled={Boolean(authAction)}>
+                  <LogOut size={14} /> {authAction === 'logout' ? 'Logger ud...' : 'Log ud'}
                 </button>
               ) : (
-                <button onClick={onLogin} className="btn-heath">
-                  <LogIn size={14} /> Log ind
+                <button onClick={onLogin} className="btn-heath disabled:opacity-50 disabled:cursor-not-allowed" disabled={Boolean(authAction)}>
+                  <LogIn size={14} /> {authAction === 'login' ? 'Logger ind...' : 'Log ind'}
                 </button>
               )}
             </div>
@@ -217,11 +221,11 @@ export function SettingsView({
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={onExportBackup} className="btn-heath flex-1">
-                <Download size={14} /> Eksportér backup
+              <button onClick={onExportBackup} className="btn-heath flex-1 disabled:opacity-50 disabled:cursor-not-allowed" disabled={Boolean(backupAction)}>
+                <Download size={14} /> {backupAction === 'export' ? 'Eksporterer...' : 'Eksportér backup'}
               </button>
-              <button onClick={onImportBackup} className="btn-wood-light flex-1">
-                <Upload size={14} /> Gendan backup
+              <button onClick={onImportBackup} className="btn-wood-light flex-1 disabled:opacity-50 disabled:cursor-not-allowed" disabled={Boolean(backupAction)}>
+                <Upload size={14} /> {backupAction === 'import' ? 'Gendanner...' : 'Gendan backup'}
               </button>
             </div>
 

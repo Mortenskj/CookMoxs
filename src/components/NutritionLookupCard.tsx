@@ -54,15 +54,17 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
   }
 
   const handleSubmit = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     setLoading(true);
     setError(null);
+    setResult(null);
 
     try {
-      const nextResult = mode === 'barcode'
-        ? await lookupNutritionBarcode(input.trim())
-        : await searchNutritionProductsByText(input.trim(), 5);
+      const nextResult =
+        mode === 'barcode'
+          ? await lookupNutritionBarcode(input.trim())
+          : await searchNutritionProductsByText(input.trim(), 5);
       setResult(nextResult);
     } catch (lookupError) {
       setResult(null);
@@ -91,30 +93,45 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
 
         <div className="flex bg-white/40 rounded-2xl p-1.5 border border-black/5 glass-brushed shadow-inner">
           <button
-            onClick={() => setMode('barcode')}
-            className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'barcode' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+            onClick={() => {
+              setMode('barcode');
+              setError(null);
+              setResult(null);
+            }}
+            disabled={loading}
+            className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 ${mode === 'barcode' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
           >
             <Barcode size={14} /> Stregkode
           </button>
           <button
-            onClick={() => setMode('text_search')}
-            className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'text_search' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
+            onClick={() => {
+              setMode('text_search');
+              setError(null);
+              setResult(null);
+            }}
+            disabled={loading}
+            className={`flex-1 px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 ${mode === 'text_search' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid hover:bg-white/40'}`}
           >
             <Search size={14} /> Produktsøgning
           </button>
         </div>
 
         {!isOnline && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-900">Offline</p>
-            <p className="mt-2 text-sm text-amber-900">Produktsøgning kræver internetforbindelse.</p>
+          <div className="cm-inline-feedback cm-inline-feedback--info">
+            Produktsøgning kræver internetforbindelse.
           </div>
         )}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              setError(null);
+              if (result) {
+                setResult(null);
+              }
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !loading && isOnline) {
                 void handleSubmit();
@@ -122,32 +139,43 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
             }}
             placeholder={mode === 'barcode' ? 'Fx 3017620422003' : 'Fx nutella'}
             className="flex-1 rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-forest-dark outline-none focus:border-forest-mid"
+            disabled={loading || !isOnline}
           />
           <button
             onClick={() => void handleSubmit()}
             disabled={!input.trim() || loading || !isOnline}
-            className="px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50"
+            className="px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Søger...' : mode === 'barcode' ? 'Find produkt' : 'Søg'}
           </button>
         </div>
 
-        {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50/80 p-4">
-            <p className="text-sm text-red-700">{error}</p>
+        {loading && (
+          <div className="cm-inline-feedback cm-inline-feedback--info">
+            Søger efter produktdata...
           </div>
         )}
 
-        {result && (
+        {error && (
+          <div className="cm-inline-feedback cm-inline-feedback--error">
+            {error}
+          </div>
+        )}
+
+        {result && result.items.length === 0 && (
+          <div className="cm-inline-feedback cm-inline-feedback--info">
+            Intet produkt fundet. Prøv en anden stregkode eller en kortere søgning.
+          </div>
+        )}
+
+        {result && result.items.length > 0 && (
           <div className="space-y-3">
             <div className="cm-surface-secondary rounded-2xl p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-forest-mid opacity-60">
                 {result.mode === 'barcode' ? 'Stregkodeopslag' : 'Produktsøgning'}
               </p>
               <p className="mt-2 text-sm text-forest-mid opacity-80">
-                {result.items.length > 0
-                  ? `${result.items.length} resultat${result.items.length === 1 ? '' : 'er'} fundet`
-                  : 'Ingen produkter fundet'}
+                {result.items.length} resultat{result.items.length === 1 ? '' : 'er'} fundet
               </p>
               <p className="mt-1 text-xs text-forest-mid opacity-70">
                 Kilde: {result.provenance.providerLabel} · Sikkerhed: {result.provenance.confidence}

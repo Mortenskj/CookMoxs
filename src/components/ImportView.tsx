@@ -24,6 +24,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [queueMessage, setQueueMessage] = useState<string | null>(null);
+  const [submittingTab, setSubmittingTab] = useState<ImportTab>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -56,11 +57,15 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   };
 
   const handleSubmit = async () => {
+    if (loading || submittingTab) return;
+
     setQueueMessage(null);
     if (activeTab === 'url' && url) {
+      setSubmittingTab('url');
       if (!isOnline) {
         if (urlDisabledReason) {
           setQueueMessage(urlDisabledReason);
+          setSubmittingTab(null);
           return;
         }
 
@@ -68,6 +73,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
           await queueOfflineUrl(url);
         } catch {
           setQueueMessage('Linket kunne ikke gemmes offline. Prøv igen i denne browser.');
+        } finally {
+          setSubmittingTab(null);
         }
         return;
       }
@@ -76,12 +83,17 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         await onImport(url, 'url');
       } catch {
         // Error state is surfaced by the parent view.
+      } finally {
+        setSubmittingTab(null);
       }
     } else if (activeTab === 'text' && text && !textAndFileDisabledReason) {
+      setSubmittingTab('text');
       try {
         await onImport(text, 'text');
       } catch {
         // Error state is surfaced by the parent view.
+      } finally {
+        setSubmittingTab(null);
       }
     }
   };
@@ -99,18 +111,27 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'file' | 'image') => {
+    if (loading || submittingTab) {
+      e.target.value = '';
+      return;
+    }
+
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
 
     if (type === 'image' && !isOnline) {
+      setSubmittingTab('image');
       if (imageDisabledReason) {
         setQueueMessage(imageDisabledReason);
+        setSubmittingTab(null);
         return;
       }
 
       void queueOfflineImage(file).catch(() => {
         setQueueMessage('Billedet kunne ikke gemmes offline. Prøv igen i denne browser.');
+      }).finally(() => {
+        setSubmittingTab(null);
       });
       return;
     }
@@ -126,6 +147,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
     }
 
     setQueueMessage(null);
+    setSubmittingTab(type);
 
     const reader = new FileReader();
     reader.onloadend = async () => {
@@ -138,8 +160,15 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
           await onImport({ data, mimeType }, type);
         } catch {
           // Error state is surfaced by the parent view.
+        } finally {
+          setSubmittingTab(null);
         }
+      } else {
+        setSubmittingTab(null);
       }
+    };
+    reader.onerror = () => {
+      setSubmittingTab(null);
     };
     reader.readAsDataURL(file);
   };
@@ -166,7 +195,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
         <div className="flex items-center gap-4 mb-8 pt-4">
           <button
             onClick={() => setActiveTab(null)}
-            className="flex items-center gap-1 p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed"
+            disabled={loading || Boolean(submittingTab)}
+            className="flex items-center gap-1 p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2">Tilbage</span>
@@ -199,13 +229,17 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <input
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setQueueMessage(null);
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && url) handleSubmit();
+                  if (e.key === 'Enter' && url) void handleSubmit();
                 }}
                 placeholder="https://..."
                 className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-black/20 transition-all text-forest-dark cm-light-surface-ink placeholder-forest-mid/40 cm-light-surface-placeholder font-serif italic"
                 autoFocus
+                disabled={loading || submittingTab === 'url'}
               />
               <p className="text-xs text-forest-mid cm-light-surface-ink-muted italic opacity-70 dark:opacity-100">
                 {isOnline ? 'Vi prøver grundimport først og bruger kun AI, hvis siden kræver det.' : 'Offline links gemmes nu i køen til senere behandling.'}
@@ -223,12 +257,15 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <label className="block text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 ml-1 text-engraved">Indsæt tekst</label>
               <textarea
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setQueueMessage(null);
+                }}
                 placeholder="Kopier og indsæt opskriften her..."
                 rows={8}
                 className="w-full p-5 cm-surface-secondary rounded-2xl focus:outline-none focus:border-forest-mid dark:focus:border-black/20 transition-all resize-none text-forest-dark cm-light-surface-ink placeholder-forest-mid/40 cm-light-surface-placeholder font-serif italic"
                 autoFocus
-                disabled={Boolean(textAndFileDisabledReason)}
+                disabled={Boolean(textAndFileDisabledReason) || loading || submittingTab === 'text'}
               />
             </div>
           )}
@@ -249,7 +286,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={loading || Boolean(textAndFileDisabledReason)}
+                disabled={loading || Boolean(textAndFileDisabledReason) || Boolean(submittingTab)}
                 className="w-20 h-20 cm-surface-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-forest-mid cm-light-surface-icon hover:bg-white/80 dark:hover:bg-black/5 transition-all disabled:opacity-50"
               >
                 {loading ? <Loader2 size={32} className="animate-spin" /> : <FileUp size={32} />}
@@ -290,7 +327,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => cameraInputRef.current?.click()}
-                  disabled={loading || Boolean(imageDisabledReason)}
+                disabled={loading || Boolean(imageDisabledReason) || Boolean(submittingTab)}
                   className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all disabled:opacity-50"
                 >
                   <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark cm-light-surface-ink">
@@ -300,7 +337,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 </button>
                 <button
                   onClick={() => galleryInputRef.current?.click()}
-                  disabled={loading || Boolean(imageDisabledReason)}
+                disabled={loading || Boolean(imageDisabledReason) || Boolean(submittingTab)}
                   className="glass-brushed p-6 rounded-3xl border border-black/5 dark:border-white/10 flex flex-col items-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all disabled:opacity-50"
                 >
                   <div className="w-12 h-12 cm-surface-secondary rounded-full flex items-center justify-center text-forest-dark cm-light-surface-ink">
@@ -332,7 +369,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <p className="text-forest-dark cm-light-surface-ink font-serif text-xl italic">Skriv din egen opskrift fra bunden</p>
               <button
                 onClick={onCreateManual}
-                className="btn-wood-light mt-6 px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest"
+                disabled={loading || Boolean(submittingTab)}
+                className="btn-wood-light mt-6 px-10 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Start nu
               </button>
@@ -354,10 +392,10 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
           {(activeTab === 'url' || activeTab === 'text') && (
             <button
               onClick={handleSubmit}
-              disabled={loading || (activeTab === 'url' && (!url || Boolean(urlDisabledReason))) || (activeTab === 'text' && (!text || Boolean(textAndFileDisabledReason)))}
+              disabled={loading || Boolean(submittingTab) || (activeTab === 'url' && (!url || Boolean(urlDisabledReason))) || (activeTab === 'text' && (!text || Boolean(textAndFileDisabledReason)))}
               className="btn-wood-light w-full mt-10 py-5 rounded-2xl font-bold text-xs uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
             >
-              {loading ? (
+              {loading || submittingTab ? (
                 <><Loader2 size={20} className="animate-spin text-forest-mid cm-light-surface-icon" /> Analyserer...</>
               ) : (
                 'Importer opskrift'
@@ -391,10 +429,11 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               onClick={() => {
                 if (disabled) return;
                 setQueueMessage(null);
+                setSubmittingTab(null);
                 cat.id === 'manual' ? onCreateManual() : setActiveTab(cat.id);
               }}
-              disabled={disabled}
-              className={`glass-brushed p-6 rounded-[2rem] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all group text-center shadow-sm ${index === 4 ? 'col-span-2' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={disabled || loading || Boolean(submittingTab)}
+              className={`glass-brushed p-6 rounded-[2rem] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 hover:bg-white/60 dark:hover:bg-black/5 transition-all group text-center shadow-sm ${index === 4 ? 'col-span-2' : ''} ${(disabled || loading || Boolean(submittingTab)) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className="w-16 h-16 cm-surface-secondary rounded-2xl flex items-center justify-center text-forest-mid cm-light-surface-icon group-hover:bg-forest-dark dark:group-hover:bg-[#314038] group-hover:text-white dark:group-hover:text-[#F6F2EA] transition-all mb-2 relative">
                 {cat.icon}

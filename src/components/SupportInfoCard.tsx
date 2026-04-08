@@ -22,7 +22,8 @@ export function SupportInfoCard({
   cloudLastSyncAt,
   aiDisabledReason,
 }: SupportInfoCardProps) {
-  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<{ kind: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
 
   const diagnostics = buildSupportDiagnosticsSnapshot({
     isOnline,
@@ -44,16 +45,23 @@ export function SupportInfoCard({
   });
 
   const handleCopy = async () => {
+    if (isCopying) return;
+
+    setIsCopying(true);
+    setCopyMessage(null);
+
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(supportReport);
-        setCopyMessage('Supportinfo er kopieret.');
+        setCopyMessage({ kind: 'success', text: 'Kopieret.' });
         return;
       }
 
-      setCopyMessage('Din browser kan ikke kopiere automatisk lige nu.');
+      setCopyMessage({ kind: 'info', text: 'Din browser kan ikke kopiere automatisk lige nu.' });
     } catch {
-      setCopyMessage('Supportinfo kunne ikke kopieres lige nu.');
+      setCopyMessage({ kind: 'error', text: 'Kunne ikke kopiere. Prøv igen.' });
+    } finally {
+      setIsCopying(false);
     }
   };
 
@@ -137,14 +145,15 @@ export function SupportInfoCard({
 
       <button
         onClick={() => void handleCopy()}
-        className="mt-5 w-full px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm flex items-center justify-center gap-2"
+        disabled={isCopying}
+        className="mt-5 w-full px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Copy size={14} /> {SUPPORT_INFO.reportActionLabel}
+        <Copy size={14} /> {isCopying ? 'Kopierer...' : SUPPORT_INFO.reportActionLabel}
       </button>
 
       {copyMessage && (
-        <div className="cm-surface-secondary mt-4 rounded-2xl p-4 text-sm text-forest-mid">
-          {copyMessage}
+        <div className={`cm-inline-feedback mt-4 ${copyMessage.kind === 'success' ? 'cm-inline-feedback--success' : copyMessage.kind === 'error' ? 'cm-inline-feedback--error' : 'cm-inline-feedback--info'}`}>
+          {copyMessage.text}
         </div>
       )}
     </section>

@@ -68,6 +68,11 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
   const [inviteRoleByHousehold, setInviteRoleByHousehold] = useState<Record<string, ManageableHouseholdRole>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
+  const clearFeedback = () => {
+    setError(null);
+    setStatusMessage(null);
+  };
+
   useEffect(() => {
     if (!user?.uid) {
       setHouseholds([]);
@@ -101,8 +106,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     if (!user?.uid || !householdName.trim() || !isOnline) return;
 
     setBusyKey('create');
-    setError(null);
-    setStatusMessage(null);
+    clearFeedback();
     setActiveFeedbackHouseholdId(CREATE_FEEDBACK_ID);
 
     try {
@@ -126,8 +130,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     if (!email || !isOnline) return;
 
     setBusyKey(`invite:${householdId}`);
-    setError(null);
-    setStatusMessage(null);
+    clearFeedback();
     setActiveFeedbackHouseholdId(householdId);
 
     try {
@@ -149,8 +152,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
     const memberKey = getMemberKey(member);
     setBusyKey(`role:${householdId}:${memberKey}`);
-    setError(null);
-    setStatusMessage(null);
+    clearFeedback();
     setActiveFeedbackHouseholdId(householdId);
 
     try {
@@ -168,8 +170,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
     const memberKey = getMemberKey(member);
     setBusyKey(`remove:${householdId}:${memberKey}`);
-    setError(null);
-    setStatusMessage(null);
+    clearFeedback();
     setActiveFeedbackHouseholdId(householdId);
 
     try {
@@ -209,16 +210,21 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
               <div className="cm-settings-inline-form cm-settings-inline-form--create mt-4">
                 <input
                   value={householdName}
-                  onChange={(event) => setHouseholdName(event.target.value)}
+                  onChange={(event) => {
+                    setHouseholdName(event.target.value);
+                    clearFeedback();
+                    setActiveFeedbackHouseholdId(CREATE_FEEDBACK_ID);
+                  }}
                   placeholder="Fx Familien Madsen"
                   className="cm-settings-field"
+                  disabled={busyKey === 'create'}
                 />
                 <button
                   onClick={() => void handleCreateHousehold()}
                   disabled={!householdName.trim() || !isOnline || busyKey === 'create'}
                   className="btn-heath disabled:opacity-50"
                 >
-                  Opret husstand
+                  {busyKey === 'create' ? 'Opretter...' : 'Opret husstand'}
                 </button>
               </div>
               {activeFeedbackHouseholdId === CREATE_FEEDBACK_ID && (statusMessage || error) && (
@@ -296,7 +302,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                     data-active={member.role === 'member'}
                                     className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                   >
-                                    <Shield size={12} /> Medlem
+                                    <Shield size={12} /> {isUpdatingRole && member.role !== 'member' ? 'Gemmer...' : 'Medlem'}
                                   </button>
                                   <button
                                     onClick={() => void handleRoleChange(household.id, member, 'admin')}
@@ -304,7 +310,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                     data-active={member.role === 'admin'}
                                     className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                   >
-                                    <ShieldCheck size={12} /> Admin
+                                    <ShieldCheck size={12} /> {isUpdatingRole && member.role !== 'admin' ? 'Gemmer...' : 'Admin'}
                                   </button>
                                 </div>
                                 <button
@@ -312,7 +318,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                   disabled={!isOnline || isRemoving}
                                   className="btn-wood-light text-red-700 disabled:opacity-50"
                                 >
-                                  <Trash2 size={12} /> Fjern
+                                  <Trash2 size={12} /> {isRemoving ? 'Fjerner...' : 'Fjern'}
                                 </button>
                               </div>
                             ) : (
@@ -369,7 +375,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                       data-active={member.role === 'member'}
                                       className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                     >
-                                      <Shield size={12} /> Medlem
+                                      <Shield size={12} /> {isUpdatingRole && member.role !== 'member' ? 'Gemmer...' : 'Medlem'}
                                     </button>
                                     <button
                                       onClick={() => void handleRoleChange(household.id, member, 'admin')}
@@ -377,7 +383,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                       data-active={member.role === 'admin'}
                                       className="cm-settings-segment-button flex-1 disabled:opacity-50"
                                     >
-                                      <ShieldCheck size={12} /> Admin
+                                      <ShieldCheck size={12} /> {isUpdatingRole && member.role !== 'admin' ? 'Gemmer...' : 'Admin'}
                                     </button>
                                   </div>
                                   <button
@@ -385,7 +391,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                                     disabled={!isOnline || isRemoving}
                                     className="btn-wood-light text-red-700 disabled:opacity-50"
                                   >
-                                    <Trash2 size={12} /> Fjern
+                                    <Trash2 size={12} /> {isRemoving ? 'Fjerner...' : 'Fjern'}
                                   </button>
                                 </div>
                               ) : (
@@ -421,14 +427,24 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                     <div className="cm-settings-inline-form cm-settings-inline-form--invite cm-household-invite-form">
                       <input
                         value={inviteEmailByHousehold[household.id] || ''}
-                        onChange={(event) => setInviteEmailByHousehold((prev) => ({ ...prev, [household.id]: event.target.value }))}
+                        onChange={(event) => {
+                          setInviteEmailByHousehold((prev) => ({ ...prev, [household.id]: event.target.value }));
+                          clearFeedback();
+                          setActiveFeedbackHouseholdId(household.id);
+                        }}
                         placeholder="E-mail på personen, du vil invitere"
                         className="cm-settings-field"
+                        disabled={busyKey === `invite:${household.id}`}
                       />
                       <select
                         value={inviteRoleByHousehold[household.id] || 'member'}
-                        onChange={(event) => setInviteRoleByHousehold((prev) => ({ ...prev, [household.id]: event.target.value as ManageableHouseholdRole }))}
+                        onChange={(event) => {
+                          setInviteRoleByHousehold((prev) => ({ ...prev, [household.id]: event.target.value as ManageableHouseholdRole }));
+                          clearFeedback();
+                          setActiveFeedbackHouseholdId(household.id);
+                        }}
                         className="cm-settings-select cm-household-role-select"
+                        disabled={busyKey === `invite:${household.id}`}
                       >
                         <option value="member">Medlem</option>
                         <option value="admin">Admin</option>
@@ -438,7 +454,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                         disabled={!inviteEmailByHousehold[household.id]?.trim() || !isOnline || busyKey === `invite:${household.id}`}
                         className="btn-heath cm-household-invite-button disabled:opacity-50"
                       >
-                        Inviter
+                        {busyKey === `invite:${household.id}` ? 'Inviterer...' : 'Inviter'}
                       </button>
                     </div>
                     {activeFeedbackHouseholdId === household.id && (statusMessage || error) && (

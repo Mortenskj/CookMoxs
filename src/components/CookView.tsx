@@ -54,6 +54,7 @@ export function CookView({
   const levelMeta = LEVEL_META[userLevel];
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [showIngredients, setShowIngredients] = useState(false);
+  const [hudMessage, setHudMessage] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -64,6 +65,10 @@ export function CookView({
       onStepChange(currentStep);
     }
   }, [currentStep, onStepChange]);
+
+  useEffect(() => {
+    setHudMessage(null);
+  }, [currentStep]);
 
   useEffect(() => {
     if (!showIngredients) {
@@ -247,9 +252,10 @@ export function CookView({
                       <button
                         onClick={() => {
                           if (timers.length >= 3) {
-                            alert('Du kan maksimalt have 3 timere i gang på samme tid.');
+                            setHudMessage('Du kan højst have 3 timere i gang ad gangen.');
                             return;
                           }
+                          setHudMessage(null);
                           setTimers([
                             ...timers,
                             {
@@ -263,11 +269,18 @@ export function CookView({
                         }}
                         className="cm-cook-icon-button shrink-0"
                         aria-label="Start timer"
+                        disabled={timers.length >= 3}
                       >
                         <PlayCircle size={24} />
                       </button>
                     </div>
                   )}
+                </div>
+              )}
+
+              {hudMessage && (
+                <div className="cm-inline-feedback cm-inline-feedback--info">
+                  {hudMessage}
                 </div>
               )}
 

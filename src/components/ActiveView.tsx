@@ -1,5 +1,6 @@
 import { Recipe } from '../types';
 import { PlayCircle, FileText, Save, Clock, ChefHat, X, Flame } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface ActiveViewProps {
   activeRecipe: Recipe | null;
@@ -9,6 +10,25 @@ interface ActiveViewProps {
 }
 
 export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: ActiveViewProps) {
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  useEffect(() => {
+    setSaveState('idle');
+  }, [activeRecipe?.id]);
+
+  const handleSave = async () => {
+    if (!activeRecipe || saveState === 'saving') return;
+
+    setSaveState('saving');
+
+    try {
+      await Promise.resolve(onSave(activeRecipe));
+      setSaveState('saved');
+    } catch {
+      setSaveState('error');
+    }
+  };
+
   if (!activeRecipe) {
     return (
       <div className="p-4 pb-32 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center min-h-screen dark:text-white">
@@ -17,7 +37,7 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
         </div>
         <h2 className="text-3xl font-serif text-forest-dark dark:text-white mb-4 italic text-engraved">Intet i gang</h2>
         <p className="text-forest-mid cm-light-surface-ink-muted mb-10 max-w-xs italic leading-relaxed opacity-70 dark:opacity-100">
-          Du har ikke nogen aktiv opskrift i øjeblikket. Find en i biblioteket eller importer en ny.
+          Du har ikke nogen aktiv opskrift i øjeblikket. Importer en ny, eller åbn en opskrift fra biblioteket.
         </p>
         <button
           onClick={() => onNavigate('import')}
@@ -65,11 +85,12 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
 
           <div className="grid grid-cols-2 gap-3 pt-4">
             <button
-              onClick={() => onSave(activeRecipe)}
-              className="flex-1 cm-surface-utility text-forest-mid cm-light-surface-ink py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/60 dark:hover:bg-black/5 transition-all text-xs font-bold uppercase tracking-widest"
+              onClick={() => void handleSave()}
+              disabled={saveState === 'saving'}
+              className="flex-1 cm-surface-utility text-forest-mid cm-light-surface-ink py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/60 dark:hover:bg-black/5 transition-all text-xs font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={16} />
-              Gem
+              {saveState === 'saving' ? 'Gemmer...' : 'Gem'}
             </button>
 
             <button
@@ -80,6 +101,18 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
               Stop
             </button>
           </div>
+
+          {saveState === 'saved' && (
+            <div className="cm-inline-feedback cm-inline-feedback--success">
+              Opskriften er gemt.
+            </div>
+          )}
+
+          {saveState === 'error' && (
+            <div className="cm-inline-feedback cm-inline-feedback--error">
+              Kunne ikke gemme. Prøv igen.
+            </div>
+          )}
         </div>
       </div>
     </div>
