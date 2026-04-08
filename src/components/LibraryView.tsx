@@ -139,7 +139,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                   setActiveSection('cookbooks');
                 }
               }}
-              className="flex items-center justify-between p-6 glass-brushed rounded-[2.5rem] bg-heath-mid/10 border-heath-mid/20 hover:bg-heath-mid/20 transition-all group animate-pulse hover:animate-none"
+              className="flex items-center justify-between p-6 glass-brushed rounded-[2.5rem] bg-heath-mid/10 border-heath-mid/20 hover:bg-heath-mid/20 transition-all group"
             >
               <div className="flex items-center gap-5">
                 <div className="p-4 bg-heath-mid text-white rounded-2xl shadow-md">

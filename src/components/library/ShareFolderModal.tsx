@@ -32,8 +32,8 @@ export function ShareFolderModal({
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="glass-brushed bg-white/90 dark:bg-black/90 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div className="cm-dialog-backdrop fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="cm-dialog-surface glass-brushed bg-white/90 dark:bg-black/90 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic text-engraved">Del mappe</h3>
           <button onClick={onClose} className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors">

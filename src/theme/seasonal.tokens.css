@@ -2,6 +2,10 @@
   --cm-bg: #e0c29b;
   --cm-scene-desktop: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
   --cm-scene-mobile: url('/backgrounds/seasonal/autumn-mobile-1080x1920.jpg');
+  --cm-scene-position-desktop: center 18%;
+  --cm-scene-position-mobile: center 12%;
+  --cm-scene-scale-desktop: 1.02;
+  --cm-scene-scale-mobile: 1;
   --cm-overlay-top: rgba(248, 210, 149, 0.28);
   --cm-overlay-bottom: rgba(76, 34, 12, 0.16);
   --cm-haze-a: rgba(255, 255, 255, 0.14);
@@ -22,6 +26,8 @@
   --cm-bg: #e7eedf;
   --cm-scene-desktop: url('/backgrounds/seasonal/spring-hero-1600x900.jpg');
   --cm-scene-mobile: url('/backgrounds/seasonal/spring-mobile-1080x1920.jpg');
+  --cm-scene-position-desktop: center 20%;
+  --cm-scene-position-mobile: center 10%;
   --cm-overlay-top: rgba(247, 232, 199, 0.3);
   --cm-overlay-bottom: rgba(222, 234, 215, 0.12);
   --cm-cook-base: #16201b;
@@ -34,6 +40,8 @@
   --cm-bg: #efe0b9;
   --cm-scene-desktop: url('/backgrounds/seasonal/summer-hero-1600x900.jpg');
   --cm-scene-mobile: url('/backgrounds/seasonal/summer-mobile-1080x1920.jpg');
+  --cm-scene-position-desktop: center 22%;
+  --cm-scene-position-mobile: center 14%;
   --cm-overlay-top: rgba(252, 220, 158, 0.34);
   --cm-overlay-bottom: rgba(110, 73, 21, 0.1);
   --cm-cook-base: #1b1a16;
@@ -46,6 +54,8 @@
   --cm-bg: #e0c29b;
   --cm-scene-desktop: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
   --cm-scene-mobile: url('/backgrounds/seasonal/autumn-mobile-1080x1920.jpg');
+  --cm-scene-position-desktop: center 18%;
+  --cm-scene-position-mobile: center 12%;
   --cm-overlay-top: rgba(248, 210, 149, 0.28);
   --cm-overlay-bottom: rgba(76, 34, 12, 0.16);
   --cm-cook-base: #171d1b;
@@ -58,6 +68,8 @@
   --cm-bg: #d8dfe5;
   --cm-scene-desktop: url('/backgrounds/seasonal/winter-hero-1600x900.jpg');
   --cm-scene-mobile: url('/backgrounds/seasonal/winter-mobile-1080x1920.jpg');
+  --cm-scene-position-desktop: center 20%;
+  --cm-scene-position-mobile: center 10%;
   --cm-overlay-top: rgba(237, 241, 245, 0.24);
   --cm-overlay-bottom: rgba(32, 50, 64, 0.14);
   --cm-cook-base: #151a1d;

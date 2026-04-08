@@ -47,7 +47,11 @@
   --season-motion-glow-duration: 2.4s;
   --season-motion-loader-duration: 1.8s;
   --season-loading-accent: color-mix(in srgb, var(--season-accent) 80%, white);
-  --season-bg-image: url('/backgrounds/autumn.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
+  --cm-motion-fast: 140ms;
+  --cm-motion-medium: 180ms;
+  --cm-motion-slow: 220ms;
+  --cm-motion-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Compatibility aliases for the existing component layer */
   --theme-dark: var(--season-text-primary);
@@ -127,7 +131,7 @@
   --season-motion-glow-duration: 2.1s;
   --season-motion-loader-duration: 1.6s;
   --season-loading-accent: color-mix(in srgb, #88B794 74%, white);
-  --season-bg-image: url('/backgrounds/spring.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/spring-hero-1600x900.jpg');
 }
 
 .dark.theme-spring {
@@ -191,7 +195,7 @@
   --season-motion-glow-duration: 2.5s;
   --season-motion-loader-duration: 1.95s;
   --season-loading-accent: color-mix(in srgb, #E6C287 76%, white);
-  --season-bg-image: url('/backgrounds/summer.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/summer-hero-1600x900.jpg');
 }
 
 .dark.theme-summer {
@@ -255,7 +259,7 @@
   --season-motion-glow-duration: 2.3s;
   --season-motion-loader-duration: 1.8s;
   --season-loading-accent: color-mix(in srgb, #8C9A8E 76%, white);
-  --season-bg-image: url('/backgrounds/autumn.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
 }
 
 .dark.theme-autumn {
@@ -319,7 +323,7 @@
   --season-motion-glow-duration: 2.8s;
   --season-motion-loader-duration: 2.1s;
   --season-loading-accent: color-mix(in srgb, #A2B5C6 74%, white);
-  --season-bg-image: url('/backgrounds/winter.jpg');
+  --season-bg-image: url('/backgrounds/seasonal/winter-hero-1600x900.jpg');
 }
 
 .dark.theme-winter {
@@ -439,6 +443,75 @@
     50% { opacity: 0.75; filter: saturate(1.1); }
   }
 
+  @keyframes cm-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes cm-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes cm-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .cm-dialog-backdrop {
+    animation: cm-fade-in var(--cm-motion-fast) var(--cm-motion-ease-soft);
+  }
+
+  .cm-dialog-surface {
+    transform-origin: center bottom;
+    animation: cm-dialog-in var(--cm-motion-medium) var(--cm-motion-ease-soft);
+  }
+
+  .cm-toast-enter,
+  .cm-feedback-enter {
+    animation: cm-fade-up var(--cm-motion-medium) var(--cm-motion-ease-soft);
+  }
+
+  .glass-brushed,
+  .cm-surface-secondary,
+  .cm-surface-utility,
+  .cm-search-shell,
+  .cm-topbar-surface,
+  .cm-settings-card,
+  .season-toast-surface,
+  .cm-nav-dock,
+  .cm-nav-item,
+  .cm-icon-button,
+  .cm-cook-icon-button,
+  .cm-cook-nav-button,
+  .btn-botanical,
+  .btn-heath,
+  .btn-wood-light,
+  .cm-danger-button,
+  .cm-cook-primary-button,
+  .cm-cook-secondary-button,
+  .cm-cook-danger-button {
+    transition:
+      background-color var(--cm-motion-fast) var(--cm-motion-ease-soft),
+      border-color var(--cm-motion-fast) var(--cm-motion-ease-soft),
+      color var(--cm-motion-fast) var(--cm-motion-ease-soft),
+      opacity var(--cm-motion-fast) var(--cm-motion-ease-soft),
+      box-shadow var(--cm-motion-medium) var(--cm-motion-ease-soft),
+      transform var(--cm-motion-fast) var(--cm-motion-ease-soft);
+  }
+
   .season-loading-shell {
     position: relative;
     overflow: hidden;
@@ -449,6 +522,7 @@
     border: 1px solid color-mix(in srgb, var(--theme-panel-border) 92%, transparent);
     backdrop-filter: blur(4px) saturate(102%);
     box-shadow: 0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent);
+    transform-origin: center top;
   }
 
   .season-loading-shell::after {
@@ -2041,6 +2115,11 @@
     font-weight: 600;
   }
 
+  .cm-inline-feedback,
+  .cm-recipe-inline-status {
+    animation: cm-fade-up var(--cm-motion-medium) var(--cm-motion-ease-soft);
+  }
+
   .cm-cook-shell {
     color: #F3EEE5;
     min-height: 100dvh;
@@ -2182,6 +2261,7 @@
 
   .cm-cook-progress-bar {
     background: rgba(243, 238, 229, 0.96);
+    transition: width var(--cm-motion-medium) var(--cm-motion-ease-soft);
   }
 
   .herbal-pattern {
@@ -2204,6 +2284,10 @@
   }
 
   @layer utilities {
+    .cm-dialog-backdrop,
+    .cm-dialog-surface,
+    .cm-toast-enter,
+    .cm-feedback-enter,
     .season-loading-progress,
     .season-motion-float,
     .season-motion-bubble,
@@ -2211,6 +2295,29 @@
     .season-motion-stir,
     .season-motion-glow {
       animation: none !important;
+    }
+
+    .glass-brushed,
+    .cm-surface-secondary,
+    .cm-surface-utility,
+    .cm-search-shell,
+    .cm-topbar-surface,
+    .cm-settings-card,
+    .season-toast-surface,
+    .cm-nav-dock,
+    .cm-nav-item,
+    .cm-icon-button,
+    .cm-cook-icon-button,
+    .cm-cook-nav-button,
+    .btn-botanical,
+    .btn-heath,
+    .btn-wood-light,
+    .cm-danger-button,
+    .cm-cook-primary-button,
+    .cm-cook-secondary-button,
+    .cm-cook-danger-button,
+    .cm-cook-progress-bar {
+      transition-duration: 1ms !important;
     }
   }
 }

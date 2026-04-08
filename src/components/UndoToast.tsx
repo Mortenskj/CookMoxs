@@ -10,7 +10,7 @@ interface UndoToastProps {
 
 export function UndoToast({ title, description, onUndo, onDismiss }: UndoToastProps) {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(560px,calc(100%-24px))]">
+    <div className="cm-toast-enter fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(560px,calc(100%-24px))]">
       <div className="season-toast-surface rounded-[2rem] px-5 py-4">
         <div className="flex items-start gap-4">
           <div className="flex-1">

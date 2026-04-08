@@ -531,8 +531,8 @@ export function SettingsView({
       </div>
 
       {showLevelHelp && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/35 p-4 backdrop-blur-sm sm:items-center">
-          <div className="glass-brushed w-full max-w-md rounded-[2rem] border border-black/5 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-[#1A221E]/96">
+        <div className="cm-dialog-backdrop fixed inset-0 z-[110] flex items-end justify-center bg-black/35 p-4 backdrop-blur-sm sm:items-center">
+          <div className="cm-dialog-surface glass-brushed w-full max-w-md rounded-[2rem] border border-black/5 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-[#1A221E]/96">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="cm-settings-section-heading !mb-3">

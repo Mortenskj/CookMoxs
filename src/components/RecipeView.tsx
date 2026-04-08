@@ -865,8 +865,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           )}
 
           {showSmartModal && canMutateRecipe && (
-            <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic mb-4 flex items-center gap-3 text-engraved">
                   <div className="p-2 bg-white dark:bg-black/20 rounded-xl shadow-sm border border-black/5 dark:border-white/10">
                     <Wand2 size={24} className="text-heath-mid"/>
@@ -924,7 +924,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           {canMutateRecipe && (recipe.folder === DEFAULT_FOLDER_NAME || !recipe.isSaved) && (
             <button 
               onClick={openFolderPickerForSave} 
-              className="flex items-center gap-2 px-6 py-2 bg-heath-mid text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-lg hover:bg-heath-dark transition-all scale-105 animate-pulse hover:animate-none"
+              className="flex items-center gap-2 px-6 py-2 bg-heath-mid text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-lg hover:bg-heath-dark transition-all"
             >
               <Save size={18} />
               Gem Opskrift
@@ -1119,8 +1119,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       {/* Tips Modal */}
       {showTipsModal && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 max-w-sm w-full shadow-2xl relative bg-sand/95 dark:bg-[#1A221E]/95 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 max-w-sm w-full shadow-2xl relative bg-sand/95 dark:bg-[#1A221E]/95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button 
               onClick={() => setShowTipsModal(false)}
               className="absolute right-6 top-6 text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white transition-colors p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full"
@@ -1367,8 +1367,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       {/* Add Ingredient Modal */}
       {showAddIngredientModal && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-sand/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-sand/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic text-engraved">Tilføj Ingrediens</h3>
               <button onClick={() => setShowAddIngredientModal(false)} className="text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors">
@@ -1478,8 +1478,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
       {/* Smart Adjust Modal */}
       {showSmartModal && canMutateRecipe && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic mb-4 flex items-center gap-3 text-engraved">
               <div className="p-2 bg-white dark:bg-black/20 rounded-xl shadow-sm border border-black/5 dark:border-white/10">
                 <Wand2 size={24} className="text-heath-mid"/>
@@ -1536,8 +1536,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       </div>
       {/* Folder Picker Modal */}
       {showFolderPicker && (
-        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="glass-brushed bg-white/90 dark:bg-forest-dark/95 w-full max-w-sm rounded-[2.5rem] p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="cm-dialog-backdrop fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="cm-dialog-surface glass-brushed bg-white/90 dark:bg-forest-dark/95 w-full max-w-sm rounded-[2.5rem] p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic text-engraved">Gem i mappe</h3>
               <button onClick={() => {

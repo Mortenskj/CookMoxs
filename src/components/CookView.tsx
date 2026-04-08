@@ -184,7 +184,7 @@ export function CookView({
           <div className="cm-cook-topbar flex justify-between items-center p-4 sm:p-6 gap-2 pt-6 relative">
             <div className="cm-cook-progress-track absolute top-0 left-0 right-0 h-1 z-50">
               <div
-                className="cm-cook-progress-bar h-full transition-all duration-500 ease-out"
+                className="cm-cook-progress-bar h-full"
                 style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               />
             </div>
@@ -292,7 +292,7 @@ export function CookView({
                         <span className="text-sm font-serif italic text-[#F9F9F7] truncate block">{t.description}</span>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className={`text-xl font-mono tracking-tighter ${t.remaining === 0 ? 'text-red-400 animate-pulse' : 'text-[#F9F9F7]'}`}>
+                        <span className={`text-xl font-mono tracking-tighter ${t.remaining === 0 ? 'text-red-400' : 'text-[#F9F9F7]'}`}>
                           {formatTime(t.remaining)}
                         </span>
                         <button
@@ -409,7 +409,7 @@ export function CookView({
       </div>
 
       {showIngredients && (
-        <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Alle ingredienser">
+        <div className="cm-dialog-backdrop fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Alle ingredienser">
           <div className="cm-cook-shell h-full max-w-md mx-auto flex flex-col bg-[#111914]">
             <div className="cm-cook-topbar sticky top-0 z-10 flex items-center justify-between gap-3 p-4 sm:p-6">
               <h2 className="min-w-0 text-xl font-serif text-[#F9F9F7]">Alle ingredienser</h2>

@@ -7,7 +7,7 @@ interface AppUpdateToastProps {
 
 export function AppUpdateToast({ onUpdate, onDismiss }: AppUpdateToastProps) {
   return (
-    <div className="season-toast-surface fixed left-1/2 top-4 z-50 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 rounded-[2rem] px-5 py-4">
+    <div className="cm-toast-enter season-toast-surface fixed left-1/2 top-4 z-50 w-[min(720px,calc(100vw-2rem))] -translate-x-1/2 rounded-[2rem] px-5 py-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <p className="font-serif text-lg italic text-forest-dark">Ny version klar</p>

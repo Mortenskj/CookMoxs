@@ -61,7 +61,7 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe }: A
           <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink mb-3 italic text-engraved">{activeRecipe.title}</h2>
           <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted">
             <span className="cm-surface-utility cm-light-surface-ink flex items-center gap-2 px-3 py-1 rounded-full">
-              <Clock size={12} className="animate-pulse" /> Aktiv nu
+              <Clock size={12} /> Aktiv nu
             </span>
           </div>
         </div>

@@ -35,7 +35,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
               <div>
                 <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink mb-2 group-hover:text-forest-mid dark:group-hover:text-[#314038] transition-colors truncate">{activeRecipe.title}</h3>
                 <p className="text-xs font-medium text-forest-mid cm-light-surface-ink-muted flex items-center gap-1.5 uppercase tracking-wider">
-                  <PlayCircle size={14} className="animate-pulse" /> Fortsæt madlavning
+                  <PlayCircle size={14} /> Fortsæt madlavning
                 </p>
               </div>
             </div>

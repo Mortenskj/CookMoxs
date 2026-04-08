@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { DEFAULT_SEASONAL_THEME, type SeasonalThemeId } from '../config/seasonalThemes';
 import '../theme/seasonal-backgrounds.css';
 
@@ -27,6 +27,14 @@ export function SeasonalScene({ theme, isCookMode = false, className = '', child
   const sceneClassName = ['cm-seasonal-scene', isCookMode ? 'cm-cook-mode' : '', className]
     .filter(Boolean)
     .join(' ');
+
+  useEffect(() => {
+    const desktopAsset = new Image();
+    const mobileAsset = new Image();
+
+    desktopAsset.src = `/backgrounds/seasonal/${season}-hero-1600x900.jpg`;
+    mobileAsset.src = `/backgrounds/seasonal/${season}-mobile-1080x1920.jpg`;
+  }, [season]);
 
   return (
     <div className={sceneClassName} data-season={season}>
