@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+﻿import React, { useRef, useState } from 'react';
 import { ArrowLeft, Camera, FileText, FileUp, Image as ImageIcon, Link, Loader2, PenTool } from 'lucide-react';
 import type { ImportPreference } from '../config/importPreferences';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -453,3 +453,5 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
     </div>
   );
 }
+
+

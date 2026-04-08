@@ -35,6 +35,7 @@ interface RecipeNutritionAttachmentCardProps {
 type LookupMode = 'barcode' | 'text_search';
 type MacroBasis = 'perPortion' | 'per100g';
 type MacroTab = 'protein' | 'fat' | 'carbs';
+type DistributionBasis = 'grams' | 'calories';
 
 const MACRO_META: Record<MacroTab, { label: string; stroke: string; softBg: string; pillText: string }> = {
   protein: {
@@ -136,6 +137,7 @@ export function RecipeNutritionAttachmentCard({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<NutritionLookupResult | null>(null);
   const [macroBasis, setMacroBasis] = useState<MacroBasis>('perPortion');
+  const [distributionBasis, setDistributionBasis] = useState<DistributionBasis>('grams');
   const [showMacroSources, setShowMacroSources] = useState(false);
   const [activeMacroTab, setActiveMacroTab] = useState<MacroTab>('protein');
   const [showAllMacroSources, setShowAllMacroSources] = useState(false);
@@ -253,13 +255,21 @@ export function RecipeNutritionAttachmentCard({
       },
     ];
 
-    const totalMacroKcal = macros.reduce((sum, macro) => sum + macro.macroKcal, 0);
+    const totalDistributionValue = macros.reduce(
+      (sum, macro) => sum + (distributionBasis === 'grams' ? macro.grams : macro.macroKcal),
+      0,
+    );
+
     return macros.map((macro) => ({
       ...macro,
-      share: totalMacroKcal > 0 ? macro.macroKcal / totalMacroKcal : 0,
-      percent: totalMacroKcal > 0 ? (macro.macroKcal / totalMacroKcal) * 100 : 0,
+      share: totalDistributionValue > 0
+        ? (distributionBasis === 'grams' ? macro.grams : macro.macroKcal) / totalDistributionValue
+        : 0,
+      percent: totalDistributionValue > 0
+        ? ((distributionBasis === 'grams' ? macro.grams : macro.macroKcal) / totalDistributionValue) * 100
+        : 0,
     }));
-  }, [selectedSnapshot]);
+  }, [distributionBasis, selectedSnapshot]);
   const donutSegments = useMemo(() => {
     if (!macroOverview) {
       return [];
@@ -309,6 +319,20 @@ export function RecipeNutritionAttachmentCard({
 
     return showAllMacroSources ? items : items.slice(0, 5);
   }, [activeMacroTab, contributionScale, displayEstimate, showAllMacroSources]);
+  const macroOverviewItems = useMemo(() => {
+    if (!macroOverview) {
+      return [];
+    }
+
+    const preferredOrder: MacroTab[] = ['protein', 'carbs', 'fat'];
+    return preferredOrder
+      .map((key) => macroOverview.find((macro) => macro.key === key))
+      .filter((macro): macro is NonNullable<typeof macro> => Boolean(macro));
+  }, [macroOverview]);
+  const distributionBasisLabel = distributionBasis === 'grams' ? 'gramfordelingen' : 'kaloriefordelingen';
+  const distributionDescription = distributionBasis === 'grams'
+    ? 'Diagrammet viser gramfordelingen mellem fedt, protein og kulhydrat.'
+    : 'Diagrammet viser kaloriefordelingen mellem fedt, protein og kulhydrat.';
 
   useEffect(() => {
     setShowAllMacroSources(false);
@@ -398,6 +422,53 @@ export function RecipeNutritionAttachmentCard({
               </span>
             </div>
           </div>
+          {selectedSnapshot && macroOverviewItems.length > 0 && (
+            <div className="cm-nutrition-summary-shell mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
+              <div className="cm-nutrition-summary-head">
+                <div>
+                  <p className="font-bold uppercase tracking-widest opacity-60">Overblik</p>
+                  <p className="mt-2 text-3xl font-serif italic text-forest-dark dark:text-white">
+                    {formatMacroValue(selectedSnapshot.energyKcal)} kcal
+                  </p>
+                  <p className="mt-1 opacity-75">
+                    {macroBasis === 'perPortion' ? 'Pr. portion' : 'Pr. 100 g'}
+                  </p>
+                </div>
+                <div className="cm-nutrition-distribution-tabs rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
+                  <button
+                    type="button"
+                    onClick={() => setDistributionBasis('grams')}
+                    className={`cm-nutrition-distribution-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${distributionBasis === 'grams' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
+                  >
+                    Gramfordeling
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDistributionBasis('calories')}
+                    className={`cm-nutrition-distribution-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${distributionBasis === 'calories' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid dark:text-white/75'}`}
+                  >
+                    Kaloriefordeling
+                  </button>
+                </div>
+              </div>
+              <div className="cm-nutrition-summary-grid mt-4">
+                {macroOverviewItems.map((macro) => (
+                  <div key={`overview-${macro.key}`} className="cm-nutrition-summary-item rounded-[1.25rem] border border-black/5 bg-white/50 px-4 py-3 dark:border-white/10 dark:bg-black/10">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="cm-nutrition-summary-dot"
+                        style={{ backgroundColor: macro.stroke }}
+                        aria-hidden="true"
+                      />
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-60">{macro.label}</p>
+                    </div>
+                    <p className={`mt-3 text-xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
+                    <p className="mt-1 opacity-75">{formatMacroPercent(macro.percent)} af {distributionBasisLabel}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
             <p className="font-bold uppercase tracking-widest opacity-60">Ingrediensdækning</p>
             <p className="mt-2">
@@ -420,7 +491,7 @@ export function RecipeNutritionAttachmentCard({
             <div className="cm-nutrition-overview-head">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.24em] opacity-60">Makrofordeling</p>
-                <p className="mt-1 text-xs opacity-75">Diagrammet viser kaloriefordelingen mellem fedt, protein og kulhydrat.</p>
+                <p className="mt-1 text-xs opacity-75">{distributionDescription}</p>
               </div>
               <div className="cm-nutrition-macro-tabs rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
                 <button
@@ -484,7 +555,7 @@ export function RecipeNutritionAttachmentCard({
                     <div key={macro.key} className={`rounded-[1.5rem] border border-black/5 px-4 py-4 dark:border-white/10 ${macro.softBg}`}>
                       <p className="text-[11px] font-bold uppercase tracking-[0.24em] opacity-60">{macro.label}</p>
                       <p className={`mt-3 text-2xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
-                        <p className="mt-2 text-xs opacity-75">{formatMacroPercent(macro.percent)} af makro-kalorierne</p>
+                        <p className="mt-2 text-xs opacity-75">{formatMacroPercent(macro.percent)} af {distributionBasisLabel}</p>
                       </div>
                     ))}
                   </div>

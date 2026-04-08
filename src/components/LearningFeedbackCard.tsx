@@ -106,7 +106,7 @@ export function LearningFeedbackCard() {
                   data-active={selected}
                   className="cm-settings-choice-card"
                 >
-                  {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">Aktiv</span> : null}
+                  {selected ? <span data-active className="cm-settings-choice-badge cm-settings-choice-card__badge">AKTIV</span> : null}
                   <div className="mb-1">
                     <span className="font-serif text-sm text-forest-dark italic cm-settings-choice-card__title">{item.label}</span>
                   </div>

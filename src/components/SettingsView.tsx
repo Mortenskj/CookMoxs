@@ -1,5 +1,6 @@
-import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type, Sparkles } from 'lucide-react';
-import { COOKING_LEVELS, LEVEL_META, type UserLevel } from '../config/cookingLevels';
+import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type, Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
+import { COOKING_LEVELS, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/cookDisplay';
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
 import { SEASONAL_THEME_OPTIONS } from '../config/seasonalThemes';
@@ -71,6 +72,40 @@ function SettingsToggle({
   );
 }
 
+const LEVEL_CARD_SUMMARY: Record<UserLevel, string> = {
+  Begynder: 'Mere guidet og forklarende.',
+  'Hverdags kok': 'Praktisk hjælp i et roligt tempo.',
+  'Erfaren amatør': 'Mindre forklaring, mere køkkenflow.',
+  Professionel: 'Kortfattet med høj faglig antagelse.',
+};
+
+const LEVEL_HELP_CONTENT: Array<{
+  level: UserLevel;
+  meaning: string;
+  effect: string;
+}> = [
+  {
+    level: 'Begynder',
+    meaning: 'Mest guidet niveau med tydelige trin og mere hjælp undervejs.',
+    effect: 'Giver flere forklaringer, mindre fagsprog og mere hjælp i cook mode og AI-forslag.',
+  },
+  {
+    level: 'Hverdags kok',
+    meaning: 'Praktisk niveau med klare trin og kun den vigtigste støtte.',
+    effect: 'Holder instruktionerne korte, men forklarer stadig timing, varme og faldgruber tydeligt.',
+  },
+  {
+    level: 'Erfaren amatør',
+    meaning: 'Mere flydende opskriftsstil med færre forklarende stop.',
+    effect: 'Antager mere køkkenerfaring, bruger mere køkkensprog og gør cook mode mere kompakt.',
+  },
+  {
+    level: 'Professionel',
+    meaning: 'Korteste og mest implicitte niveau.',
+    effect: 'Antager høj erfaring, bruger fagsprog mere direkte og skærer hjælpetekst og forklaringer ned.',
+  },
+];
+
 export function SettingsView({
   onBack,
   user,
@@ -101,6 +136,7 @@ export function SettingsView({
   isOnline = true,
   aiDisabledReason,
 }: SettingsViewProps) {
+  const [showLevelHelp, setShowLevelHelp] = useState(false);
   const { enabled: nutritionToolsEnabled, setEnabled: setNutritionToolsEnabled } = useNutritionToolsEnabled();
   const { visible: recipeNutritionVisible, setVisible: setRecipeNutritionVisible } = useRecipeNutritionVisible();
   const { visible: recipeNutritionEstimateVisible, setVisible: setRecipeNutritionEstimateVisible } = useRecipeNutritionEstimateVisible();
@@ -129,7 +165,7 @@ export function SettingsView({
             <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">Google-login</p>
               <p className="text-xs text-forest-mid italic opacity-70">
-                {user ? `Logget ind som ${user.displayName || user.email}` : 'Giver synkronisering, deling og gendannelse på tværs af enheder.'}
+                {user ? `Logget ind som ${user.displayName || user.email}` : 'Giver synkronisering, deling og gendannelse på tværs af dine enheder.'}
               </p>
             </div>
             <div className="flex">
@@ -196,9 +232,19 @@ export function SettingsView({
         </section>
 
         <section className="cm-settings-card">
-          <h2 className="cm-settings-section-heading">
-            <ChefHat size={14} /> Dit niveau i køkkenet
-          </h2>
+          <div className="cm-settings-section-heading-row">
+            <h2 className="cm-settings-section-heading !mb-0">
+              <ChefHat size={14} /> Dit niveau i køkkenet
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShowLevelHelp(true)}
+              className="cm-settings-inline-help"
+              aria-label="Sådan virker niveauerne i køkkenet"
+            >
+              <Info size={14} />
+            </button>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             {COOKING_LEVELS.map((level) => {
               const selected = userLevel === level;
@@ -214,7 +260,7 @@ export function SettingsView({
                     <span className="font-serif text-base text-forest-dark italic cm-settings-choice-card__title">{level}</span>
                   </div>
                   <p className="cm-settings-choice-card__description text-xs text-forest-mid leading-relaxed opacity-80">
-                    {LEVEL_META[level].cookIntro}
+                    {LEVEL_CARD_SUMMARY[level]}
                   </p>
                 </button>
               );
@@ -286,7 +332,7 @@ export function SettingsView({
               <ChefHat size={14} className="text-forest-mid mt-1" />
               <div>
                 <p className="font-serif text-lg text-forest-dark italic">Import med eller uden AI</p>
-                <p className="text-xs text-forest-mid italic opacity-70">Styrer hvor meget hjælp linkimport må bruge.</p>
+                <p className="text-xs text-forest-mid italic opacity-70">Styrer hvor meget hjælp linkimport må bruge i denne browser.</p>
               </div>
             </div>
             <div className="grid gap-3 mb-8">
@@ -314,14 +360,14 @@ export function SettingsView({
                 <Sparkles size={14} className="text-forest-mid mt-1" />
                 <div>
                   <p className="font-serif text-lg text-forest-dark italic">AI efter linkimport</p>
-                  <p className="text-xs text-forest-mid italic opacity-70">Tester om import også skal køre et ekstra AI-trin bagefter.</p>
+                  <p className="text-xs text-forest-mid italic opacity-70">Styrer om linkimport også må køre et ekstra AI-trin bagefter.</p>
                 </div>
               </div>
               <div className="cm-settings-row">
                 <div className="cm-settings-copy">
-                  <p className="font-serif text-lg text-forest-dark italic">{autoAiImportEnhancement ? 'Altid aktiv' : 'Kun grundimport'}</p>
+                  <p className="font-serif text-lg text-forest-dark italic">{autoAiImportEnhancement ? 'AI-forbedring aktiv' : 'Kun grundimport'}</p>
                   <p className="text-xs text-forest-mid opacity-75">
-                    Til: linkimport kører også AI bagefter. Fra: import stopper efter grundimport, hvis den allerede virker.
+                    Til: linkimport prøver også AI bagefter. Fra: import stopper efter grundimport, hvis siden allerede virker.
                   </p>
                 </div>
                 <SettingsToggle enabled={autoAiImportEnhancement} onChange={setAutoAiImportEnhancement} />
@@ -359,7 +405,7 @@ export function SettingsView({
                   <div className="cm-settings-row cm-settings-row--subtle mt-4">
                     <div className="cm-settings-copy">
                       <p className="font-serif text-lg text-forest-dark italic">{recipeNutritionVisible ? 'Produktdata vises' : 'Produktdata skjules'}</p>
-                      <p className="text-xs text-forest-mid opacity-75">Styrer om kortet med produktdata kan vises på opskriftssider.</p>
+                      <p className="text-xs text-forest-mid opacity-75">Styrer om produktdata kan vises på opskriftssider.</p>
                     </div>
                     <SettingsToggle enabled={recipeNutritionVisible} onChange={setRecipeNutritionVisible} />
                   </div>
@@ -479,6 +525,42 @@ export function SettingsView({
         <LearningFeedbackCard />
         <LearningProfileTransparencyCard />
       </div>
+
+      {showLevelHelp && (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/35 p-4 backdrop-blur-sm sm:items-center">
+          <div className="glass-brushed w-full max-w-md rounded-[2rem] border border-black/5 bg-white/95 p-6 shadow-2xl dark:border-white/10 dark:bg-[#1A221E]/96">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="cm-settings-section-heading !mb-3">
+                  <ChefHat size={14} /> Niveau i køkkenet
+                </p>
+                <h3 className="font-serif text-2xl italic text-forest-dark dark:text-white">Sådan virker niveauerne</h3>
+                <p className="mt-2 text-sm text-forest-mid dark:text-white/80">
+                  Niveauet påvirker især cook mode og AI-hjælp: hvor detaljerede trin er, hvor meget køkkensprog der bruges, og hvor meget hjælp der gives undervejs.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLevelHelp(false)}
+                className="cm-icon-button shrink-0"
+                aria-label="Luk forklaring om niveauer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {LEVEL_HELP_CONTENT.map((item) => (
+                <div key={item.level} className="cm-settings-panel cm-settings-panel--subtle">
+                  <p className="font-serif text-lg italic text-forest-dark dark:text-white">{item.level}</p>
+                  <p className="mt-1 text-sm text-forest-mid dark:text-white/80">{item.meaning}</p>
+                  <p className="mt-2 text-xs text-forest-mid/85 dark:text-white/70">{item.effect}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

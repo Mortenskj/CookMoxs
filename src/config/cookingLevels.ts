@@ -16,7 +16,7 @@ export const LEVEL_META: Record<UserLevel, {
   ingredientLabel: string;
   nextStepLabel: string;
 }> = {
-  'Begynder': {
+  Begynder: {
     shortLabel: 'Tryg guidning',
     cookIntro: 'Rolig, trinvis guidning med lidt mere forklaring undervejs.',
     reminderLabel: 'Husk dette',
@@ -37,7 +37,7 @@ export const LEVEL_META: Record<UserLevel, {
     ingredientLabel: 'Mise en place',
     nextStepLabel: 'Næste arbejdsgang',
   },
-  'Professionel': {
+  Professionel: {
     shortLabel: 'Service mode',
     cookIntro: 'Stramt, teknisk og hurtigt overblik med fokus på execution.',
     reminderLabel: 'Obs.',

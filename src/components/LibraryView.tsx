@@ -1,4 +1,4 @@
-import { Recipe, Folder as FolderType } from '../types';
+﻿import { Recipe, Folder as FolderType } from '../types';
 import { Search, Heart, Book, List, Tag, ChevronRight, ArrowLeft, Folder, Plus, Edit3, Trash2, X, TreePine, Share2, UserPlus, Shield, ShieldCheck, Save } from 'lucide-react';
 import { useState } from 'react';
 import { OwnershipBadge } from './OwnershipBadge';
@@ -477,3 +477,4 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
     </div>
   );
 }
+

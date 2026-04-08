@@ -66,7 +66,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
       setResult(nextResult);
     } catch (lookupError) {
       setResult(null);
-      setError(lookupError instanceof Error ? lookupError.message : 'Nutritionssøgning fejlede.');
+      setError(lookupError instanceof Error ? lookupError.message : 'Produktsøgning fejlede.');
     } finally {
       setLoading(false);
     }
@@ -75,14 +75,14 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
   return (
     <section className="glass-brushed p-8 rounded-[2.5rem]">
       <h2 className="text-xs font-bold text-forest-mid uppercase tracking-widest mb-6 flex items-center gap-3 opacity-60 text-engraved">
-        <Sparkles size={14} /> Nutrition og stregkode
+        <Sparkles size={14} /> Ernæring og stregkode
       </h2>
 
       <div className="space-y-5">
         <div className="cm-surface-secondary rounded-2xl p-4">
-          <p className="font-serif text-lg text-forest-dark italic">Tidlig nutrition-beta</p>
+          <p className="font-serif text-lg text-forest-dark italic">Tidlig beta for produktdata</p>
           <p className="mt-2 text-xs text-forest-mid opacity-80">
-            Søg efter et produkt manuelt med stregkode eller tekst. Dette er kun lookup-visning endnu og ændrer ikke dine opskrifter.
+            Søg efter et produkt manuelt med stregkode eller tekst. Dette er kun opslag endnu og ændrer ikke dine opskrifter.
           </p>
           <p className="mt-2 text-xs text-forest-mid opacity-70">
             Primær kilde: {status.providers.find((provider) => provider.id === status.primaryProviderId)?.label || status.primaryProviderId}
@@ -107,7 +107,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
         {!isOnline && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
             <p className="text-xs font-bold uppercase tracking-widest text-amber-900">Offline</p>
-            <p className="mt-2 text-sm text-amber-900">Nutritionssøgning kræver internetforbindelse.</p>
+            <p className="mt-2 text-sm text-amber-900">Produktsøgning kræver internetforbindelse.</p>
           </div>
         )}
 
@@ -170,7 +170,7 @@ export function NutritionLookupCard({ isOnline = true }: NutritionLookupCardProp
                 </div>
                 {item.nutrition && (
                   <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-forest-mid">
-                    <div className="rounded-xl bg-white/60 px-3 py-2">kcal/100g: {item.nutrition.energyKcalPer100g ?? '—'}</div>
+                    <div className="rounded-xl bg-white/60 px-3 py-2">kcal/100 g: {item.nutrition.energyKcalPer100g ?? '—'}</div>
                     <div className="rounded-xl bg-white/60 px-3 py-2">Fedt: {item.nutrition.fatPer100g ?? '—'} g</div>
                     <div className="rounded-xl bg-white/60 px-3 py-2">Kulhydrat: {item.nutrition.carbsPer100g ?? '—'} g</div>
                     <div className="rounded-xl bg-white/60 px-3 py-2">Protein: {item.nutrition.proteinPer100g ?? '—'} g</div>

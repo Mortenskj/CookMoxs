@@ -213,7 +213,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     }
 
     if (editRequiresPermissionConfirmation && !editPermissionConfirmed) {
-      setFolderConfirmationError('Bekræft at opskriften maa arve synligheden fra den valgte mappe.');
+      setFolderConfirmationError('Bekræft at opskriften må arve synligheden fra den valgte mappe.');
       return;
     }
 
@@ -973,14 +973,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="cm-recipe-private-row">
               <OwnershipBadge ownership={ownership} />
               <div className="cm-recipe-private-copy">
-                <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">{ownership.detail}</p>
+                <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">
+                  {ownership.state === 'private' ? 'Kun du kan se denne opskrift.' : ownership.detail}
+                </p>
               </div>
             </div>
-            {!canMutateRecipe && (
-              <div className="cm-recipe-inline-status rounded-2xl border border-amber-200 bg-amber-50/80 text-sm text-amber-900">
-                Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult i denne stabiliserings-pass.
-              </div>
-            )}
 
             <div className="cm-recipe-utility-row">
             {canMutateRecipe && (
@@ -1018,7 +1015,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <button 
                 onClick={() => setShowTipsModal(true)}
                 disabled={isAdjusting || aiDisabled}
-                className="cm-recipe-chip flex items-center gap-2 hover:bg-white dark:hover:bg-black/5 transition-all"
+                className="cm-recipe-utility-button"
               >
                 {isGeneratingTips ? <Loader2 size={14} className="animate-spin" /> : <Lightbulb size={14} />}
                 Tips & Tricks
@@ -1033,6 +1030,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     {cat}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {!canMutateRecipe && (
+              <div className="cm-recipe-inline-status rounded-2xl border border-amber-200 bg-amber-50/80 text-sm text-amber-900">
+                Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult i denne stabiliserings-pass.
               </div>
             )}
 
@@ -1211,22 +1214,22 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </h3>
             <ul className="space-y-3">
               {ingredients.map((ing, i) => (
-                <li key={ing.id || i} className="flex justify-between items-center gap-4 group/item">
-                  <div className="flex items-center gap-3">
+                <li key={ing.id || i} className="cm-recipe-ingredient-row group/item">
+                  <div className="cm-recipe-ingredient-main">
                     <button onClick={() => toggleLock(ing.id)} className="p-1.5 hover:bg-white/60 dark:hover:bg-black/5 rounded-lg transition-all text-forest-mid cm-light-surface-icon opacity-40 group-hover/item:opacity-100" title={ing.locked ? "Lås op" : "Lås mængde"}>
                       {ing.locked ? <Lock size={14} className="text-heath-mid" /> : <Unlock size={14} />}
                     </button>
-                    <span className="text-forest-dark cm-light-surface-ink font-serif italic">{ing.name}</span>
+                    <span className="cm-recipe-ingredient-name text-forest-dark cm-light-surface-ink font-serif italic">{ing.name}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-heath-mid text-sm tracking-tight">
+                  <div className="cm-recipe-ingredient-rail">
+                    <span className="cm-recipe-ingredient-amount font-bold text-heath-mid text-sm tracking-tight">
                       {ing.amount ? (ing.locked ? ing.amount : Number((ing.amount * scale).toFixed(2))) : ''} {ing.unit}
                     </span>
                     {canMutateRecipe && canConvertIngredientBetweenGramsAndDeciliters(ing) && (
                       <button
                         type="button"
                         onClick={() => applyRecipeIngredientConversion(recipeIngredients.findIndex((recipeIngredient) => recipeIngredient.id === ing.id))}
-                        className="cm-surface-utility rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid transition-colors hover:bg-white dark:hover:bg-white/10"
+                        className="cm-recipe-ingredient-pill cm-surface-utility rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid transition-colors hover:bg-white dark:hover:bg-white/10"
                         title="Konverter mellem g og dl"
                       >
                         g/dl
@@ -1238,6 +1241,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </ul>
           </div>
         ))}
+        <div className="cm-recipe-sticky-clearance" aria-hidden="true" />
       </section>
 
       {/* Guides */}
@@ -1343,6 +1347,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           ))}
         </div>
+        <div className="cm-recipe-sticky-clearance" aria-hidden="true" />
       </section>
 
       <RecipeNutritionAttachmentCard
@@ -1352,7 +1357,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
         canEstimate={canMutateRecipe}
         canClear={canMutateRecipe}
-        readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke aendres for delte opskrifter i denne stabiliserings-pass.'}
+        readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke ændres for delte opskrifter i denne stabiliserings-pass.'}
         isEstimating={isEstimatingNutrition}
         aiDisabledReason={aiDisabledReason}
         onEstimate={() => onEstimateNutrition?.(recipe)}

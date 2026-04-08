@@ -27,7 +27,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
       {activeRecipe && (
         <section className="mb-10">
           <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">I gang nu</h2>
-          <div 
+          <div
             onClick={() => onNavigate('active')}
             className="glass-brushed p-5 rounded-[2rem] cursor-pointer hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-500 group"
           >
@@ -42,7 +42,6 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           </div>
         </section>
       )}
-
 
       {!activeRecipe && totalRecipes === 0 && (
         <section className="mb-10">
@@ -69,7 +68,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
                 <Settings size={18} className="text-forest-mid cm-light-surface-icon mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-forest-dark cm-light-surface-ink">Tilpas oplevelsen</p>
-                  <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">Vælg køkkenniveau, tema og tekststørrelse til Cook mode.</p>
+                  <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80 dark:opacity-100">Vælg køkkenniveau, tema og tekststørrelse til cook mode.</p>
                 </div>
               </div>
               <div className="cm-surface-secondary rounded-2xl p-4 flex items-start gap-3">
@@ -96,7 +95,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
 
       <section className="mb-10">
         <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Hurtig start</h2>
-        <button 
+        <button
           onClick={() => onNavigate('import')}
           className="btn-wood-light w-full p-5 rounded-[2rem] flex items-center justify-center gap-3"
         >
@@ -112,7 +111,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
           </h2>
           <div className="space-y-4">
             {recentRecipes.slice(0, 3).map(recipe => (
-              <div 
+              <div
                 key={recipe.id}
                 onClick={() => onOpenRecipe(recipe)}
                 className="glass-brushed p-4 rounded-2xl cursor-pointer hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 flex justify-between items-center group"

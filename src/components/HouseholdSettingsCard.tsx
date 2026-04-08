@@ -26,6 +26,7 @@ const statusLabel: Record<HouseholdMember['status'], string> = {
 };
 
 type ManageableHouseholdRole = Exclude<HouseholdMember['role'], 'owner'>;
+const CREATE_FEEDBACK_ID = '__create__';
 
 const getCurrentUserRole = (household: Household, userId?: string) => {
   if (!userId) return null;
@@ -61,6 +62,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [activeFeedbackHouseholdId, setActiveFeedbackHouseholdId] = useState<string | null>(null);
   const [householdName, setHouseholdName] = useState('');
   const [inviteEmailByHousehold, setInviteEmailByHousehold] = useState<Record<string, string>>({});
   const [inviteRoleByHousehold, setInviteRoleByHousehold] = useState<Record<string, ManageableHouseholdRole>>({});
@@ -101,6 +103,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     setBusyKey('create');
     setError(null);
     setStatusMessage(null);
+    setActiveFeedbackHouseholdId(CREATE_FEEDBACK_ID);
 
     try {
       await createHousehold({
@@ -125,6 +128,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     setBusyKey(`invite:${householdId}`);
     setError(null);
     setStatusMessage(null);
+    setActiveFeedbackHouseholdId(householdId);
 
     try {
       await inviteHouseholdMember(householdId, {
@@ -147,6 +151,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     setBusyKey(`role:${householdId}:${memberKey}`);
     setError(null);
     setStatusMessage(null);
+    setActiveFeedbackHouseholdId(householdId);
 
     try {
       await updateHouseholdMemberRole(householdId, getMemberRef(member), role);
@@ -165,6 +170,7 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
     setBusyKey(`remove:${householdId}:${memberKey}`);
     setError(null);
     setStatusMessage(null);
+    setActiveFeedbackHouseholdId(householdId);
 
     try {
       await removeHouseholdMember(householdId, getMemberRef(member));
@@ -215,6 +221,12 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                   Opret husstand
                 </button>
               </div>
+              {activeFeedbackHouseholdId === CREATE_FEEDBACK_ID && (statusMessage || error) && (
+                <div className="cm-household-status-stack">
+                  {statusMessage && <p className="cm-settings-status-message cm-settings-status-message--success">{statusMessage}</p>}
+                  {error && <p className="cm-settings-status-message cm-settings-status-message--error">{error}</p>}
+                </div>
+              )}
             </div>
           )}
 
@@ -397,21 +409,26 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
 
                 {canInvite && (
                   <div className="mt-4 rounded-2xl border border-black/5 bg-white/45 p-4">
-                    <div className="flex items-center gap-2 mb-3 text-forest-mid">
-                      <Home size={14} />
-                      <p className="text-xs font-bold uppercase tracking-widest">Inviter til husstand</p>
+                    <div className="cm-household-invite-copy">
+                      <div className="flex items-center gap-2 text-forest-mid">
+                        <Home size={14} />
+                        <p className="text-xs font-bold uppercase tracking-widest">Inviter til husstand</p>
+                      </div>
+                      <p className="mt-2 text-xs text-forest-mid opacity-80">
+                        Inviter med e-mail. Skriv e-mailen på personen, du vil invitere, og vælg derefter rolle.
+                      </p>
                     </div>
                     <div className="cm-settings-inline-form cm-settings-inline-form--invite cm-household-invite-form">
                       <input
                         value={inviteEmailByHousehold[household.id] || ''}
                         onChange={(event) => setInviteEmailByHousehold((prev) => ({ ...prev, [household.id]: event.target.value }))}
-                        placeholder="navn@email.dk"
+                        placeholder="E-mail på personen, du vil invitere"
                         className="cm-settings-field"
                       />
                       <select
                         value={inviteRoleByHousehold[household.id] || 'member'}
                         onChange={(event) => setInviteRoleByHousehold((prev) => ({ ...prev, [household.id]: event.target.value as ManageableHouseholdRole }))}
-                        className="cm-settings-select"
+                        className="cm-settings-select cm-household-role-select"
                       >
                         <option value="member">Medlem</option>
                         <option value="admin">Admin</option>
@@ -419,11 +436,17 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
                       <button
                         onClick={() => void handleInvite(household.id)}
                         disabled={!inviteEmailByHousehold[household.id]?.trim() || !isOnline || busyKey === `invite:${household.id}`}
-                        className="btn-heath disabled:opacity-50"
+                        className="btn-heath cm-household-invite-button disabled:opacity-50"
                       >
                         Inviter
                       </button>
                     </div>
+                    {activeFeedbackHouseholdId === household.id && (statusMessage || error) && (
+                      <div className="cm-household-status-stack">
+                        {statusMessage && <p className="cm-settings-status-message cm-settings-status-message--success">{statusMessage}</p>}
+                        {error && <p className="cm-settings-status-message cm-settings-status-message--error">{error}</p>}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -434,12 +457,6 @@ export function HouseholdSettingsCard({ user, isOnline = true }: HouseholdSettin
             <p className="text-sm text-forest-mid italic opacity-80">Ingen husstandsdata fundet endnu.</p>
           )}
 
-          {(statusMessage || error) && (
-            <div className="cm-household-status-stack">
-              {statusMessage && <p className="cm-settings-status-message cm-settings-status-message--success">{statusMessage}</p>}
-              {error && <p className="cm-settings-status-message cm-settings-status-message--error">{error}</p>}
-            </div>
-          )}
         </div>
       )}
     </section>
