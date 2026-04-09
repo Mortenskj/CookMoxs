@@ -1050,18 +1050,21 @@ export default function App() {
       }
 
       if (newRecipe && usedDirectImport && autoAiImportEnhancement) {
-        if (aiDisabledReason) {
-          throw new Error(`${aiDisabledReason} AI-tilpasning efter linkimport er slået til.`);
+        if (!aiDisabledReason) {
+          try {
+            const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
+            setAiUnavailableMessage(null);
+            newRecipe = normalizeRecipeForCookMode(mergeAutoImportEnhancement(newRecipe, enhancedRecipe));
+            trackEvent('ai_adjust_used', {
+              ...getAnalyticsContext(),
+              recipeId: newRecipe.id,
+              action: 'auto_fill_rest_import',
+            });
+          } catch (enhanceError) {
+            console.warn('AI enhancement after direct import failed, using basic import:', enhanceError);
+            rememberAIDisabledState(enhanceError);
+          }
         }
-
-        const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
-        setAiUnavailableMessage(null);
-        newRecipe = normalizeRecipeForCookMode(mergeAutoImportEnhancement(newRecipe, enhancedRecipe));
-        trackEvent('ai_adjust_used', {
-          ...getAnalyticsContext(),
-          recipeId: newRecipe.id,
-          action: 'auto_fill_rest_import',
-        });
       }
 
       if (user) {
