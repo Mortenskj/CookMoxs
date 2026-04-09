@@ -138,6 +138,20 @@ export interface ImportRecipePayload {
   level?: string;
 }
 
+export interface EnrichmentResult {
+  summary?: string;
+  categories?: string[];
+  flavorBoosts?: string[];
+  pitfalls?: string[];
+  hints?: string[];
+  substitutions?: string[];
+}
+
+export async function enrichRecipe(recipe: any, level?: string): Promise<EnrichmentResult> {
+  const data = await request<{ enrichment: EnrichmentResult }>('/api/ai/enrich', { recipe, level });
+  return data.enrichment;
+}
+
 export async function importRecipe(payload: ImportRecipePayload): Promise<any> {
   const data = await request<{ parsedData: any }>('/api/ai/import', payload);
   return data.parsedData;

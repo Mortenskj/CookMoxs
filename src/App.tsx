@@ -14,6 +14,7 @@ import {
   estimateRecipeNutrition as aiEstimateRecipeNutrition,
   applyPrefix as aiApplyPrefix,
   importRecipe as aiImportRecipe,
+  enrichRecipe as aiEnrichRecipe,
 } from './services/aiService';
 import { trackEvent } from './services/analyticsService';
 import { normalizeAuthError } from './services/authErrorMessageService';
@@ -1052,16 +1053,26 @@ export default function App() {
       if (newRecipe && usedDirectImport && autoAiImportEnhancement) {
         if (!aiDisabledReason) {
           try {
-            const enhancedRecipe = await aiFillRest(newRecipe, userLevel);
+            const enrichment = await aiEnrichRecipe(newRecipe, userLevel);
             setAiUnavailableMessage(null);
-            newRecipe = normalizeRecipeForCookMode(mergeAutoImportEnhancement(newRecipe, enhancedRecipe));
+            // Merge enrichment fields into the recipe
+            const enrichedRecipe = {
+              ...newRecipe,
+              summary: enrichment.summary || newRecipe.summary,
+              categories: enrichment.categories || newRecipe.categories,
+              flavorBoosts: enrichment.flavorBoosts || newRecipe.flavorBoosts,
+              pitfalls: enrichment.pitfalls || newRecipe.pitfalls,
+              hints: enrichment.hints || newRecipe.hints,
+              substitutions: enrichment.substitutions || newRecipe.substitutions,
+            };
+            newRecipe = normalizeRecipeForCookMode(enrichedRecipe);
             trackEvent('ai_adjust_used', {
               ...getAnalyticsContext(),
               recipeId: newRecipe.id,
-              action: 'auto_fill_rest_import',
+              action: 'auto_enrich_import',
             });
           } catch (enhanceError) {
-            console.warn('AI enhancement after direct import failed, using basic import:', enhanceError);
+            console.warn('AI enrichment after direct import failed, using basic import:', enhanceError);
             rememberAIDisabledState(enhanceError);
           }
         }

@@ -214,6 +214,22 @@ async function extractTextFromFile(base64Data: string, mimeType: string): Promis
     return buffer.toString('utf-8');
   }
 
+  // .gdoc files are small JSON shortcut files with a "url" field pointing to the Google Doc
+  if (mimeType === 'application/vnd.google-apps.document' || mimeType === 'application/json') {
+    try {
+      const text = buffer.toString('utf-8');
+      const parsed = JSON.parse(text);
+      if (parsed.url && typeof parsed.url === 'string') {
+        const { response } = await fetchWithSafeRedirects(parsed.url);
+        const $ = cheerio.load(response.data);
+        $('script, style, nav, footer, iframe, noscript, svg').remove();
+        return $('body').text().replace(/\s+/g, ' ').trim() || null;
+      }
+    } catch {
+      // Not a valid .gdoc JSON — fall through
+    }
+  }
+
   return null;
 }
 
@@ -766,6 +782,38 @@ async function startServer() {
     } catch (error) {
       console.error('AI Fill Rest Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/fill-rest');
+      return res.status(failure.status).json(failure.body);
+    }
+  });
+
+  app.post('/api/ai/enrich', async (req, res) => {
+    const { recipe, level } = req.body;
+    if (!recipe) return res.status(400).json({ error: 'recipe is required' });
+    try {
+      const styleInstruction = getLevelStyleInstruction(level, 'fill');
+      const enrichSchema = {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          categories: { type: Type.ARRAY, items: { type: Type.STRING } },
+          flavorBoosts: { type: Type.ARRAY, items: { type: Type.STRING } },
+          pitfalls: { type: Type.ARRAY, items: { type: Type.STRING } },
+          hints: { type: Type.ARRAY, items: { type: Type.STRING } },
+          substitutions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ['summary', 'categories', 'flavorBoosts', 'pitfalls'],
+      };
+      const prompt = `
+        Du er en ekspertkok. Givet denne opskrift, generer kun de ekstra kulinariske felter.
+        Match tonen til denne stilinstruktion: ${styleInstruction}
+        Opskrift: "${recipe.title}" med ingredienser: ${(recipe.ingredients || []).map((i: any) => i.name).join(', ')}.
+        Trin: ${(recipe.steps || []).map((s: any) => s.text).slice(0, 8).join(' | ')}
+      `;
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, enrichSchema);
+      return res.json({ enrichment: parsedData });
+    } catch (error) {
+      console.error('AI Enrich Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/enrich');
       return res.status(failure.status).json(failure.body);
     }
   });

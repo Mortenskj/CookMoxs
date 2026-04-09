@@ -154,8 +154,12 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
       const base64String = reader.result as string;
       const match = base64String.match(/^data:(.+);base64,(.+)$/);
       if (match) {
-        const mimeType = match[1];
+        let mimeType = match[1];
         const data = match[2];
+        // Browsers report empty/generic MIME for .gdoc files — detect by extension
+        if ((!mimeType || mimeType === 'application/octet-stream') && file.name.endsWith('.gdoc')) {
+          mimeType = 'application/json';
+        }
         try {
           await onImport({ data, mimeType }, type);
         } catch {
@@ -281,7 +285,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                 type="file"
                 ref={fileInputRef}
                 onChange={(e) => handleFileUpload(e, 'file')}
-                accept=".pdf,image/*,.txt,.doc,.docx"
+                accept=".pdf,image/*,.txt,.doc,.docx,.gdoc"
                 className="hidden"
               />
               <button
