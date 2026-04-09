@@ -20,6 +20,7 @@ import {
   searchNutritionProducts,
 } from './src/services/nutrition/nutritionLookupService.ts';
 import { getNutritionProviderStatus } from './src/services/nutrition/nutritionProviderRegistry.ts';
+import mammoth from 'mammoth';
 
 const RECIPE_SCHEMA = {
   type: Type.OBJECT,
@@ -193,6 +194,27 @@ async function generateAIContent(model: string, prompt: string, responseSchema: 
 
 function parseAiJsonResponse(rawText: string, context: string) {
   return parseAiJsonPayload(rawText, context);
+}
+
+const GEMINI_SUPPORTED_MIME_PREFIXES = ['image/', 'application/pdf', 'audio/', 'video/'];
+
+function isGeminiSupportedMime(mimeType: string): boolean {
+  return GEMINI_SUPPORTED_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
+}
+
+async function extractTextFromFile(base64Data: string, mimeType: string): Promise<string | null> {
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value || null;
+  }
+
+  if (mimeType === 'text/plain' || mimeType === 'text/rtf' || mimeType === 'text/html') {
+    return buffer.toString('utf-8');
+  }
+
+  return null;
 }
 
 function getLevelStyleInstruction(level: string | undefined, mode: 'steps' | 'fill' | 'import') {
@@ -865,6 +887,17 @@ async function startServer() {
       }
 
       if ((sourceType === 'file' || sourceType === 'image') && fileData?.data && fileData?.mimeType) {
+        // For unsupported MIME types (e.g. .docx), extract text and use text-based import
+        if (!isGeminiSupportedMime(fileData.mimeType)) {
+          const extractedText = await extractTextFromFile(fileData.data, fileData.mimeType);
+          if (!extractedText?.trim()) {
+            return res.status(400).json({ error: 'Denne filtype kunne ikke læses. Prøv PDF, billede eller indsæt teksten direkte.' });
+          }
+          const prompt = `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${extractedText.substring(0, 40000)}`;
+          const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA);
+          return res.json({ parsedData });
+        }
+
         const prompt = `Extract the recipe from this document or image. ${sharedRules}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), SERVER_AI_TIMEOUT_MS);
