@@ -1065,7 +1065,13 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     const sharedRules = `
       Return the recipe in Danish.
       INGREDIENT GROUPS: Always group ingredients by their role/component in the dish — e.g. 'Til panering', 'Til fyld', 'Til saucen', 'Til dejen', 'Til salaten', 'Til servering'. NEVER group by ingredient type (do NOT use 'Mejeri', 'Kød', 'Tørvarer' etc.). If a recipe has no distinct components, use a single group like 'Ingredienser'.
-      INGREDIENT NAMES: The 'name' field must be the core ingredient only (e.g. 'gouda', 'æg', 'hvedemel'). Descriptors like 'skiver', 'stk', 'fed' belong in the 'unit' field, not in the name. Example: { name: "gouda", amount: 4, unit: "skiver" } — NOT { name: "skiver gouda", amount: 4 }.
+      INGREDIENT NAMES: ALWAYS restructure ingredients so the 'name' field contains ONLY the core ingredient. Move quantity words into 'unit' and 'amount'. Examples:
+      - "4 skiver gouda" → { name: "gouda", amount: 4, unit: "skiver" }
+      - "skiver gouda (eller emmentaler)" → { name: "gouda (eller emmentaler)", amount: 4, unit: "skiver" }
+      - "2 fed hvidløg" → { name: "hvidløg", amount: 2, unit: "fed" }
+      - "1 dåse flåede tomater" → { name: "flåede tomater", amount: 1, unit: "dåse" }
+      - "skiver kogt skinke" → { name: "kogt skinke", amount: 4, unit: "skiver" }
+      Words like 'skiver', 'stk', 'fed', 'dåse', 'bundt', 'pose' are ALWAYS units, never part of the name.
       FLAVOR & TIPS: Always generate 2-4 flavorBoosts (concrete tips to elevate flavor) and 2-3 pitfalls (common mistakes to avoid). These are required fields.
       Convert English/US metrics to Danish metrics.
       Do not repeat ingredient amounts or heat levels in step text if they already exist in structured fields.

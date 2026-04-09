@@ -71,6 +71,7 @@ function parseIngredient(input: unknown, index: number) {
   const allowedUnits = [
     'g', 'kg', 'mg', 'ml', 'dl', 'cl', 'l', 'tsk', 'spsk', 'stk', 'fed',
     'daase', 'dåse', 'glas', 'knsp', 'pakke', 'pk', 'bundt', 'pose',
+    'skiver', 'skive', 'blade', 'blad', 'nip', 'håndfuld', 'kviste', 'kvist',
   ];
 
   if (input && typeof input === 'object') {
