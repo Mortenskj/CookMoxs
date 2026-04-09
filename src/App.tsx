@@ -1526,7 +1526,22 @@ export default function App() {
         id: Date.now().toString(),
         originalRecipeId: recipe.originalRecipeId || recipe.id,
         lastUsed: new Date().toISOString(),
+        folder: recipe.folder,
+        folderId: recipe.folderId,
+        authorUID: user?.uid,
       });
+
+      // Save the new variant
+      if (user) {
+        markCloudSyncing('Gemmer variant i cloud...');
+        await saveRecipeInCloud(newRecipe);
+        markCloudSaved('Variant gemt i cloud');
+      }
+      setSavedRecipes(prev => [newRecipe, ...prev]);
+      if (!user) {
+        saveLocalRecipes([newRecipe, ...savedRecipes]);
+      }
+
       setViewingRecipe(newRecipe);
       trackAiActionUsed('apply_prefix', recipe.id, startedAt);
     } catch (err: any) {
