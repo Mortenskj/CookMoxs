@@ -25,6 +25,7 @@ export const db = typedFirebaseConfig.firestoreDatabaseId
   : getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
 export const analyticsPromise: Promise<Analytics | null> =
   typeof window !== 'undefined' && typeof document !== 'undefined' && Boolean(typedFirebaseConfig.measurementId)
     ? isSupported()

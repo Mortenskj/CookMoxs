@@ -136,6 +136,7 @@ export interface ImportRecipePayload {
   isStructuredData?: boolean;
   fileData?: { data: string; mimeType: string };
   level?: string;
+  googleAccessToken?: string;
 }
 
 export interface EnrichmentResult {

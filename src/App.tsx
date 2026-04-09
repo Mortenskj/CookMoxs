@@ -1036,6 +1036,7 @@ export default function App() {
             sourceType: type,
             fileData: fileContent,
             level: userLevel,
+            googleAccessToken: sessionStorage.getItem('google_access_token') || undefined,
           });
         }
 
@@ -1359,6 +1360,11 @@ export default function App() {
       setAuthErrorMessage(null);
       markCloudSyncing('Logger ind...');
       const credential = await signInWithPopup(auth, googleProvider);
+      // Store Google access token for Drive API access (e.g. .gdoc import)
+      const oauthCredential = (await import('firebase/auth')).GoogleAuthProvider.credentialFromResult(credential);
+      if (oauthCredential?.accessToken) {
+        sessionStorage.setItem('google_access_token', oauthCredential.accessToken);
+      }
       setUser(credential.user);
       markCloudSaved('Cloud tilsluttet');
     } catch (error) {

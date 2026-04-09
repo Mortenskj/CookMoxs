@@ -962,7 +962,14 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {/* Meta */}
       <div className="mb-8 space-y-6">
         <div className="glass-brushed p-6 sm:p-8 rounded-[2.5rem]">
-          <h1 className="text-4xl font-serif text-forest-dark dark:text-white mb-4 leading-tight italic text-engraved">{recipe.title}</h1>
+          <h1 className="text-4xl font-serif text-forest-dark dark:text-white mb-4 leading-tight italic text-engraved">
+            {recipe.title}
+            {recipe.variantPrefix && (
+              <span className="ml-3 inline-block text-xs font-sans not-italic font-bold uppercase tracking-widest bg-heath-mid/15 text-heath-mid px-3 py-1 rounded-full align-middle">
+                {recipe.variantPrefix}
+              </span>
+            )}
+          </h1>
           {recipe.summary && <p className="text-forest-mid cm-light-surface-ink-muted mb-6 leading-relaxed italic text-sm opacity-80 dark:opacity-100">{recipe.summary}</p>}
           {(recipe.updatedAt || recipe.createdAt) && (
             <p className="text-xs text-forest-mid cm-light-surface-ink-muted italic mb-4 opacity-80 dark:opacity-100">

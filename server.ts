@@ -12,6 +12,7 @@ import {
   parseAiJsonResponse as parseAiJsonPayload,
   toAiErrorResponse,
 } from './src/server/utils/aiResponse.ts';
+import axios from 'axios';
 import { fetchWithSafeRedirects, UnsafeUrlError } from './src/server/utils/urlSafety.ts';
 import { DirectParseError, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
 import {
@@ -166,7 +167,7 @@ function getAiClient() {
 
 const SERVER_AI_TIMEOUT_MS = 40000;
 
-async function generateAIContent(model: string, prompt: string, responseSchema: any) {
+async function generateAIContentOnce(model: string, prompt: string, responseSchema: any) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), SERVER_AI_TIMEOUT_MS);
   try {
@@ -192,6 +193,32 @@ async function generateAIContent(model: string, prompt: string, responseSchema: 
   }
 }
 
+function isRetryableError(error: any): boolean {
+  if (error?.status === 504 || error?.status === 503 || error?.status === 429) return true;
+  if (error?.message?.includes('DEADLINE_EXCEEDED')) return true;
+  if (error?.message?.includes('timed out')) return true;
+  return false;
+}
+
+async function generateAIContent(model: string, prompt: string, responseSchema: any, maxRetries = 1) {
+  let lastError: any;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await generateAIContentOnce(model, prompt, responseSchema);
+    } catch (error: any) {
+      lastError = error;
+      if (attempt < maxRetries && isRetryableError(error)) {
+        const delayMs = 2000 * (attempt + 1);
+        console.log(`[ai] Retrying ${model} after ${delayMs}ms (attempt ${attempt + 1}/${maxRetries}), error: ${error.message?.substring(0, 100)}`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
 function parseAiJsonResponse(rawText: string, context: string) {
   return parseAiJsonPayload(rawText, context);
 }
@@ -202,7 +229,7 @@ function isGeminiSupportedMime(mimeType: string): boolean {
   return GEMINI_SUPPORTED_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
 }
 
-async function extractTextFromFile(base64Data: string, mimeType: string): Promise<string | null> {
+async function extractTextFromFile(base64Data: string, mimeType: string, googleAccessToken?: string): Promise<string | null> {
   const buffer = Buffer.from(base64Data, 'base64');
 
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -214,19 +241,65 @@ async function extractTextFromFile(base64Data: string, mimeType: string): Promis
     return buffer.toString('utf-8');
   }
 
-  // .gdoc files are small JSON shortcut files with a "url" field pointing to the Google Doc
+  // .gdoc files are small JSON shortcut files with a doc_id or url field
   if (mimeType === 'application/vnd.google-apps.document' || mimeType === 'application/json') {
     try {
       const text = buffer.toString('utf-8');
       const parsed = JSON.parse(text);
-      if (parsed.url && typeof parsed.url === 'string') {
-        const { response } = await fetchWithSafeRedirects(parsed.url);
-        const $ = cheerio.load(response.data);
-        $('script, style, nav, footer, iframe, noscript, svg').remove();
-        return $('body').text().replace(/\s+/g, ' ').trim() || null;
+      const docId = parsed.doc_id;
+
+      // If we have a Google access token and a doc_id, use Drive API to export as plain text
+      if (docId && googleAccessToken) {
+        try {
+          const driveExportUrl = `https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text/plain`;
+          console.log(`[gdoc] Fetching via Drive API with access token`);
+          const driveResp = await axios.get<string>(driveExportUrl, {
+            headers: { Authorization: `Bearer ${googleAccessToken}` },
+            responseType: 'text',
+            timeout: 15000,
+          });
+          const bodyText = (typeof driveResp.data === 'string' ? driveResp.data : '').trim();
+          if (bodyText) {
+            console.log(`[gdoc] Drive API success, text length: ${bodyText.length}`);
+            return bodyText;
+          }
+        } catch (driveErr) {
+          console.log(`[gdoc] Drive API failed: ${driveErr instanceof Error ? driveErr.message : driveErr}`);
+        }
       }
-    } catch {
-      // Not a valid .gdoc JSON — fall through
+
+      // Fallback: try public URLs without auth
+      const gdocUrls = parsed.url
+        ? [parsed.url]
+        : docId
+          ? [
+              `https://docs.google.com/document/d/${docId}/export?format=txt`,
+              `https://docs.google.com/document/d/${docId}/pub`,
+            ]
+          : [];
+      for (const gdocUrl of gdocUrls) {
+        try {
+          const { response } = await fetchWithSafeRedirects(gdocUrl);
+          const isPlainText = gdocUrl.includes('export?format=txt');
+          let bodyText: string;
+          if (isPlainText) {
+            bodyText = (typeof response.data === 'string' ? response.data : '').trim();
+          } else {
+            const $ = cheerio.load(response.data);
+            $('script, style, nav, footer, iframe, noscript, svg').remove();
+            bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+          }
+          if (bodyText) {
+            console.log(`[gdoc] Public URL success: ${gdocUrl}, text length: ${bodyText.length}`);
+            return bodyText;
+          }
+        } catch (urlErr) {
+          console.log(`[gdoc] URL failed: ${gdocUrl} — ${urlErr instanceof Error ? urlErr.message : urlErr}`);
+          continue;
+        }
+      }
+    } catch (e) {
+      console.error(`[gdoc] Failed to process .gdoc file:`, e);
     }
   }
 
@@ -887,19 +960,32 @@ async function startServer() {
     const { recipe, prefix } = req.body;
     if (!recipe || typeof prefix !== 'string') return res.status(400).json({ error: 'recipe and prefix are required' });
     try {
+      // Send only the fields AI needs — strip metadata, ids, timestamps etc.
+      const compactRecipe = {
+        title: recipe.title,
+        summary: recipe.summary,
+        servings: recipe.servings,
+        servingsUnit: recipe.servingsUnit,
+        ingredients: (recipe.ingredients || []).map((i: any) => ({ name: i.name, amount: i.amount, unit: i.unit, group: i.group })),
+        steps: (recipe.steps || []).map((s: any) => ({ text: s.text, heat: s.heat, heatLevel: s.heatLevel, timer: s.timer })),
+      };
       const prompt = `Du er en ekspertkok. Tilpas følgende opskrift så den passer til profilen: "${prefix}".
-      Profilerne betyder:
-      - [Gourmet] -> Gastronomisk perfekt, avancerede teknikker, anretning i fokus.
-      - [Autentisk] -> Traditionelle metoder og ingredienser.
-      - [Den hurtige] -> Hurtigere og mere praktisk uden at miste kvaliteten helt.
-      - [Begynderen] -> Simple trin og lav kompleksitet.
-      - [Babyvenlig 0/1 år] -> Tilpasset de mindste og sundhedsstyrelsens retningslinjer.
-      - [Børnevenlig 1/3 år] -> Børnevenlige smage og passende tekstur.
-      - [Spice it up] -> Mere smag og krydderi.
-      Opskrift JSON:
-      ${JSON.stringify(recipe, null, 2)}`;
+Profilerne betyder:
+- [Gourmet] -> Gastronomisk perfekt, avancerede teknikker, anretning i fokus.
+- [Autentisk] -> Traditionelle metoder og ingredienser.
+- [Den hurtige] -> Hurtigere og mere praktisk uden at miste kvaliteten helt.
+- [Begynderen] -> Simple trin og lav kompleksitet.
+- [Babyvenlig 0/1 år] -> Tilpasset de mindste og sundhedsstyrelsens retningslinjer.
+- [Børnevenlig 1/3 år] -> Børnevenlige smage og passende tekstur.
+- [Spice it up] -> Mere smag og krydderi.
+Bevar opskriftens kerne men tilpas ingredienser, mængder, trin og sværhedsgrad efter profilen.
+Opskrift: ${JSON.stringify(compactRecipe)}`;
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
-      return res.json({ recipe: { ...recipe, ...parsedData } });
+      // Merge AI result with original recipe, preserving prefix as a tag
+      const prefixTag = prefix.replace(/[\[\]]/g, '').trim();
+      const existingCategories = Array.isArray(parsedData.categories) ? parsedData.categories : (recipe.categories || []);
+      const categories = existingCategories.includes(prefixTag) ? existingCategories : [prefixTag, ...existingCategories];
+      return res.json({ recipe: { ...recipe, ...parsedData, categories, variantPrefix: prefixTag } });
     } catch (error) {
       console.error('AI Apply Prefix Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/apply-prefix');
@@ -908,7 +994,7 @@ async function startServer() {
   });
 
   app.post('/api/ai/import', async (req, res) => {
-    const { sourceType, textContent, isStructuredData, fileData, level } = req.body;
+    const { sourceType, textContent, isStructuredData, fileData, level, googleAccessToken } = req.body;
     if (!sourceType || !['url', 'text', 'file', 'image'].includes(sourceType)) {
       return res.status(400).json({ error: 'sourceType is required' });
     }
@@ -935,9 +1021,11 @@ async function startServer() {
       }
 
       if ((sourceType === 'file' || sourceType === 'image') && fileData?.data && fileData?.mimeType) {
-        // For unsupported MIME types (e.g. .docx), extract text and use text-based import
+        // For unsupported MIME types (e.g. .docx, .gdoc), extract text and use text-based import
         if (!isGeminiSupportedMime(fileData.mimeType)) {
-          const extractedText = await extractTextFromFile(fileData.data, fileData.mimeType);
+          console.log(`[import] Unsupported MIME "${fileData.mimeType}", attempting text extraction (data length: ${fileData.data?.length})`);
+          const extractedText = await extractTextFromFile(fileData.data, fileData.mimeType, googleAccessToken);
+          console.log(`[import] extractTextFromFile result: ${extractedText ? extractedText.substring(0, 200) : 'null'}`);
           if (!extractedText?.trim()) {
             return res.status(400).json({ error: 'Denne filtype kunne ikke læses. Prøv PDF, billede eller indsæt teksten direkte.' });
           }

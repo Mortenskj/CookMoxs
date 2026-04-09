@@ -193,6 +193,7 @@ export interface Recipe {
   aiRationale?: string;
   tipsAndTricks?: string[];
   originalRecipeId?: string;
+  variantPrefix?: string;
   authorUID?: string;
   householdId?: string;
   ownership?: OwnershipMetadata;
