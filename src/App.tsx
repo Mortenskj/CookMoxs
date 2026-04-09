@@ -903,16 +903,23 @@ export default function App() {
   };
 
   const requestDirectImport = async (url: string): Promise<Recipe> => {
-    const response = await fetch('/api/parse-direct', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    });
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(data?.error || 'Direkte grundimport fejlede.');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch('/api/parse-direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+        signal: controller.signal,
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || 'Direkte grundimport fejlede.');
+      }
+      return data.recipe as Recipe;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return data.recipe as Recipe;
   };
 
   const rememberAIDisabledState = (err: unknown) => {
@@ -993,7 +1000,16 @@ export default function App() {
           let isJson = false;
 
           if (type === 'url') {
-            const response = await fetch(`/api/fetch-url?url=${encodeURIComponent(content as string)}`);
+            const fetchController = new AbortController();
+            const fetchTimeoutId = setTimeout(() => fetchController.abort(), 15000);
+            let response: Response;
+            try {
+              response = await fetch(`/api/fetch-url?url=${encodeURIComponent(content as string)}`, {
+                signal: fetchController.signal,
+              });
+            } finally {
+              clearTimeout(fetchTimeoutId);
+            }
             const data = await response.json().catch(() => null);
             if (!response.ok) {
               throw new Error(data?.error || 'Failed to fetch URL content');

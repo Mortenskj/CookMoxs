@@ -866,20 +866,33 @@ async function startServer() {
 
       if ((sourceType === 'file' || sourceType === 'image') && fileData?.data && fileData?.mimeType) {
         const prompt = `Extract the recipe from this document or image. ${sharedRules}`;
-        const result = await getAiClient().models.generateContent({
-          model: IMPORT_MODEL,
-          contents: [{ parts: [
-            { inlineData: { data: fileData.data, mimeType: fileData.mimeType } },
-            { text: prompt },
-          ] }],
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: RECIPE_SCHEMA,
-          },
-        });
-        const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
-        const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
-        return res.json({ parsedData });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), SERVER_AI_TIMEOUT_MS);
+        try {
+          const result = await getAiClient().models.generateContent({
+            model: IMPORT_MODEL,
+            contents: [{ parts: [
+              { inlineData: { data: fileData.data, mimeType: fileData.mimeType } },
+              { text: prompt },
+            ] }],
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: RECIPE_SCHEMA,
+              httpOptions: { timeout: SERVER_AI_TIMEOUT_MS },
+              abortSignal: controller.signal,
+            },
+          });
+          const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
+          const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
+          return res.json({ parsedData });
+        } catch (error: any) {
+          if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED' || error?.message?.includes('timed out')) {
+            throw new Error(`AI request to ${IMPORT_MODEL} timed out after ${SERVER_AI_TIMEOUT_MS / 1000}s`);
+          }
+          throw error;
+        } finally {
+          clearTimeout(timeoutId);
+        }
       }
 
       return res.status(400).json({ error: 'Manglende indhold til import' });
