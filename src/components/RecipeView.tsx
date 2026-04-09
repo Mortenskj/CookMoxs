@@ -8,6 +8,7 @@ import { OwnershipBadge } from './OwnershipBadge';
 import { FolderVisibilityNotice } from './FolderVisibilityNotice';
 import { RecipeImportedNotice } from './RecipeImportedNotice';
 import { RecipeNutritionAttachmentCard } from './RecipeNutritionAttachmentCard';
+import { useFlavorBoostsVisible } from '../hooks/useFlavorBoostsVisible';
 import { formatHeatGuideEntry, formatStepHeatDisplay } from '../services/cookModeHeuristics';
 import { DEFAULT_FOLDER_NAME } from '../services/defaultFolderService';
 import {
@@ -102,8 +103,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const recipeCategories = Array.isArray(recipe.categories) ? recipe.categories : [];
   const recipeTips = Array.isArray(recipe.tipsAndTricks) ? recipe.tipsAndTricks : [];
   const recipeHeatGuide = Array.isArray(recipe.heatGuide) ? recipe.heatGuide : [];
-  const recipeFlavorBoosts = Array.isArray(recipe.flavorBoosts) ? recipe.flavorBoosts : [];
-  const recipePitfalls = Array.isArray(recipe.pitfalls) ? recipe.pitfalls : [];
+  const { visible: flavorBoostsVisible } = useFlavorBoostsVisible();
+  const recipeFlavorBoosts = flavorBoostsVisible && Array.isArray(recipe.flavorBoosts) ? recipe.flavorBoosts : [];
+  const recipePitfalls = flavorBoostsVisible && Array.isArray(recipe.pitfalls) ? recipe.pitfalls : [];
   const recipeHints = Array.isArray(recipe.hints) ? recipe.hints : [];
   const editIngredients = Array.isArray(editData.ingredients) ? editData.ingredients : [];
   const editSteps = Array.isArray(editData.steps) ? editData.steps : [];
