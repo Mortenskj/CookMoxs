@@ -544,6 +544,7 @@
   }
 
   .glass-brushed,
+  .cm-surface-primary,
   .cm-surface-secondary,
   .cm-surface-utility,
   .cm-search-shell,
@@ -825,6 +826,7 @@
   }
 
   .dark .glass-brushed .text-engraved,
+  .dark .cm-surface-primary .text-engraved,
   .dark .cm-surface-secondary .text-engraved,
   .dark .cm-surface-utility .text-engraved,
   .dark .cm-search-shell .text-engraved,
@@ -874,10 +876,10 @@
   }
 
   /* Approved UI-02: Soft Tonal Veil */
+  /* UI-02: Tonal surface — no glassmorphism, no backdrop-filter blur */
   .glass-brushed {
     background-color: color-mix(in srgb, var(--theme-panel-bg) 100%, transparent) !important;
     border: 1px solid color-mix(in srgb, var(--theme-panel-border) 96%, transparent) !important;
-    backdrop-filter: blur(4px) saturate(102%) !important;
     box-shadow: 0 10px 28px color-mix(in srgb, var(--season-shadow-color) 82%, transparent) !important;
     position: relative;
     overflow: hidden;
@@ -893,28 +895,46 @@
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34) !important;
   }
 
+  /* UI-02: Primary content card — rgba(244,241,235,0.78), shadow 0 10px 28px, radius 24px */
+  .cm-surface-primary {
+    background-color: var(--season-bg-surface) !important;
+    border: 1px solid color-mix(in srgb, var(--season-border-soft) 100%, transparent) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--season-shadow-color) 84%, transparent) !important;
+  }
+
+  .dark .cm-surface-primary {
+    background-color: color-mix(in srgb, var(--theme-panel-strong) 90%, transparent) !important;
+    border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* UI-02: Secondary supporting card — rgba(246,243,238,0.64), shadow 0 6px 16px, radius 22px */
   .cm-surface-secondary {
     background-color: color-mix(in srgb, var(--season-bg-surface-muted) 100%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--season-border-soft) 112%, transparent) !important;
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--season-shadow-color) 62%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--season-border-soft) 120%, transparent) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--season-shadow-color) 58%, transparent) !important;
   }
 
   .dark .cm-surface-secondary {
     background-color: color-mix(in srgb, var(--theme-panel-strong) 86%, transparent) !important;
     border-color: color-mix(in srgb, var(--theme-panel-border) 100%, transparent) !important;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28) !important;
   }
 
+  /* UI-02: Utility surface — rgba(244,241,235,0.58), shadow 0 2px 8px, radius 18px */
   .cm-surface-utility {
-    background-color: color-mix(in srgb, var(--season-bg-surface-strong) 72%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--season-border-soft) 106%, transparent) !important;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--season-shadow-color) 46%, transparent) !important;
+    background-color: color-mix(in srgb, var(--season-bg-surface-muted) 91%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--season-border-soft) 100%, transparent) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--season-shadow-color) 42%, transparent) !important;
   }
 
   .dark .cm-surface-utility {
     background-color: color-mix(in srgb, var(--theme-panel-strong) 74%, transparent) !important;
     border-color: color-mix(in srgb, var(--theme-panel-border) 98%, transparent) !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24) !important;
   }
 
   .cm-search-shell {
@@ -2194,22 +2214,34 @@
     white-space: nowrap;
   }
 
+  /* UI-01 spec: button labels must use consistent sans — override any inline serif */
+  .btn-botanical *,
+  .btn-heath *,
+  .btn-wood-light *,
+  .cm-danger-button *,
+  .cm-cook-primary-button *,
+  .cm-cook-secondary-button *,
+  .cm-cook-danger-button * {
+    font-family: inherit !important;
+    font-style: normal !important;
+  }
+
   .btn-botanical {
     @apply relative overflow-hidden text-white;
     background: #98A08F;
     color: #F6F2EA;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 10px 22px rgba(28, 32, 28, 0.16) !important;
+      0 8px 18px rgba(28, 32, 28, 0.14) !important;
   }
 
   .btn-botanical:hover {
-    background: color-mix(in srgb, #98A08F 92%, #1c201c);
+    background: color-mix(in srgb, #98A08F 96%, #1c201c);
     border-color: rgba(255, 255, 255, 0.18);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      0 12px 24px rgba(28, 32, 28, 0.18) !important;
+      0 10px 20px rgba(28, 32, 28, 0.16) !important;
   }
   
   .btn-heath {
@@ -2232,9 +2264,9 @@
   
   .btn-wood-light {
     @apply relative overflow-hidden;
-    background: rgba(245, 242, 236, 0.78);
+    background: rgba(245, 242, 236, 0.72);
     color: #2E342E;
-    border: 1px solid rgba(39, 42, 38, 0.14);
+    border: 1px solid rgba(39, 42, 38, 0.12);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.26),
       0 8px 18px rgba(28, 32, 28, 0.1) !important;
@@ -2321,12 +2353,10 @@
     width: 40px;
     height: 40px;
     border-radius: 16px;
-    background: rgba(245, 242, 236, 0.72);
+    background: rgba(245, 242, 236, 0.68);
     color: #2E342E;
-    border: 1px solid rgba(39, 42, 38, 0.14);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.24),
-      0 6px 14px rgba(28, 32, 28, 0.08);
+    border: 1px solid rgba(39, 42, 38, 0.12);
+    box-shadow: 0 3px 8px rgba(28, 32, 28, 0.06);
   }
 
   .cm-icon-button:hover {
@@ -2349,6 +2379,54 @@
   .dark .cm-icon-button:hover {
     background: rgba(255, 248, 240, 0.22);
     border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  /* UI-01: Ghost / subtle button — transparent fill, 1px border, weight 500 */
+  .cm-ghost-button {
+    @apply inline-flex items-center justify-center gap-2 transition-all duration-150 ease-out;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 18px;
+    background: transparent;
+    color: rgba(46, 52, 46, 0.88);
+    border: 1px solid rgba(39, 42, 38, 0.10);
+    box-shadow: none;
+    font-family: var(--font-sans), sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .cm-ghost-button:hover {
+    background: rgba(245, 242, 236, 0.12);
+    border-color: rgba(39, 42, 38, 0.14);
+    box-shadow: 0 2px 6px rgba(28, 32, 28, 0.04);
+  }
+
+  .cm-ghost-button:active {
+    background: rgba(245, 242, 236, 0.20);
+    transform: translateY(1px);
+  }
+
+  .cm-ghost-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .cm-ghost-button:focus-visible {
+    outline: 2px solid rgba(244, 238, 226, 0.62);
+    outline-offset: 2px;
+  }
+
+  .dark .cm-ghost-button {
+    color: rgba(243, 238, 229, 0.88);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .dark .cm-ghost-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.20);
   }
 
   .cm-danger-button {
@@ -2376,6 +2454,7 @@
   .cm-nav-dock {
     background: color-mix(in srgb, var(--theme-panel-bg) 98%, transparent);
     border-top: 1px solid color-mix(in srgb, var(--theme-panel-border) 96%, transparent);
+    border-radius: 28px 28px 0 0;
     backdrop-filter: blur(4px) saturate(106%);
     box-shadow: 0 -4px 20px rgba(18, 22, 18, 0.08);
   }
@@ -2390,9 +2469,9 @@
     @apply relative flex flex-col items-center justify-center transition-all duration-150 ease-out;
     width: 100%;
     min-width: 0;
-    min-height: 56px;
+    min-height: 72px;
     gap: 4px;
-    padding: 8px 10px 6px;
+    padding: 12px 10px 12px;
     border-radius: 18px;
     border: 1px solid transparent;
     color: rgba(46, 52, 46, 0.64);
@@ -2653,6 +2732,7 @@
     }
 
     .glass-brushed,
+    .cm-surface-primary,
     .cm-surface-secondary,
     .cm-surface-utility,
     .cm-search-shell,
