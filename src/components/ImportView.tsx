@@ -152,7 +152,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64String = reader.result as string;
-      const match = base64String.match(/^data:(.+);base64,(.+)$/);
+      const match = base64String.match(/^data:(.*?);base64,(.+)$/);
       if (match) {
         let mimeType = match[1];
         const data = match[2];
