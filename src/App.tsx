@@ -1056,6 +1056,15 @@ export default function App() {
           try {
             const enrichment = await aiEnrichRecipe(newRecipe, userLevel);
             setAiUnavailableMessage(null);
+            // Apply ingredient groups from enrichment
+            let enrichedIngredients = newRecipe.ingredients;
+            if (enrichment.ingredientGroups?.length && enrichedIngredients?.length) {
+              const groupMap = new Map(enrichment.ingredientGroups.map(g => [g.ingredientName.toLowerCase(), g.group]));
+              enrichedIngredients = enrichedIngredients.map((ing: any) => {
+                const group = groupMap.get(ing.name?.toLowerCase());
+                return group ? { ...ing, group } : ing;
+              });
+            }
             // Merge enrichment fields into the recipe
             const enrichedRecipe = {
               ...newRecipe,
@@ -1065,6 +1074,7 @@ export default function App() {
               pitfalls: enrichment.pitfalls || newRecipe.pitfalls,
               hints: enrichment.hints || newRecipe.hints,
               substitutions: enrichment.substitutions || newRecipe.substitutions,
+              ingredients: enrichedIngredients,
             };
             newRecipe = normalizeRecipeForCookMode(enrichedRecipe);
             trackEvent('ai_adjust_used', {

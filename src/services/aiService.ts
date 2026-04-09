@@ -146,6 +146,7 @@ export interface EnrichmentResult {
   pitfalls?: string[];
   hints?: string[];
   substitutions?: string[];
+  ingredientGroups?: { ingredientName: string; group: string }[];
 }
 
 export async function enrichRecipe(recipe: any, level?: string): Promise<EnrichmentResult> {

@@ -918,13 +918,30 @@ async function startServer() {
           pitfalls: { type: Type.ARRAY, items: { type: Type.STRING } },
           hints: { type: Type.ARRAY, items: { type: Type.STRING } },
           substitutions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          ingredientGroups: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                ingredientName: { type: Type.STRING },
+                group: { type: Type.STRING },
+              },
+              required: ['ingredientName', 'group'],
+            },
+          },
         },
-        required: ['summary', 'categories', 'flavorBoosts', 'pitfalls'],
+        required: ['summary', 'categories', 'flavorBoosts', 'pitfalls', 'ingredientGroups'],
       };
+      const ingredientNames = (recipe.ingredients || []).map((i: any) => i.name).join(', ');
       const prompt = `
-        Du er en ekspertkok. Givet denne opskrift, generer kun de ekstra kulinariske felter.
+        Du er en ekspertkok. Givet denne opskrift, generer de ekstra kulinariske felter.
         Match tonen til denne stilinstruktion: ${styleInstruction}
-        Opskrift: "${recipe.title}" med ingredienser: ${(recipe.ingredients || []).map((i: any) => i.name).join(', ')}.
+
+        INGREDIENT GROUPS: Assign each ingredient to a group. If the recipe has distinct components (sauce, dej, fyld, tilbehør), use 'Til saucen', 'Til dejen', etc. Otherwise use standard Danish categories: 'Grøntsager', 'Kød & fisk', 'Mejeri', 'Krydderier & olie', 'Tørvarer'. Never mix the two systems.
+        FLAVOR BOOSTS: 2-4 concrete tips to elevate flavor.
+        PITFALLS: 2-3 common mistakes to avoid.
+
+        Opskrift: "${recipe.title}" med ingredienser: ${ingredientNames}.
         Trin: ${(recipe.steps || []).map((s: any) => s.text).slice(0, 8).join(' | ')}
       `;
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, enrichSchema);
@@ -1047,7 +1064,8 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     const styleInstruction = getLevelStyleInstruction(level, 'import');
     const sharedRules = `
       Return the recipe in Danish.
-      Group ingredients by their component in the recipe (e.g., 'Til saucen', 'Til dejen', 'Til salaten'). If there are no specific components, group them by logical Danish categories like 'Grøntsager', 'Kød', 'Mejeri', 'Krydderier', 'Tørvarer'.
+      INGREDIENT GROUPS: Always group ingredients by their role in the recipe. If the recipe has distinct components (sauce, dej, fyld, tilbehør), use 'Til saucen', 'Til dejen', etc. If not, use these standard Danish categories: 'Grøntsager', 'Kød & fisk', 'Mejeri', 'Krydderier & olie', 'Tørvarer'. Never mix the two systems — pick one consistently per recipe.
+      FLAVOR & TIPS: Always generate 2-4 flavorBoosts (concrete tips to elevate flavor) and 2-3 pitfalls (common mistakes to avoid). These are required fields.
       Convert English/US metrics to Danish metrics.
       Do not repeat ingredient amounts or heat levels in step text if they already exist in structured fields.
       Extract heat info into the 'heat' property and ALWAYS convert it to a 1-9 induction scale.
