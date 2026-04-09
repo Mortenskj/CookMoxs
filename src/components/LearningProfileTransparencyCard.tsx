@@ -58,7 +58,7 @@ export function LearningProfileTransparencyCard() {
 
   if (isLoading) {
     return (
-      <section className="glass-brushed p-8 rounded-[2.5rem]">
+      <section className="glass-brushed p-5 rounded-[2rem]">
         <h2 className="cm-settings-section-heading">
           <Eye size={14} /> Hvad modulet ved
         </h2>
@@ -74,7 +74,7 @@ export function LearningProfileTransparencyCard() {
   }
 
   return (
-    <section className="glass-brushed p-8 rounded-[2.5rem]">
+    <section className="glass-brushed p-5 rounded-[2rem]">
       <h2 className="cm-settings-section-heading">
         <Eye size={14} /> Hvad modulet ved
       </h2>

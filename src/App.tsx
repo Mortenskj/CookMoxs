@@ -17,6 +17,7 @@ import {
   enrichRecipe as aiEnrichRecipe,
 } from './services/aiService';
 import { trackEvent } from './services/analyticsService';
+import { logSessionError } from './hooks/useSessionErrorLog';
 import { normalizeAuthError } from './services/authErrorMessageService';
 import { normalizeAiActionError, normalizeImportError, normalizeSyncError } from './services/errorMessageService';
 import { removeFolderShare, setFolderPermissionState, upsertFolderShare } from './services/folderPermissionService';
@@ -363,6 +364,8 @@ export default function App() {
     (action: AiActionKey, recipeId: string, startedAt: number, errorValue: unknown, fallbackMessage: string) => {
       const normalized = normalizeAiActionError(errorValue);
       const message = normalized.message || fallbackMessage;
+
+      logSessionError({ message, code: normalized.category }, action);
 
       trackEvent('ai_adjust_failed', {
         ...getAnalyticsContext(),
@@ -1123,6 +1126,7 @@ export default function App() {
       console.error('AI Error:', err);
       rememberAIDisabledState(err);
       const { category, message } = normalizeImportError(err);
+      logSessionError({ message, code: category }, `import_${type}`);
       if (surfaceErrors) {
         setError(message);
       }

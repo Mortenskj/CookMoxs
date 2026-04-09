@@ -17,6 +17,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
 import { formatStepHeatDisplay } from '../services/cookModeHeuristics';
+import { getWakeLockEnabled } from '../hooks/useWakeLockEnabled';
 
 interface CookViewProps {
   recipe: Recipe | null;
@@ -88,6 +89,7 @@ export function CookView({
   }, [showIngredients]);
 
   useEffect(() => {
+    if (!getWakeLockEnabled()) return;
     let wakeLock: any = null;
     const requestWakeLock = async () => {
       try {

@@ -66,7 +66,7 @@ export function SupportInfoCard({
   };
 
   return (
-    <section className="glass-brushed p-8 rounded-[2.5rem]">
+    <section className="glass-brushed p-5 rounded-[2rem]">
       <h2 className="cm-settings-section-heading">
         <LifeBuoy size={14} /> {SUPPORT_INFO.title}
       </h2>

@@ -1,5 +1,5 @@
-import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type, Sparkles, X, ChevronDown, UtensilsCrossed, BookOpen, Beaker, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Info, Thermometer, Settings, LogIn, LogOut, User, Palette, Moon, Sun, ChefHat, Download, Upload, Cloud, Type, Sparkles, X, ChevronDown, UtensilsCrossed, BookOpen, Beaker, Eye, EyeOff, Copy, Trash2, Smartphone } from 'lucide-react';
+import React, { useState } from 'react';
 import { COOKING_LEVELS, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, COOK_FONT_SIZES, type CookFontSize } from '../config/cookDisplay';
 import { IMPORT_PREFERENCE_OPTIONS, type ImportPreference } from '../config/importPreferences';
@@ -9,6 +9,8 @@ import { useRecipeNutritionEstimateVisible } from '../hooks/useRecipeNutritionEs
 import { useRecipeNutritionVisible } from '../hooks/useRecipeNutritionVisible';
 import { useRecipeNutritionExpandedByDefault } from '../hooks/useRecipeNutritionExpandedByDefault';
 import { useFlavorBoostsVisible } from '../hooks/useFlavorBoostsVisible';
+import { useWakeLockEnabled } from '../hooks/useWakeLockEnabled';
+import { useSessionErrorLog, exportSessionErrorLog } from '../hooks/useSessionErrorLog';
 import { HouseholdSettingsCard } from './HouseholdSettingsCard';
 import { LearningFeedbackCard } from './LearningFeedbackCard';
 import { LearningProfileTransparencyCard } from './LearningProfileTransparencyCard';
@@ -123,7 +125,7 @@ function SectionAccordion({ title, icon, children, defaultOpen = false }: { titl
         </h2>
         <ChevronDown size={18} className={`text-forest-mid transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && <div className="mt-6">{children}</div>}
+      {open && <div className="mt-4">{children}</div>}
     </section>
   );
 }
@@ -166,6 +168,9 @@ export function SettingsView({
   const { visible: recipeNutritionEstimateVisible, setVisible: setRecipeNutritionEstimateVisible } = useRecipeNutritionEstimateVisible();
   const { expandedByDefault: recipeNutritionExpandedByDefault, setExpandedByDefault: setRecipeNutritionExpandedByDefault } = useRecipeNutritionExpandedByDefault();
   const { visible: flavorBoostsVisible, setVisible: setFlavorBoostsVisible } = useFlavorBoostsVisible();
+  const { enabled: wakeLockEnabled, setEnabled: setWakeLockEnabled } = useWakeLockEnabled();
+  const { errors: sessionErrors, clear: clearSessionErrors } = useSessionErrorLog();
+  const [copiedLog, setCopiedLog] = useState(false);
 
   return (
     <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
@@ -406,6 +411,16 @@ export function SettingsView({
         <SectionAccordion title="Cook Mode" icon={<UtensilsCrossed size={14} />}>
           <div className="cm-settings-row mb-6">
             <div className="cm-settings-copy">
+              <p className="font-serif text-lg text-forest-dark italic">{wakeLockEnabled ? 'Skærm forbliver tændt' : 'Skærm slukker normalt'}</p>
+              <p className="text-xs text-forest-mid opacity-75">
+                Hold skærmen tændt mens du er i cook mode.
+              </p>
+            </div>
+            <SettingsToggle enabled={wakeLockEnabled} onChange={setWakeLockEnabled} />
+          </div>
+
+          <div className="cm-settings-row mb-6">
+            <div className="cm-settings-copy">
               <p className="font-serif text-lg text-forest-dark italic">{includePrep ? 'Forberedelses-trin aktivt' : 'Forberedelses-trin skjult'}</p>
               <p className="text-xs text-forest-mid opacity-75">
                 Start cook mode med et forberedelsestrin til ingrediensoversigt.
@@ -508,6 +523,51 @@ export function SettingsView({
           </div>
           <div className="mt-4">
             <LearningProfileTransparencyCard />
+          </div>
+
+          {/* Session error log */}
+          <div className="cm-surface-secondary rounded-2xl p-4 mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-forest-mid">Session-fejllog</p>
+              <div className="flex gap-2">
+                {sessionErrors.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(exportSessionErrorLog());
+                        setCopiedLog(true);
+                        setTimeout(() => setCopiedLog(false), 2000);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg bg-forest-mid/10 text-forest-mid hover:bg-forest-mid/20 transition-colors"
+                    >
+                      <Copy size={12} /> {copiedLog ? 'Kopieret!' : 'Kopiér'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearSessionErrors}
+                      className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                    >
+                      <Trash2 size={12} /> Ryd
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {sessionErrors.length === 0 ? (
+              <p className="text-xs text-forest-mid opacity-70 italic">Ingen fejl i denne session.</p>
+            ) : (
+              <div className="max-h-40 overflow-y-auto space-y-1 mt-2">
+                {sessionErrors.map((e, i) => (
+                  <div key={i} className="text-[11px] text-forest-dark font-mono leading-snug bg-white/50 dark:bg-black/10 rounded-lg px-2 py-1">
+                    <span className="text-forest-mid opacity-60">{new Date(e.timestamp).toLocaleTimeString('da-DK')}</span>
+                    {e.action && <span className="text-heath-mid ml-1">({e.action})</span>}
+                    {e.code && <span className="text-amber-700 ml-1">[{e.code}]</span>}
+                    <span className="ml-1">{e.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-4 space-y-3 text-sm text-forest-dark leading-relaxed font-serif italic">
