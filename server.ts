@@ -163,17 +163,32 @@ function getAiClient() {
   return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 }
 
+const SERVER_AI_TIMEOUT_MS = 40000;
+
 async function generateAIContent(model: string, prompt: string, responseSchema: any) {
-  const result = await getAiClient().models.generateContent({
-    model,
-    contents: [{ parts: [{ text: prompt }] }],
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema,
-    },
-  });
-  const responseText = extractTextFromAiResponse(result, `model ${model}`);
-  return parseAiJsonResponse(responseText, `model ${model}`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SERVER_AI_TIMEOUT_MS);
+  try {
+    const result = await getAiClient().models.generateContent({
+      model,
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema,
+        httpOptions: { timeout: SERVER_AI_TIMEOUT_MS },
+        abortSignal: controller.signal,
+      },
+    });
+    const responseText = extractTextFromAiResponse(result, `model ${model}`);
+    return parseAiJsonResponse(responseText, `model ${model}`);
+  } catch (error: any) {
+    if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED' || error?.message?.includes('timed out')) {
+      throw new Error(`AI request to ${model} timed out after ${SERVER_AI_TIMEOUT_MS / 1000}s`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function parseAiJsonResponse(rawText: string, context: string) {
