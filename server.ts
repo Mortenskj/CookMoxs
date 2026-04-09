@@ -937,7 +937,7 @@ async function startServer() {
         Du er en ekspertkok. Givet denne opskrift, generer de ekstra kulinariske felter.
         Match tonen til denne stilinstruktion: ${styleInstruction}
 
-        INGREDIENT GROUPS: Assign each ingredient to a group. If the recipe has distinct components (sauce, dej, fyld, tilbehør), use 'Til saucen', 'Til dejen', etc. Otherwise use standard Danish categories: 'Grøntsager', 'Kød & fisk', 'Mejeri', 'Krydderier & olie', 'Tørvarer'. Never mix the two systems.
+        INGREDIENT GROUPS: Assign each ingredient to a group based on its role in the dish — e.g. 'Til panering', 'Til fyld', 'Til saucen', 'Til servering'. NEVER group by ingredient type (not 'Mejeri', 'Kød', etc.). If no distinct components, use 'Ingredienser'.
         FLAVOR BOOSTS: 2-4 concrete tips to elevate flavor.
         PITFALLS: 2-3 common mistakes to avoid.
 
@@ -1064,7 +1064,8 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     const styleInstruction = getLevelStyleInstruction(level, 'import');
     const sharedRules = `
       Return the recipe in Danish.
-      INGREDIENT GROUPS: Always group ingredients by their role in the recipe. If the recipe has distinct components (sauce, dej, fyld, tilbehør), use 'Til saucen', 'Til dejen', etc. If not, use these standard Danish categories: 'Grøntsager', 'Kød & fisk', 'Mejeri', 'Krydderier & olie', 'Tørvarer'. Never mix the two systems — pick one consistently per recipe.
+      INGREDIENT GROUPS: Always group ingredients by their role/component in the dish — e.g. 'Til panering', 'Til fyld', 'Til saucen', 'Til dejen', 'Til salaten', 'Til servering'. NEVER group by ingredient type (do NOT use 'Mejeri', 'Kød', 'Tørvarer' etc.). If a recipe has no distinct components, use a single group like 'Ingredienser'.
+      INGREDIENT NAMES: The 'name' field must be the core ingredient only (e.g. 'gouda', 'æg', 'hvedemel'). Descriptors like 'skiver', 'stk', 'fed' belong in the 'unit' field, not in the name. Example: { name: "gouda", amount: 4, unit: "skiver" } — NOT { name: "skiver gouda", amount: 4 }.
       FLAVOR & TIPS: Always generate 2-4 flavorBoosts (concrete tips to elevate flavor) and 2-3 pitfalls (common mistakes to avoid). These are required fields.
       Convert English/US metrics to Danish metrics.
       Do not repeat ingredient amounts or heat levels in step text if they already exist in structured fields.
