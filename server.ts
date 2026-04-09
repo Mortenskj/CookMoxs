@@ -101,6 +101,51 @@ const RECIPE_SCHEMA = {
   required: ['title', 'ingredients', 'steps', 'servings'],
 };
 
+const PREFIX_VARIANT_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    title: { type: Type.STRING },
+    summary: { type: Type.STRING },
+    servings: { type: Type.NUMBER },
+    servingsUnit: { type: Type.STRING },
+    ingredients: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING },
+          amount: { type: Type.NUMBER },
+          unit: { type: Type.STRING },
+          group: { type: Type.STRING },
+        },
+        required: ['name', 'amount', 'unit'],
+      },
+    },
+    steps: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          text: { type: Type.STRING },
+          heat: { type: Type.STRING },
+          heatLevel: { type: Type.NUMBER },
+          timer: {
+            type: Type.OBJECT,
+            properties: {
+              duration: { type: Type.NUMBER },
+              description: { type: Type.STRING },
+            },
+            required: ['duration', 'description'],
+          },
+        },
+        required: ['text'],
+      },
+    },
+    aiRationale: { type: Type.STRING },
+  },
+  required: ['title', 'ingredients', 'steps'],
+};
+
 const STEP_REPAIR_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -980,7 +1025,7 @@ Profilerne betyder:
 - [Spice it up] -> Mere smag og krydderi.
 Bevar opskriftens kerne men tilpas ingredienser, mængder, trin og sværhedsgrad efter profilen.
 Opskrift: ${JSON.stringify(compactRecipe)}`;
-      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, PREFIX_VARIANT_SCHEMA, 2);
       // Merge AI result with original recipe, preserving prefix as a tag
       const prefixTag = prefix.replace(/[\[\]]/g, '').trim();
       const existingCategories = Array.isArray(parsedData.categories) ? parsedData.categories : (recipe.categories || []);

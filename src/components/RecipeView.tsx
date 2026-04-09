@@ -130,6 +130,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const isFillingRest = activeAiAction === 'fill_rest';
   const isGeneratingTips = activeAiAction === 'generate_tips';
   const isEstimatingNutrition = activeAiAction === 'estimate_nutrition';
+  const isApplyingPrefix = activeAiAction === 'apply_prefix';
 
   useEffect(() => {
     if (!isEditing || isAdjusting) {
@@ -986,17 +987,27 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </div>
             </div>
 
+            {isApplyingPrefix && (
+              <div className="flex items-center justify-center gap-3 py-6 px-4 cm-surface-secondary rounded-2xl mb-4 animate-pulse">
+                <svg className="animate-spin h-5 w-5 text-heath-mid" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="text-sm font-medium text-forest-mid cm-light-surface-ink-muted italic">AI tilpasser opskriften...</span>
+              </div>
+            )}
+
             <div className="cm-recipe-utility-row">
             {canMutateRecipe && (
             <div className="cm-recipe-ai-shell relative">
-              <select 
+              <select
                 onChange={(e) => {
                   if (e.target.value && onApplyPrefix) {
                     onApplyPrefix(recipe, e.target.value);
                     e.target.value = ""; // reset
                   }
                 }}
-                disabled={isAdjusting || aiDisabled}
+                disabled={isAdjusting || aiDisabled || isApplyingPrefix}
                 className="cm-recipe-ai-select"
                 style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%238A5A7D%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right .8rem top 50%', backgroundSize: '.6rem auto' }}
               >
