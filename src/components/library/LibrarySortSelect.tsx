@@ -1,6 +1,6 @@
 import React from 'react';
 
-type SortOrder = 'newest' | 'alphabetical' | 'most_used' | 'category';
+type SortOrder = 'newest' | 'alphabetical' | 'last_opened' | 'category';
 
 interface LibrarySortSelectProps {
   value: SortOrder;
@@ -20,7 +20,7 @@ export function LibrarySortSelect({ value, onChange, className }: LibrarySortSel
     >
       <option value="newest">Nyeste</option>
       <option value="alphabetical">Alfabetisk</option>
-      <option value="most_used">Mest brugte</option>
+      <option value="last_opened">Sidst åbnet</option>
       <option value="category">Kategori</option>
     </select>
   );

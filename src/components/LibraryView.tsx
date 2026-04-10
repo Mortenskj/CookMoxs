@@ -24,7 +24,7 @@ interface LibraryViewProps {
 }
 
 type LibrarySection = 'home' | 'favorites' | 'cookbooks' | 'all' | 'categories';
-type SortOrder = 'newest' | 'alphabetical' | 'most_used' | 'category';
+type SortOrder = 'newest' | 'alphabetical' | 'last_opened' | 'category';
 
 export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFolder, onCreateInFolder, onDeleteFolder, onRenameFolder, onShareFolder, onRemoveFolderShare, onSetFolderPermissionState, currentUser }: LibraryViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,19 +44,27 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
 // Remove derived allFolders since it's now passed as prop
   const allCategories = Array.from(new Set(savedRecipes.flatMap(r => r.categories || []))).sort();
 
+  const getRecipeTimestamp = (r: Recipe) =>
+    new Date(r.updatedAt || r.createdAt || r.id || 0).getTime();
+
   const getSortedRecipes = (recipes: Recipe[]) => {
     return [...recipes].sort((a, b) => {
-      if (sortOrder === 'alphabetical') return a.title.localeCompare(b.title);
-      if (sortOrder === 'most_used') return new Date(b.lastUsed || 0).getTime() - new Date(a.lastUsed || 0).getTime();
+      if (sortOrder === 'alphabetical') return a.title.localeCompare(b.title, 'da');
+      if (sortOrder === 'last_opened') {
+        const la = new Date(a.lastUsed || 0).getTime();
+        const lb = new Date(b.lastUsed || 0).getTime();
+        if (la !== lb) return lb - la;
+        return getRecipeTimestamp(b) - getRecipeTimestamp(a);
+      }
       if (sortOrder === 'category') {
-        const catA = a.categories?.[0] || 'ZZZ';
-        const catB = b.categories?.[0] || 'ZZZ';
-        return catA.localeCompare(catB);
+        const catA = a.categories?.[0] || '\uffff';
+        const catB = b.categories?.[0] || '\uffff';
+        const cmp = catA.localeCompare(catB, 'da');
+        if (cmp !== 0) return cmp;
+        return a.title.localeCompare(b.title, 'da');
       }
       // default: newest
-      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-      return dateB - dateA;
+      return getRecipeTimestamp(b) - getRecipeTimestamp(a);
     });
   };
 
@@ -72,6 +80,37 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
   const renderRecipeList = (recipes: Recipe[], emptyMessage: string, emptyHint?: string) => {
     if (recipes.length === 0) {
       return <LibraryEmptyState title={emptyMessage} hint={emptyHint} />;
+    }
+
+    if (sortOrder === 'category') {
+      const groups: Record<string, Recipe[]> = {};
+      for (const recipe of recipes) {
+        const cat = recipe.categories?.[0] || 'Uden kategori';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(recipe);
+      }
+      const sortedGroups = Object.keys(groups).sort((a, b) =>
+        a === 'Uden kategori' ? 1 : b === 'Uden kategori' ? -1 : a.localeCompare(b, 'da')
+      );
+      return (
+        <div className="space-y-6">
+          {sortedGroups.map((cat) => (
+            <div key={cat}>
+              <h3 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-3 opacity-60 dark:opacity-100 flex items-center gap-3">
+                {cat}
+                <div className="flex-1 h-px bg-black/5 dark:bg-white/10" />
+              </h3>
+              <div className="space-y-4">
+                {groups[cat].map((recipe) => (
+                  <div key={recipe.id}>
+                    <LibraryRecipeCard recipe={recipe} onOpen={onOpenRecipe} currentUser={currentUser} allFolders={allFolders} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
 
     return (

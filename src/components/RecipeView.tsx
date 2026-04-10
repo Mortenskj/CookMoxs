@@ -32,19 +32,22 @@ interface RecipeViewProps {
   onSmartAdjust: (recipe: Recipe, instruction: string) => void;
   onGenerateSteps?: (recipe: Recipe) => void;
   onFillRest?: (recipe: Recipe) => void;
+  onPolishIngredients?: (recipe: Recipe) => void;
+  onPolishSteps?: (recipe: Recipe) => void;
+  onSuggestTags?: (recipe: Recipe) => void;
   onGenerateTips?: (recipe: Recipe) => void;
   onEstimateNutrition?: (recipe: Recipe) => void;
   onApplyPrefix?: (recipe: Recipe, prefix: string) => void;
   onUndoAI?: (originalId: string) => void;
   isAdjusting?: boolean;
-  activeAiAction?: 'smart_adjust' | 'generate_steps' | 'fill_rest' | 'generate_tips' | 'estimate_nutrition' | 'apply_prefix' | null;
+  activeAiAction?: 'smart_adjust' | 'generate_steps' | 'fill_rest' | 'polish_ingredients' | 'polish_steps' | 'suggest_tags' | 'generate_tips' | 'estimate_nutrition' | 'apply_prefix' | null;
   error?: string | null;
   aiDisabledReason?: string | null;
   initialEditMode?: boolean;
   currentUser?: any;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, activeAiAction, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onPolishIngredients, onPolishSteps, onSuggestTags, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, activeAiAction, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [editData, setEditData] = useState<Recipe>(recipe);
@@ -78,6 +81,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   };
   const [showSmartModal, setShowSmartModal] = useState(false);
   const [showAddIngredientModal, setShowAddIngredientModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newIngredient, setNewIngredient] = useState<Ingredient>({ id: '', name: '', amount: null, unit: '', group: 'Andre' });
   const [smartInstruction, setSmartInstruction] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -130,6 +134,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const isSmartAdjusting = activeAiAction === 'smart_adjust';
   const isGeneratingSteps = activeAiAction === 'generate_steps';
   const isFillingRest = activeAiAction === 'fill_rest';
+  const isPolishingIngredients = activeAiAction === 'polish_ingredients';
+  const isPolishingSteps = activeAiAction === 'polish_steps';
+  const isSuggestingTags = activeAiAction === 'suggest_tags';
   const isGeneratingTips = activeAiAction === 'generate_tips';
   const isEstimatingNutrition = activeAiAction === 'estimate_nutrition';
   const isApplyingPrefix = activeAiAction === 'apply_prefix';
@@ -141,6 +148,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       setHistoryIndex(0);
     }
   }, [recipe, isEditing, isAdjusting]);
+
+  useEffect(() => {
+    const originalTitle = document.title;
+    document.title = `CookMoxs - ${recipe.title}`;
+    return () => { document.title = originalTitle; };
+  }, [recipe.title]);
 
   useEffect(() => {
     setEditPermissionConfirmed(false);
@@ -302,7 +315,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </button>
             )}
             {canMutateRecipe && (
-              <button onClick={onDelete} className="p-2 text-[#DC2626] hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
+              <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-[#DC2626] hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
                 <Trash2 size={22} />
               </button>
             )}
@@ -963,7 +976,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Meta */}
-      <div className="mb-8 space-y-6">
+      <div className="print-meta mb-8 space-y-6">
         <div className="glass-brushed p-6 sm:p-8 rounded-[2.5rem]">
           <h1 className="text-4xl font-serif text-forest-dark dark:text-white mb-4 leading-tight italic text-engraved">
             {recipe.title}
@@ -973,9 +986,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </span>
             )}
           </h1>
-          {recipe.summary && <p className="text-forest-mid cm-light-surface-ink-muted mb-6 leading-relaxed italic text-sm opacity-80 dark:opacity-100">{recipe.summary}</p>}
+          <p className="print-byline hidden">CookMoxs</p>
+          {recipe.summary && <p className="print-summary text-forest-mid cm-light-surface-ink-muted mb-6 leading-relaxed italic text-sm opacity-80 dark:opacity-100">{recipe.summary}</p>}
           {(recipe.updatedAt || recipe.createdAt) && (
-            <p className="text-xs text-forest-mid cm-light-surface-ink-muted italic mb-4 opacity-80 dark:opacity-100">
+            <p className="print:hidden text-xs text-forest-mid cm-light-surface-ink-muted italic mb-4 opacity-80 dark:opacity-100">
               Sidst gemt: {new Date(recipe.updatedAt || recipe.createdAt!).toLocaleString('da-DK')}
             </p>
           )}
@@ -1050,7 +1064,27 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     {cat}
                   </span>
                 ))}
+                {!isEditing && onSuggestTags && canMutateRecipe && (
+                  <button
+                    onClick={() => onSuggestTags(recipe)}
+                    disabled={isAdjusting || aiDisabled}
+                    className="cm-recipe-chip border-dashed border-forest-mid/30 text-forest-mid/60 hover:text-forest-mid hover:border-forest-mid/50 transition-colors flex items-center gap-1 disabled:opacity-50"
+                  >
+                    {isSuggestingTags ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                    {isSuggestingTags ? '...' : '+ tags'}
+                  </button>
+                )}
               </div>
+            )}
+            {recipeCategories.length === 0 && !isEditing && onSuggestTags && canMutateRecipe && (
+              <button
+                onClick={() => onSuggestTags(recipe)}
+                disabled={isAdjusting || aiDisabled}
+                className="text-xs text-forest-mid/60 hover:text-forest-mid flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                {isSuggestingTags ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                {isSuggestingTags ? 'Foreslår tags...' : 'Tilføj tags med AI'}
+              </button>
             )}
 
             {!canMutateRecipe && (
@@ -1188,7 +1222,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Ingredients */}
-      <section className="mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
+      <section className="print-ingredients mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
@@ -1226,79 +1260,89 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           </div>
         )}
 
-        {Object.entries(groupedIngredients).map(([group, ingredients]) => (
-          <div key={group} className="space-y-4">
-            <h3 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 flex items-center gap-3">
-              {group}
-              <div className="flex-1 h-px bg-black/5 dark:bg-white/10" />
-            </h3>
-            <ul className="space-y-3">
-              {ingredients.map((ing, i) => (
-                <li key={ing.id || i} className="cm-recipe-ingredient-row group/item">
-                  <div className="cm-recipe-ingredient-main">
-                    <button onClick={() => toggleLock(ing.id)} className="p-1.5 hover:bg-white/60 dark:hover:bg-black/5 rounded-lg transition-all text-forest-mid cm-light-surface-icon opacity-40 group-hover/item:opacity-100" title={ing.locked ? "Lås op" : "Lås mængde"}>
-                      {ing.locked ? <Lock size={14} className="text-heath-mid" /> : <Unlock size={14} />}
-                    </button>
-                    <span className="cm-recipe-ingredient-name text-forest-dark cm-light-surface-ink font-serif italic">{ing.name}</span>
-                  </div>
-                  <div className="cm-recipe-ingredient-rail">
-                    <span className="cm-recipe-ingredient-amount font-bold text-heath-mid text-sm tracking-tight">
-                      {ing.amount ? (ing.locked ? ing.amount : Number((ing.amount * scale).toFixed(2))) : ''} {ing.unit}
-                    </span>
-                    {canMutateRecipe && canConvertIngredientBetweenGramsAndDeciliters(ing) && (
-                      <button
-                        type="button"
-                        onClick={() => applyRecipeIngredientConversion(recipeIngredients.findIndex((recipeIngredient) => recipeIngredient.id === ing.id))}
-                        className="cm-recipe-ingredient-pill cm-surface-utility rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid transition-colors hover:bg-white dark:hover:bg-white/10"
-                        title="Konverter mellem g og dl"
-                      >
-                        g/dl
-                      </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {Object.entries(groupedIngredients).map(([group, ingredients]) => {
+          const measured = ingredients.filter((ing) => ing.amount);
+          const unmeasured = ingredients.filter((ing) => !ing.amount);
+          return (
+            <div key={group} className="space-y-2">
+              <h3 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 flex items-center gap-3">
+                {group}
+                <div className="flex-1 h-px bg-black/5 dark:bg-white/10" />
+              </h3>
+              {measured.length > 0 && (
+                <ul className="space-y-0">
+                  {measured.map((ing, i) => (
+                    <li key={ing.id || i} className="cm-recipe-ingredient-row">
+                      <span className="cm-recipe-ingredient-amount font-semibold text-heath-mid text-sm">
+                        {Number((ing.amount! * scale).toFixed(2))}{ing.unit ? ` ${ing.unit}` : ''}
+                      </span>
+                      <span className="cm-recipe-ingredient-name text-forest-dark cm-light-surface-ink text-sm">{ing.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {unmeasured.length > 0 && (
+                <ul className="mt-1 space-y-0.5 pl-1">
+                  {unmeasured.map((ing, i) => (
+                    <li key={ing.id || i} className="text-sm text-forest-mid cm-light-surface-ink-muted italic opacity-75">
+                      {ing.unit ? `${ing.unit} ${ing.name}` : ing.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+
+        {!isEditing && onPolishIngredients && canMutateRecipe && (
+          <button
+            onClick={() => onPolishIngredients(recipe)}
+            disabled={isAdjusting || aiDisabled}
+            className="w-full mt-4 py-2.5 text-[#2A1F1A] bg-[#2A1F1A]/5 hover:bg-[#2A1F1A]/10 rounded-xl text-xs font-bold uppercase tracking-widest border border-[#2A1F1A]/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 print:hidden"
+          >
+            {isPolishingIngredients ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+            {isPolishingIngredients ? 'Forbedrer...' : 'Stram ingredienser op'}
+          </button>
+        )}
+
         <div className="cm-recipe-sticky-clearance" aria-hidden="true" />
       </section>
 
       {/* Guides */}
       {(recipeHeatGuide.length > 0 || recipe.ovenGuide || recipeFlavorBoosts.length > 0 || recipePitfalls.length > 0 || recipeHints.length > 0) && (
-        <section className="mb-10 space-y-4">
+        <section className="print-guides mb-6 space-y-3 print:hidden">
           {recipeHeatGuide.length > 0 && (
-            <div className="cm-surface-secondary p-6 rounded-3xl flex gap-4 relative overflow-hidden group">
+            <div className="cm-surface-secondary p-5 rounded-2xl flex gap-4 relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-heath-mid/20" />
-              <Flame className="text-heath-mid shrink-0" size={24} />
+              <Flame className="text-heath-mid shrink-0 mt-0.5" size={20} />
               <div>
-                <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Varmeguide</h4>
-                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-2 italic leading-relaxed">
+                <h4 className="text-xs font-bold text-heath-mid uppercase tracking-[0.2em] mb-1.5 text-engraved">Varmeguide</h4>
+                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-1.5 leading-relaxed">
                   {recipeHeatGuide.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{formatHeatGuideEntry(g)}</li>)}
                 </ul>
               </div>
             </div>
           )}
           {recipeFlavorBoosts.length > 0 && (
-            <div className="cm-surface-secondary p-6 rounded-3xl flex gap-4 relative overflow-hidden">
+            <div className="cm-surface-secondary p-5 rounded-2xl flex gap-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-forest-mid/20" />
-              <Lightbulb className="text-heath-mid shrink-0" size={24} />
+              <Lightbulb className="text-heath-mid shrink-0 mt-0.5" size={20} />
               <div>
-                <h4 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Smagsboostere</h4>
-                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-2 italic leading-relaxed">
+                <h4 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-1.5 text-engraved">Smagsboostere</h4>
+                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-1.5 leading-relaxed">
                   {recipeFlavorBoosts.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
                 </ul>
               </div>
             </div>
           )}
           {recipePitfalls.length > 0 && (
-            <div className="bg-[#DC2626]/5 dark:bg-[#DC2626]/10 p-6 rounded-3xl border border-[#DC2626]/10 flex gap-4 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-[#DC2626]/20" />
-              <AlertTriangle className="text-[#DC2626] shrink-0" size={24} />
+            <div className="bg-[#DC2626]/10 dark:bg-[#DC2626]/15 p-5 rounded-2xl border border-[#DC2626]/20 flex gap-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-[#DC2626]/30" />
+              <AlertTriangle className="text-[#DC2626] shrink-0 mt-0.5" size={20} />
               <div>
-                <h4 className="text-xs font-bold text-[#DC2626] uppercase tracking-[0.2em] mb-2 opacity-60 dark:opacity-100 text-engraved">Faldgruber</h4>
-                <ul className="text-sm text-forest-mid cm-light-surface-ink-muted space-y-2 italic leading-relaxed">
-                  {recipePitfalls.map((g, i) => <li key={i} className="flex gap-2"><span>•</span>{g}</li>)}
+                <h4 className="text-xs font-bold text-[#DC2626] uppercase tracking-[0.2em] mb-1.5 text-engraved">Faldgruber</h4>
+                <ul className="text-sm text-forest-dark cm-light-surface-ink dark:text-white/80 space-y-1.5 leading-relaxed">
+                  {recipePitfalls.map((g, i) => <li key={i} className="flex gap-2"><span className="text-[#DC2626]/60">•</span>{g}</li>)}
                 </ul>
               </div>
             </div>
@@ -1307,7 +1351,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Steps */}
-      <section className="mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
+      <section className="print-steps mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
@@ -1349,7 +1393,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     </div>
                   )}
                 </div>
-                <p className="text-forest-dark dark:text-white leading-relaxed font-serif italic text-lg">{step.text}</p>
+                <p className="text-forest-dark cm-light-surface-ink leading-relaxed font-serif italic text-lg">{step.text}</p>
                 {step.reminder && (
                   <div className="mt-4 bg-[#E5A93B]/10 border border-[#E5A93B]/30 rounded-2xl p-4 flex gap-3 items-start shadow-sm">
                     <div className="bg-[#E5A93B]/20 p-1.5 rounded-full shrink-0">
@@ -1357,7 +1401,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="text-[#E5A93B] font-bold uppercase tracking-widest text-[10px]">Husk!</span>
-                      <p className="text-forest-dark dark:text-white font-serif text-sm leading-relaxed">
+                      <p className="text-forest-dark cm-light-surface-ink font-serif text-sm leading-relaxed">
                         {step.reminder}
                       </p>
                     </div>
@@ -1367,23 +1411,27 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </div>
           ))}
         </div>
+
+
         <div className="cm-recipe-sticky-clearance" aria-hidden="true" />
       </section>
 
-      <RecipeNutritionAttachmentCard
-        attachment={recipe.nutritionAttachment}
-        estimate={recipe.nutritionEstimate}
-        servings={recipe.servings}
-        canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
-        canEstimate={canMutateRecipe}
-        canClear={canMutateRecipe}
-        readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke ændres for delte opskrifter i denne stabiliserings-pass.'}
-        isEstimating={isEstimatingNutrition}
-        aiDisabledReason={aiDisabledReason}
-        onEstimate={() => onEstimateNutrition?.(recipe)}
-        onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
-        onClear={() => onSave({ ...recipe, nutritionAttachment: undefined })}
-      />
+      <div className="print:hidden">
+        <RecipeNutritionAttachmentCard
+          attachment={recipe.nutritionAttachment}
+          estimate={recipe.nutritionEstimate}
+          servings={recipe.servings}
+          canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
+          canEstimate={canMutateRecipe}
+          canClear={canMutateRecipe}
+          readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke ændres for delte opskrifter i denne stabiliserings-pass.'}
+          isEstimating={isEstimatingNutrition}
+          aiDisabledReason={aiDisabledReason}
+          onEstimate={() => onEstimateNutrition?.(recipe)}
+          onAttach={(nutritionAttachment) => onSave({ ...recipe, nutritionAttachment })}
+          onClear={() => onSave({ ...recipe, nutritionAttachment: undefined })}
+        />
+      </div>
 
       {/* Add Ingredient Modal */}
       {showAddIngredientModal && (
@@ -1534,10 +1582,10 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Floating Cook Button */}
-      <div className="fixed bottom-20 left-0 right-0 p-4 max-w-md mx-auto z-20 print:hidden">
-        <div className="flex flex-col gap-3">
+      <div className="fixed bottom-[6.5rem] left-0 right-0 p-4 max-w-md mx-auto z-20 print:hidden">
+        <div className="flex flex-col gap-2">
           {canMutateRecipe && !recipe.isSaved && (
-            <button 
+            <button
               onClick={openFolderPickerForSave}
               className="btn-botanical w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
             >
@@ -1545,7 +1593,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <span className="font-bold uppercase tracking-widest text-xs">Gem opskrift i mappe</span>
             </button>
           )}
-          <button 
+          <button
             onClick={() => onStartCook(recipe, scale)}
             className="btn-wood-light w-full py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl"
           >
@@ -1554,6 +1602,33 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           </button>
         </div>
       </div>
+      {/* Delete Confirm Dialog */}
+      {showDeleteConfirm && (
+        <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[2rem] p-6 w-full max-w-xs bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl text-center">
+            <Trash2 size={32} className="text-[#DC2626] mx-auto mb-4" />
+            <h3 className="text-xl font-serif text-forest-dark dark:text-white italic mb-2">Slet opskrift?</h3>
+            <p className="text-sm text-forest-mid cm-light-surface-ink-muted mb-6">
+              "{recipe.title}" slettes. Du kan fortryde i kort tid efterfølgende.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3 rounded-xl cm-surface-utility text-forest-dark cm-light-surface-ink font-bold text-xs uppercase tracking-widest hover:bg-white/60 dark:hover:bg-black/5 transition-colors"
+              >
+                Annuller
+              </button>
+              <button
+                onClick={() => { setShowDeleteConfirm(false); onDelete(); }}
+                className="flex-1 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#B91C1C] transition-colors"
+              >
+                Slet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Folder Picker Modal */}
       {showFolderPicker && (
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">

@@ -362,7 +362,7 @@ export function RecipeNutritionAttachmentCard({
   };
 
   return (
-    <section className="cm-nutrition-section mb-8 glass-brushed p-6 sm:p-8 rounded-[2.5rem] border border-black/5 dark:border-white/10">
+    <section className="cm-nutrition-section mb-8 glass-brushed p-4 sm:p-6 rounded-[2rem] border border-black/5 dark:border-white/10">
       <div className="cm-nutrition-header mb-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-white/60 dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/10">
@@ -370,7 +370,7 @@ export function RecipeNutritionAttachmentCard({
           </div>
           <div>
             <h3 className="font-serif text-xl text-forest-dark dark:text-white italic text-engraved">Produktdata til opskriften</h3>
-            <p className="text-xs text-forest-mid dark:text-white/70 opacity-80">
+            <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80">
               {getRecipeNutritionExplanation(attachment)}
             </p>
           </div>
@@ -514,7 +514,7 @@ export function RecipeNutritionAttachmentCard({
             {canRenderMacroOverview && selectedSnapshot && macroOverview ? (
               <div className="cm-nutrition-macro-card mt-6">
                 <div className="cm-nutrition-donut-wrap">
-                  <div className="relative flex h-[220px] w-[220px] items-center justify-center">
+                  <div className="relative flex h-[180px] w-[180px] items-center justify-center">
                     <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
                       <circle
                         cx="70"
@@ -543,19 +543,19 @@ export function RecipeNutritionAttachmentCard({
                       <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-forest-mid/70 dark:text-white/60">
                         {macroBasis === 'perPortion' ? 'Pr. portion' : 'Pr. 100 g'}
                       </span>
-                      <span className="mt-2 font-serif text-4xl italic text-forest-dark dark:text-white">
+                      <span className="mt-1 font-serif text-3xl italic text-forest-dark dark:text-white">
                         {formatMacroValue(selectedSnapshot.energyKcal)}
                       </span>
-                      <span className="text-sm text-forest-mid/75 dark:text-white/70">kcal</span>
+                      <span className="text-xs text-forest-mid/75 dark:text-white/70">kcal</span>
                     </div>
                   </div>
                 </div>
                 <div className="cm-nutrition-macro-grid">
                   {macroOverview.map((macro) => (
-                    <div key={macro.key} className={`rounded-[1.5rem] border border-black/5 px-4 py-4 dark:border-white/10 ${macro.softBg}`}>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] opacity-60">{macro.label}</p>
-                      <p className={`mt-3 text-2xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
-                        <p className="mt-2 text-xs opacity-75">{formatMacroPercent(macro.percent)} af {distributionBasisLabel}</p>
+                    <div key={macro.key} className={`rounded-[1.25rem] border border-black/5 px-3 py-3 dark:border-white/10 ${macro.softBg}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">{macro.label}</p>
+                      <p className={`mt-2 text-xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
+                        <p className="mt-1 text-[11px] opacity-75">{formatMacroPercent(macro.percent)} af {distributionBasisLabel}</p>
                       </div>
                     ))}
                   </div>
@@ -684,7 +684,7 @@ export function RecipeNutritionAttachmentCard({
         </div>
       )}
 
-      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10 px-4 py-3 text-sm text-forest-mid dark:text-white/80">
+      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10 px-4 py-3 text-sm text-forest-mid cm-light-surface-ink-muted">
         <p className="font-medium">{hasAttachment ? 'Knyttet produktdata' : 'Ingen knyttet produktdata'}</p>
         <p className="mt-1 text-xs opacity-80">{summaryLine}</p>
       </div>
@@ -693,8 +693,8 @@ export function RecipeNutritionAttachmentCard({
         <div className="mt-4 rounded-3xl border border-black/5 dark:border-white/10 bg-white/45 dark:bg-black/20 p-5">
           <div className="cm-nutrition-attachment-head">
             <div>
-              <p className="font-serif text-lg text-forest-dark dark:text-white italic">{attachment.title}</p>
-              <p className="mt-1 text-xs text-forest-mid dark:text-white/70 opacity-75">
+              <p className="font-serif text-lg text-forest-dark cm-light-surface-ink italic">{attachment.title}</p>
+              <p className="mt-1 text-xs text-forest-mid cm-light-surface-ink-muted opacity-75">
                 {[attachment.brand, attachment.barcode].filter(Boolean).join(' · ') || 'Intet ekstra produkt-id'}
               </p>
             </div>
@@ -708,7 +708,7 @@ export function RecipeNutritionAttachmentCard({
               </button>
             )}
           </div>
-          <p className="mt-3 text-xs text-forest-mid dark:text-white/70 opacity-80">
+          <p className="mt-3 text-xs text-forest-mid cm-light-surface-ink-soft opacity-80">
             {getRecipeNutritionSummaryLine(attachment)}
           </p>
           {attachment.nutrition && (
@@ -734,7 +734,7 @@ export function RecipeNutritionAttachmentCard({
           )}
         </div>
       ) : (
-        <div className="mt-4 rounded-3xl border border-dashed border-black/10 dark:border-white/10 bg-white/35 dark:bg-black/10 p-5 text-sm text-forest-mid dark:text-white/80">
+        <div className="mt-4 rounded-3xl border border-dashed border-black/10 dark:border-white/10 bg-white/35 dark:bg-black/10 p-5 text-sm text-forest-mid cm-light-surface-ink-muted">
           Ingen produktdata er knyttet til denne opskrift endnu.
         </div>
       ))}

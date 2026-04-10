@@ -10,6 +10,9 @@ import {
   adjustRecipe as aiAdjustRecipe,
   generateSteps as aiGenerateSteps,
   fillRest as aiFillRest,
+  polishIngredients as aiPolishIngredients,
+  polishSteps as aiPolishSteps,
+  suggestTags as aiSuggestTags,
   generateTips as aiGenerateTips,
   estimateRecipeNutrition as aiEstimateRecipeNutrition,
   applyPrefix as aiApplyPrefix,
@@ -109,6 +112,9 @@ type AiActionKey =
   | 'smart_adjust'
   | 'generate_steps'
   | 'fill_rest'
+  | 'polish_ingredients'
+  | 'polish_steps'
+  | 'suggest_tags'
   | 'generate_tips'
   | 'estimate_nutrition'
   | 'apply_prefix';
@@ -1192,6 +1198,17 @@ export default function App() {
     onQueueChanged: refreshPendingCount,
   });
 
+  const handleOpenRecipe = (recipe: Recipe) => {
+    const updated = { ...recipe, lastUsed: new Date().toISOString() };
+    setViewingRecipe(updated);
+    navigateTo('recipe');
+    // Persist lastUsed silently
+    const newSaved = savedRecipes.map(r => r.id === recipe.id ? updated : r);
+    if (newSaved.some(r => r.id === recipe.id)) {
+      saveToLocalStorage(newSaved);
+    }
+  };
+
   const handleSaveRecipe = async (recipe: Recipe) => {
     if (!user) {
       const updatedRecipe: Recipe = normalizeRecipeForCookMode({
@@ -1481,6 +1498,78 @@ export default function App() {
     }
   };
 
+  const handlePolishIngredients = async (recipe: Recipe) => {
+    const startedAt = Date.now();
+    setActiveAiAction('polish_ingredients');
+    setError(null);
+    trackAiActionStarted('polish_ingredients', recipe.id);
+    try {
+      const updated = await aiPolishIngredients(recipe, userLevel);
+      setAiUnavailableMessage(null);
+      setViewingRecipe(normalizeRecipeForCookMode({
+        ...updated,
+        title: recipe.title,
+        id: recipe.id,
+        lastUsed: new Date().toISOString(),
+      }));
+      trackAiActionUsed('polish_ingredients', recipe.id, startedAt);
+    } catch (err: any) {
+      console.error('AI Polish Ingredients Error:', err);
+      rememberAIDisabledState(err);
+      setError(trackAiActionFailed('polish_ingredients', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke forbedre ingredienser')));
+    } finally {
+      setActiveAiAction(null);
+    }
+  };
+
+  const handlePolishSteps = async (recipe: Recipe) => {
+    const startedAt = Date.now();
+    setActiveAiAction('polish_steps');
+    setError(null);
+    trackAiActionStarted('polish_steps', recipe.id);
+    try {
+      const updated = await aiPolishSteps(recipe, userLevel);
+      setAiUnavailableMessage(null);
+      setViewingRecipe(normalizeRecipeForCookMode({
+        ...updated,
+        title: recipe.title,
+        id: recipe.id,
+        lastUsed: new Date().toISOString(),
+      }));
+      trackAiActionUsed('polish_steps', recipe.id, startedAt);
+    } catch (err: any) {
+      console.error('AI Polish Steps Error:', err);
+      rememberAIDisabledState(err);
+      setError(trackAiActionFailed('polish_steps', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke forbedre fremgangsmåde')));
+    } finally {
+      setActiveAiAction(null);
+    }
+  };
+
+  const handleSuggestTags = async (recipe: Recipe) => {
+    const startedAt = Date.now();
+    setActiveAiAction('suggest_tags');
+    setError(null);
+    trackAiActionStarted('suggest_tags', recipe.id);
+    try {
+      const updated = await aiSuggestTags(recipe);
+      setAiUnavailableMessage(null);
+      setViewingRecipe(normalizeRecipeForCookMode({
+        ...updated,
+        title: recipe.title,
+        id: recipe.id,
+        lastUsed: new Date().toISOString(),
+      }));
+      trackAiActionUsed('suggest_tags', recipe.id, startedAt);
+    } catch (err: any) {
+      console.error('AI Suggest Tags Error:', err);
+      rememberAIDisabledState(err);
+      setError(trackAiActionFailed('suggest_tags', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke foreslå tags')));
+    } finally {
+      setActiveAiAction(null);
+    }
+  };
+
   const handleGenerateTips = async (recipe: Recipe) => {
     const startedAt = Date.now();
     setActiveAiAction('generate_tips');
@@ -1567,6 +1656,25 @@ export default function App() {
     }
   };
 
+  const handleStopCooking = () => {
+    if (activeRecipe) {
+      trackEvent('cook_mode_completed', {
+        ...getAnalyticsContext(),
+        recipeId: activeRecipe.id,
+        completionMethod: 'explicit_stop',
+      });
+      setCookProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[activeRecipe.id];
+        return newProgress;
+      });
+    }
+    // Clear all timers
+    setTimers([]);
+    saveActiveRecipe(null);
+    navigateTo('home');
+  };
+
   const handleStartCook = (recipe: Recipe, scale: number) => {
     const updatedRecipe = { ...recipe, lastUsed: new Date().toISOString(), scale };
     saveActiveRecipe(updatedRecipe);
@@ -1623,16 +1731,17 @@ export default function App() {
           currentUser={user}
           isOnline={isOnline}
           onNavigate={navigateTo}
-          onOpenRecipe={(r) => { setViewingRecipe(r); navigateTo('recipe'); }}
+          onOpenRecipe={handleOpenRecipe}
         />
       )}
 
       {currentView === 'active' && (
-        <ActiveView 
+        <ActiveView
           activeRecipe={activeRecipe}
           onNavigate={navigateTo}
           onSave={handleSaveRecipe}
-          onOpenRecipe={(r) => { setViewingRecipe(r); navigateTo('recipe'); }}
+          onOpenRecipe={handleOpenRecipe}
+          onStopCooking={handleStopCooking}
         />
       )}
 
@@ -1671,7 +1780,7 @@ export default function App() {
         <LibraryView 
           savedRecipes={savedRecipes}
           allFolders={folders}
-          onOpenRecipe={(r) => { setViewingRecipe(r); navigateTo('recipe'); }}
+          onOpenRecipe={handleOpenRecipe}
           onCreateFolder={handleCreateFolder}
           onCreateInFolder={(folder) => {
             const baseId = Date.now().toString();
@@ -1719,6 +1828,9 @@ export default function App() {
           onSmartAdjust={handleSmartAdjust}
           onGenerateSteps={handleGenerateSteps}
           onFillRest={handleFillRest}
+          onPolishIngredients={handlePolishIngredients}
+          onPolishSteps={handlePolishSteps}
+          onSuggestTags={handleSuggestTags}
           onGenerateTips={handleGenerateTips}
           onEstimateNutrition={handleEstimateNutrition}
           onApplyPrefix={handleApplyPrefix}
@@ -1758,22 +1870,7 @@ export default function App() {
             }
             navigateTo('active');
           }}
-          onStopCooking={() => {
-            if (activeRecipe) {
-              trackEvent('cook_mode_completed', {
-                ...getAnalyticsContext(),
-                recipeId: activeRecipe.id,
-                completionMethod: 'explicit_stop',
-              });
-              setCookProgress(prev => {
-                const newProgress = { ...prev };
-                delete newProgress[activeRecipe.id];
-                return newProgress;
-              });
-            }
-            saveActiveRecipe(null);
-            navigateTo('home');
-          }}
+          onStopCooking={handleStopCooking}
           timers={timers}
           setTimers={setTimers}
         />

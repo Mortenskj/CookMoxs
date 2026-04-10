@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
@@ -157,6 +158,30 @@ const STEP_REPAIR_SCHEMA = {
   required: ['steps'],
 };
 
+const INGREDIENT_POLISH_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    ingredients: RECIPE_SCHEMA.properties.ingredients,
+    aiRationale: { type: Type.STRING },
+  },
+  required: ['ingredients'],
+};
+
+const STEP_POLISH_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    steps: RECIPE_SCHEMA.properties.steps,
+    heatGuide: { type: Type.ARRAY, items: { type: Type.STRING } },
+    ovenGuide: { type: Type.ARRAY, items: { type: Type.STRING } },
+    flavorBoosts: { type: Type.ARRAY, items: { type: Type.STRING } },
+    pitfalls: { type: Type.ARRAY, items: { type: Type.STRING } },
+    hints: { type: Type.ARRAY, items: { type: Type.STRING } },
+    kitchenTimeline: RECIPE_SCHEMA.properties.kitchenTimeline,
+    aiRationale: { type: Type.STRING },
+  },
+  required: ['steps'],
+};
+
 const NUTRITION_ESTIMATE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -210,7 +235,7 @@ function getAiClient() {
   return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 }
 
-const SERVER_AI_TIMEOUT_MS = 40000;
+const SERVER_AI_TIMEOUT_MS = 90000;
 
 async function generateAIContentOnce(model: string, prompt: string, responseSchema: any) {
   const controller = new AbortController();
@@ -823,7 +848,7 @@ async function startServer() {
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent(ADJUST_MODEL, prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(ADJUST_MODEL, prompt, RECIPE_SCHEMA, 2);
       return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
       console.error('AI Adjust Error:', error);
@@ -843,7 +868,7 @@ async function startServer() {
         1. Improve existing steps instead of rewriting good ones unnecessarily.
         2. Return only repaired steps plus optional aiRationale, heatGuide and ovenGuide.
         3. Preserve the dish, ingredient list and overall method.
-        4. Add a dedicated oven-preheat step when later steps use an oven temperature and no preheat step exists yet.
+        4. Add a dedicated oven-preheat step IMMEDIATELY BEFORE the first step that actually uses the oven — NOT at the beginning of the recipe. If there are resting, proofing, or waiting steps before oven use, the preheat step must come after those steps so the oven is not running unnecessarily for hours.
         5. Use heat values on a 1-9 induction scale for stovetop steps.
         6. Extract timers into the timer property.
         7. Match the communication style to this instruction: ${styleInstruction}
@@ -856,7 +881,7 @@ async function startServer() {
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, STEP_REPAIR_SCHEMA);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, STEP_REPAIR_SCHEMA, 2);
       return res.json({
         recipe: {
           ...recipe,
@@ -895,11 +920,97 @@ async function startServer() {
         Opskrift JSON:
         ${JSON.stringify(recipe)}
       `;
-      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA, 2);
       return res.json({ recipe: { ...recipe, ...parsedData, title: recipe.title, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
       console.error('AI Fill Rest Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/fill-rest');
+      return res.status(failure.status).json(failure.body);
+    }
+  });
+
+  app.post('/api/ai/polish-ingredients', async (req, res) => {
+    const { recipe, level } = req.body;
+    if (!recipe) return res.status(400).json({ error: 'recipe is required' });
+    try {
+      const styleInstruction = getLevelStyleInstruction(level, 'fill');
+      const ingredientNames = (recipe.ingredients || []).map((i: any) => `${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join(', ');
+      const prompt = `
+        Du er en ekspertkok. Gennemgå og forbedre ingredienslisten for opskriften "${recipe.title}".
+        - Ret stavefejl og standardiser navne (fx "loeg" -> "løg").
+        - Tilføj manglende grupper (fx "Sovs", "Tilbehør", "Krydderier").
+        - Tilføj ingredienser der tydeligvis mangler ud fra trinene.
+        - Sørg for at salt, peber og lignende basis-ingredienser er med.
+        - Behold eksisterende mængder og enheder medmindre de er åbenlyst forkerte.
+        Match tonen til: ${styleInstruction}
+        Nuværende ingredienser: ${ingredientNames}
+        Trin (til kontekst): ${(recipe.steps || []).map((s: any) => s.text).slice(0, 10).join(' | ')}
+      `;
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, INGREDIENT_POLISH_SCHEMA, 2);
+      return res.json({ recipe: { ...recipe, ingredients: parsedData.ingredients, id: recipe.id, lastUsed: new Date().toISOString() } });
+    } catch (error) {
+      console.error('AI Polish Ingredients Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/polish-ingredients');
+      return res.status(failure.status).json(failure.body);
+    }
+  });
+
+  app.post('/api/ai/polish-steps', async (req, res) => {
+    const { recipe, level } = req.body;
+    if (!recipe) return res.status(400).json({ error: 'recipe is required' });
+    try {
+      const styleInstruction = getLevelStyleInstruction(level, 'fill');
+      const ingredientNames = (recipe.ingredients || []).map((i: any) => `${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join(', ');
+      const prompt = `
+        Du er en ekspertkok. Gennemgå og forbedre fremgangsmåden for opskriften "${recipe.title}".
+        - Gør trinene klare og præcise.
+        - Tilføj varme (heat/heatLevel på induktionsskala 1-9) hvor det mangler.
+        - Tilføj timere (timer med duration i sekunder) hvor det er relevant.
+        - Tilføj relevantIngredients til hvert trin.
+        - Generér heatGuide, ovenGuide (hvis relevant), flavorBoosts, pitfalls, hints og kitchenTimeline.
+        Varme-regler:
+        - Brug den kanoniske 1-9 induktionsskala.
+        - 9/9 er kun til kort opkog, ikke stabil arbejdsvarme.
+        - Løg og aromater skal ikke have unødigt hård varme.
+        - Hvis et trin har to varmefaser, del det i to trin.
+        Match tonen til: ${styleInstruction}
+        Ingredienser: ${ingredientNames}
+        Nuværende trin: ${JSON.stringify(recipe.steps || [])}
+      `;
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, STEP_POLISH_SCHEMA, 2);
+      return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
+    } catch (error) {
+      console.error('AI Polish Steps Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/polish-steps');
+      return res.status(failure.status).json(failure.body);
+    }
+  });
+
+  app.post('/api/ai/suggest-tags', async (req, res) => {
+    const { recipe } = req.body;
+    if (!recipe) return res.status(400).json({ error: 'recipe is required' });
+    try {
+      const ingredientNames = (recipe.ingredients || []).map((i: any) => i.name).join(', ');
+      const prompt = `
+        Foreslå 3-5 tags/kategorier på dansk for opskriften "${recipe.title}".
+        Ingredienser: ${ingredientNames}
+        Eksisterende tags: ${(recipe.categories || []).join(', ') || 'ingen'}
+        Tags skal beskrive måltidstype, køkken, sæson eller egenskab.
+        Eksempler: Aftensmad, Italiensk, Hurtig, Comfort food, Vegetarisk, Bagværk, Frokost, Snack, Grill, Suppe, Salat, Festmad, Hverdagsmad.
+        Behold eksisterende tags og tilføj nye. Undgå dubletter.
+      `;
+      const schema = {
+        type: Type.OBJECT,
+        properties: {
+          categories: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ['categories'],
+      };
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, schema, 2);
+      return res.json({ recipe: { ...recipe, categories: parsedData.categories, id: recipe.id, lastUsed: new Date().toISOString() } });
+    } catch (error) {
+      console.error('AI Suggest Tags Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/suggest-tags');
       return res.status(failure.status).json(failure.body);
     }
   });
@@ -944,7 +1055,7 @@ async function startServer() {
         Opskrift: "${recipe.title}" med ingredienser: ${ingredientNames}.
         Trin: ${(recipe.steps || []).map((s: any) => s.text).slice(0, 8).join(' | ')}
       `;
-      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, enrichSchema);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, enrichSchema, 2);
       return res.json({ enrichment: parsedData });
     } catch (error) {
       console.error('AI Enrich Error:', error);
@@ -959,7 +1070,7 @@ async function startServer() {
     try {
       const prompt = `Giv mig 3-5 avancerede tips, tricks, teknikker eller overvejelser til denne opskrift: \"${recipe.title}\". Returner et JSON objekt med en enkelt nøgle \"tipsAndTricks\" som er et array af strings.`;
       const schema = { type: Type.OBJECT, properties: { tipsAndTricks: { type: Type.ARRAY, items: { type: Type.STRING } } } };
-      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, schema);
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, schema, 2);
       return res.json({ tipsAndTricks: parsedData.tipsAndTricks });
     } catch (error) {
       console.error('AI Generate Tips Error:', error);
@@ -995,13 +1106,13 @@ async function startServer() {
       `;
 
       let normalizedEstimate = normalizeNutritionEstimate(
-        await generateAIContent(DEFAULT_STRUCTURED_MODEL, buildPrompt(), NUTRITION_ESTIMATE_SCHEMA),
+        await generateAIContent(DEFAULT_STRUCTURED_MODEL, buildPrompt(), NUTRITION_ESTIMATE_SCHEMA, 2),
         recipe,
       );
 
       if (normalizedEstimate.omittedIngredients.length > 0) {
         normalizedEstimate = normalizeNutritionEstimate(
-          await generateAIContent(DEFAULT_STRUCTURED_MODEL, buildPrompt(normalizedEstimate.omittedIngredients), NUTRITION_ESTIMATE_SCHEMA),
+          await generateAIContent(DEFAULT_STRUCTURED_MODEL, buildPrompt(normalizedEstimate.omittedIngredients), NUTRITION_ESTIMATE_SCHEMA, 2),
           recipe,
         );
       }
@@ -1073,10 +1184,12 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       - "skiver kogt skinke" → { name: "kogt skinke", amount: 4, unit: "skiver" }
       Words like 'skiver', 'stk', 'fed', 'dåse', 'bundt', 'pose' are ALWAYS units, never part of the name.
       FLAVOR & TIPS: Always generate 2-4 flavorBoosts (concrete tips to elevate flavor) and 2-3 pitfalls (common mistakes to avoid). These are required fields.
+      CATEGORIES: Always generate 2-4 categories/tags in Danish that describe the recipe type and cuisine, e.g. 'Aftensmad', 'Italiensk', 'Hurtig', 'Comfort food', 'Vegetarisk', 'Bagværk', 'Frokost'. These help users find recipes in their library.
       Convert English/US metrics to Danish metrics.
       Do not repeat ingredient amounts or heat levels in step text if they already exist in structured fields.
       Extract heat info into the 'heat' property and ALWAYS convert it to a 1-9 induction scale.
       Extract specific timers into the 'timer' property.
+      OVEN PREHEAT: Place oven-preheat steps IMMEDIATELY BEFORE the step that uses the oven. Never put oven preheat at the start of the recipe if there are long resting, proofing, or waiting steps before oven use.
       Extract the servings unit into 'servingsUnit'.
       Match tone and detail level to this style instruction: ${styleInstruction}
     `;
@@ -1086,7 +1199,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
         const prompt = isStructuredData
           ? `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`
           : `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`;
-        const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA);
+        const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, 2);
         return res.json({ parsedData });
       }
 
@@ -1100,7 +1213,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
             return res.status(400).json({ error: 'Denne filtype kunne ikke læses. Prøv PDF, billede eller indsæt teksten direkte.' });
           }
           const prompt = `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${extractedText.substring(0, 40000)}`;
-          const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA);
+          const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, 2);
           return res.json({ parsedData });
         }
 

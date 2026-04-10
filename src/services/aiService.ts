@@ -115,6 +115,21 @@ export async function fillRest(recipe: any, level?: string): Promise<any> {
   return data.recipe;
 }
 
+export async function polishIngredients(recipe: any, level?: string): Promise<any> {
+  const data = await request<{ recipe: any }>('/api/ai/polish-ingredients', { recipe, level });
+  return data.recipe;
+}
+
+export async function polishSteps(recipe: any, level?: string): Promise<any> {
+  const data = await request<{ recipe: any }>('/api/ai/polish-steps', { recipe, level });
+  return data.recipe;
+}
+
+export async function suggestTags(recipe: any): Promise<any> {
+  const data = await request<{ recipe: any }>('/api/ai/suggest-tags', { recipe });
+  return data.recipe;
+}
+
 export async function generateTips(recipe: any): Promise<string[]> {
   const data = await request<{ tipsAndTricks: string[] }>('/api/ai/generate-tips', { recipe });
   return data.tipsAndTricks;
