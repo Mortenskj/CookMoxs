@@ -582,7 +582,7 @@ function normalizeNutritionEstimate(estimate: any, recipe: any) {
       : normalizeNutritionEstimateConfidence(estimate?.confidence),
     rationale: typeof estimate?.rationale === 'string' && estimate.rationale.trim()
       ? estimate.rationale.trim()
-      : 'AI-estimat baseret paa ingredienslisten.',
+      : 'AI-estimat baseret på ingredienslisten.',
     generatedAt: new Date().toISOString(),
   };
 }
@@ -820,7 +820,7 @@ async function startServer() {
       if (error instanceof NutritionLookupError) {
         return res.status(error.status).json({ error: error.message, code: error.code });
       }
-      return res.status(500).json({ error: 'Kunne ikke soege efter produktdata lige nu.', code: 'unknown_error' });
+      return res.status(500).json({ error: 'Kunne ikke søge efter produktdata lige nu.', code: 'unknown_error' });
     }
   });
 
@@ -913,10 +913,10 @@ async function startServer() {
         Match tonen til denne stilinstruktion: ${styleInstruction}
         Varme-regler:
         - Brug den kanoniske 1-9 induktionsskala.
-        - Vaer konservativ med varme. 9/9 er kun til kort opkog eller kort forvarmning, ikke stabil arbejdsvarme.
-        - Hvis noget skal koges op og derefter koge videre, saa beskriv nedjusteringen tydeligt eller del det i to trin.
-        - Loeg, hvidloeg og andre aromater skal som udgangspunkt ikke have unodigt haard varme.
-        - Hvis et trin har to tydelige varmefaser, saa foretraek to trin frem for en enkelt vag varmeangivelse.
+        - Vær konservativ med varme. 9/9 er kun til kort opkog eller kort forvarmning, ikke stabil arbejdsvarme.
+        - Hvis noget skal koges op og derefter koge videre, så beskriv nedjusteringen tydeligt eller del det i to trin.
+        - Løg, hvidløg og andre aromater skal som udgangspunkt ikke have unødigt hård varme.
+        - Hvis et trin har to tydelige varmefaser, så foretræk to trin frem for en enkelt vag varmeangivelse.
         Opskrift JSON:
         ${JSON.stringify(recipe)}
       `;
@@ -1085,20 +1085,20 @@ async function startServer() {
     try {
       const styleInstruction = getLevelStyleInstruction(level, 'fill');
       const buildPrompt = (missingIngredients: string[] = []) => `
-        Du er en noegtern ernæringsassistent.
+        Du er en nøgtern ernæringsassistent.
         Lav et vejledende makro- og kcal-estimat for hele opskriften ud fra ingredienslisten.
         Returner kun JSON, som matcher schemaet.
         Regn per 100 g og per portion.
         Brug recipe.servings som portionsantal.
-        Hvis enkelte maengder eller enheder er uklare, lav konservative koekkenantagelser og forklar dem kort i rationale.
-        Brug nutritionAttachment kun som ekstra reference, hvis den findes. Ingredienslisten er stadig primaer kilde.
+        Hvis enkelte mængder eller enheder er uklare, lav konservative køkkenantagelser og forklar dem kort i rationale.
+        Brug nutritionAttachment kun som ekstra reference, hvis den findes. Ingredienslisten er stadig primær kilde.
         Match tonen til denne stilinstruktion: ${styleInstruction}
-        Confidence skal vaere en af: high, medium, low.
-        ingredientBreakdown skal indeholde ALLE ingredienser fra recipe.ingredients noejagtigt en gang hver.
-        ingredientName skal kopieres direkte fra recipe.ingredients[].name og maa ikke omskrives eller grupperes.
-        proteinGrams, fatGrams og carbsGrams i ingredientBreakdown skal vaere hele ingrediensens bidrag i hele opskriften, ikke per 100 g.
+        Confidence skal være en af: high, medium, low.
+        ingredientBreakdown skal indeholde ALLE ingredienser fra recipe.ingredients nøjagtigt én gang hver.
+        ingredientName skal kopieres direkte fra recipe.ingredients[].name og må ikke omskrives eller grupperes.
+        proteinGrams, fatGrams og carbsGrams i ingredientBreakdown skal være hele ingrediensens bidrag i hele opskriften, ikke per 100 g.
         Summen af ingredientBreakdown skal passe nogenlunde med totals for hele opskriften.
-        Medregn ogsaa smaa ingredienser som olie, smør, løg, hvidløg, bouillon, mel, sukker, krydderier, fløde, smørklatter og lignende.
+        Medregn også små ingredienser som olie, smør, løg, hvidløg, bouillon, mel, sukker, krydderier, fløde, smørklatter og lignende.
         Hvis noget er uklart, skal ingrediensen stadig med i ingredientBreakdown med et konservativt estimat og en note.
         ${missingIngredients.length > 0 ? `Du mangler specifikt at medregne disse ingredienser fra forrige forsøg: ${missingIngredients.join(', ')}.` : ''}
         Opskrift JSON:

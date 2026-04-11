@@ -590,8 +590,8 @@ export function SettingsView({
                 <p className="cm-settings-section-heading !mb-3">
                   <ChefHat size={14} /> Niveau i køkkenet
                 </p>
-                <h3 className="font-serif text-2xl italic text-forest-dark dark:text-white">Sådan virker niveauerne</h3>
-                <p className="mt-2 text-sm text-forest-mid dark:text-white/80">
+                <h3 className="font-serif text-2xl italic text-forest-dark cm-light-surface-ink">Sådan virker niveauerne</h3>
+                <p className="mt-2 text-sm text-forest-mid cm-light-surface-ink-muted">
                   Niveauet påvirker cook mode og AI-hjælp: detaljeniveau, køkkensprog og hjælp undervejs.
                 </p>
               </div>
@@ -608,9 +608,9 @@ export function SettingsView({
             <div className="space-y-3">
               {LEVEL_HELP_CONTENT.map((item) => (
                 <div key={item.level} className="cm-settings-panel cm-settings-panel--subtle">
-                  <p className="font-serif text-lg italic text-forest-dark dark:text-white">{item.level}</p>
-                  <p className="mt-1 text-sm text-forest-mid dark:text-white/80">{item.meaning}</p>
-                  <p className="mt-2 text-xs text-forest-mid/85 dark:text-white/70">{item.effect}</p>
+                  <p className="font-serif text-lg italic text-forest-dark cm-light-surface-ink">{item.level}</p>
+                  <p className="mt-1 text-sm text-forest-mid cm-light-surface-ink-muted">{item.meaning}</p>
+                  <p className="mt-2 text-xs text-forest-mid/85 cm-light-surface-ink-soft">{item.effect}</p>
                 </div>
               ))}
             </div>

@@ -16,8 +16,8 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
     <div className="p-4 pb-24 max-w-md mx-auto min-h-screen">
       <div className="flex justify-between items-center mb-8 pt-4">
         <div className="flex items-center gap-2">
-          <Sprout size={28} className="text-forest-dark dark:text-white" />
-          <h1 className="text-3xl font-serif text-forest-dark dark:text-white tracking-tight italic text-engraved">CookMoxs</h1>
+          <Sprout size={28} className="text-forest-dark cm-light-surface-ink" />
+          <h1 className="text-3xl font-serif text-forest-dark cm-light-surface-ink tracking-tight italic text-engraved">CookMoxs</h1>
         </div>
         <button onClick={() => onNavigate('settings')} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
           <Settings size={22} />
@@ -26,7 +26,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
 
       {activeRecipe && (
         <section className="mb-10">
-          <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">I gang nu</h2>
+          <h2 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">I gang nu</h2>
           <div
             onClick={() => onNavigate('active')}
             className="glass-brushed p-5 rounded-[2rem] cursor-pointer hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-500 group"
@@ -94,7 +94,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
       )}
 
       <section className="mb-10">
-        <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Hurtig start</h2>
+        <h2 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Hurtig start</h2>
         <button
           onClick={() => onNavigate('import')}
           className="btn-wood-light w-full p-5 rounded-[2rem] flex items-center justify-center gap-3"
@@ -106,7 +106,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
 
       {recentRecipes.length > 0 && (
         <section>
-          <h2 className="text-xs font-bold text-forest-mid dark:text-white/80 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 flex items-center gap-2 text-engraved">
+          <h2 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 flex items-center gap-2 text-engraved">
             <Clock size={12} /> Senest brugte
           </h2>
           <div className="space-y-4">

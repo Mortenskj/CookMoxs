@@ -102,7 +102,7 @@ export async function fetchWithSafeRedirects(url: string) {
       }
 
       if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
-        throw new UnsafeUrlError(504, 'Kilden brugte for lang tid paa at svare');
+        throw new UnsafeUrlError(504, 'Kilden brugte for lang tid på at svare');
       }
 
       if (axios.isAxiosError(error) && (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN' || error.code === 'ECONNREFUSED')) {

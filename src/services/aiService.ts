@@ -44,7 +44,7 @@ function normalizeErrorCode(code: unknown): AiRequestErrorCode {
 
 async function request<T>(url: string, body: unknown): Promise<T> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    throw new AiRequestError('Du er offline. AI-funktioner kraever internetforbindelse.', 'offline');
+    throw new AiRequestError('Du er offline. AI-funktioner kræver internetforbindelse.', 'offline');
   }
 
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -67,7 +67,7 @@ async function request<T>(url: string, body: unknown): Promise<T> {
 
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new AiRequestError(
-        'AI-kaldet brugte for lang tid og blev afbrudt. Proev igen om lidt.',
+        'AI-kaldet brugte for lang tid og blev afbrudt. Prøv igen om lidt.',
         'network_error',
       );
     }
@@ -87,7 +87,7 @@ async function request<T>(url: string, body: unknown): Promise<T> {
   if (!resp.ok) {
     const payload = (data && typeof data === 'object') ? (data as ErrorResponseBody) : null;
     throw new AiRequestError(
-      payload?.error || (typeof data === 'string' ? data : 'Der opstod en fejl ved AI-kaldet. Proev igen om lidt.'),
+      payload?.error || (typeof data === 'string' ? data : 'Der opstod en fejl ved AI-kaldet. Prøv igen om lidt.'),
       normalizeErrorCode(payload?.code),
       resp.status,
     );

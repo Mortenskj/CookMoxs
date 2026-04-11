@@ -122,7 +122,7 @@ type AiActionKey =
 const getPersistentAIDisabledReason = (err: unknown): string | null => {
   const normalized = normalizeAiActionError(err);
   if (normalized.category === 'invalid_model') {
-    return 'AI er ikke tilgaengelig lige nu. Grundimport, manuel oprettelse og cook mode virker stadig.';
+    return 'AI er ikke tilgængelig lige nu. Grundimport, manuel oprettelse og cook mode virker stadig.';
   }
 
   const msg = err instanceof Error ? err.message : String(err ?? '');
@@ -2002,8 +2002,8 @@ export default function App() {
                       setActiveTimerPopup(activeTimerPopup === t.id ? null : t.id);
                     }}
                   >
-                    <Icon size={20} className={t.remaining === 0 ? 'text-red-500' : 'text-forest-dark dark:text-white'} />
-                    <span className={`text-[11px] font-mono font-bold mt-0.5 ${t.remaining === 0 ? 'text-red-500' : 'text-forest-dark dark:text-white'}`}>
+                    <Icon size={20} className={t.remaining === 0 ? 'text-red-500' : 'text-forest-dark cm-light-surface-ink'} />
+                    <span className={`text-[11px] font-mono font-bold mt-0.5 ${t.remaining === 0 ? 'text-red-500' : 'text-forest-dark cm-light-surface-ink'}`}>
                       {Math.floor(t.remaining / 60)}:{(t.remaining % 60).toString().padStart(2, '0')}
                     </span>
                     {t.remaining === 0 && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />}
@@ -2016,23 +2016,23 @@ export default function App() {
                     >
                       <div className="flex items-center justify-center mb-4">
                         {Icon === Microwave ? (
-                          <div className={`p-4 rounded-full ${t.remaining === 0 ? 'bg-red-500/20 text-red-500' : 'bg-forest-dark/10 dark:bg-white/10 text-forest-dark dark:text-white'}`}>
+                          <div className={`p-4 rounded-full ${t.remaining === 0 ? 'bg-red-500/20 text-red-500' : 'bg-forest-dark/10 dark:bg-black/10 text-forest-dark cm-light-surface-ink'}`}>
                             <OvenAnimation />
                           </div>
                         ) : Icon === CookingPot ? (
-                          <div className={`p-4 rounded-full ${t.remaining === 0 ? 'bg-red-500/20 text-red-500' : 'bg-forest-dark/10 dark:bg-white/10 text-forest-dark dark:text-white'}`}>
+                          <div className={`p-4 rounded-full ${t.remaining === 0 ? 'bg-red-500/20 text-red-500' : 'bg-forest-dark/10 dark:bg-black/10 text-forest-dark cm-light-surface-ink'}`}>
                             <PotAnimation />
                           </div>
                         ) : (
-                          <div className={`p-4 rounded-full ${t.remaining === 0 ? 'bg-red-500/20 text-red-500' : 'bg-forest-dark/10 dark:bg-white/10 text-forest-dark dark:text-white'}`}>
+                          <div className={`p-4 rounded-full ${t.remaining === 0 ? 'bg-red-500/20 text-red-500' : 'bg-forest-dark/10 dark:bg-black/10 text-forest-dark cm-light-surface-ink'}`}>
                             <Icon size={40} />
                           </div>
                         )}
                       </div>
-                      <div className="text-sm font-bold text-forest-mid dark:text-white/70 uppercase tracking-widest mb-2 text-center">
+                      <div className="text-sm font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-widest mb-2 text-center">
                         {t.description}
                       </div>
-                      <div className={`text-5xl font-mono tracking-tighter mb-8 text-center ${t.remaining === 0 ? 'text-red-500' : 'text-forest-dark dark:text-white'}`}>
+                      <div className={`text-5xl font-mono tracking-tighter mb-8 text-center ${t.remaining === 0 ? 'text-red-500' : 'text-forest-dark cm-light-surface-ink'}`}>
                         {Math.floor(t.remaining / 60)}:{(t.remaining % 60).toString().padStart(2, '0')}
                       </div>
                       <div className="flex gap-3">
@@ -2061,7 +2061,7 @@ export default function App() {
                           e.stopPropagation();
                           setActiveTimerPopup(null);
                         }}
-                        className="w-full mt-3 py-3 text-forest-mid dark:text-white/50 text-xs font-bold uppercase tracking-widest hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                        className="w-full mt-3 py-3 text-forest-mid cm-light-surface-ink-soft text-xs font-bold uppercase tracking-widest hover:bg-black/5 dark:hover:bg-black/5 rounded-xl transition-colors"
                       >
                         Skjul
                       </button>

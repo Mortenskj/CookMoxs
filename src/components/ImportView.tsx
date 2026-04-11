@@ -195,7 +195,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
 
   if (activeTab) {
     return (
-      <div className="p-4 pb-32 max-w-md mx-auto min-h-screen dark:text-white">
+      <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
         <div className="flex items-center gap-4 mb-8 pt-4">
           <button
             onClick={() => setActiveTab(null)}
@@ -205,7 +205,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
             <ArrowLeft size={22} />
             <span className="text-sm font-medium pr-2">Tilbage</span>
           </button>
-          <h1 className="text-3xl font-serif text-forest-dark dark:text-white italic text-engraved">
+          <h1 className="text-3xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">
             {categories.find(c => c.id === activeTab)?.label}
           </h1>
         </div>
@@ -416,8 +416,8 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   }
 
   return (
-    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen dark:text-white">
-      <h1 className="text-3xl font-serif text-forest-dark dark:text-white mb-8 pt-4 italic text-engraved">Ny opskrift</h1>
+    <div className="p-4 pb-32 max-w-md mx-auto min-h-screen">
+      <h1 className="text-3xl font-serif text-forest-dark cm-light-surface-ink mb-8 pt-4 italic text-engraved">Ny opskrift</h1>
 
       {pendingCount > 0 && (
         <div className="mb-6 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-sm text-amber-900">

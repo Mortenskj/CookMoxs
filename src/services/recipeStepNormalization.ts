@@ -151,9 +151,9 @@ function ensureOvenPreheatStep(steps: Step[]) {
 
   const preheatStep: Step = {
     id: 'step-oven-preheat',
-    text: `Taend ovnen og forvarm til ${ovenHeat}.`,
+    text: `Tænd ovnen og forvarm til ${ovenHeat}.`,
     heat: ovenHeat,
-    reminder: 'Lad ovnen blive helt varm, foer retten saettes ind.',
+    reminder: 'Lad ovnen blive helt varm, før retten sættes ind.',
     relevantIngredients: [],
   };
 

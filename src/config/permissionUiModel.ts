@@ -10,7 +10,7 @@ export interface PermissionUiCopy {
 export const PERMISSION_UI_COPY: Record<PermissionUiState, PermissionUiCopy> = {
   private: {
     shortLabel: 'Privat',
-    ownerDetail: 'Kun dig kan se dette indhold.',
+    ownerDetail: 'Kun du kan se dette indhold.',
     memberDetail: 'Kun ejeren kan se dette indhold.',
     neutralDetail: 'Kun ejeren kan se dette indhold.',
   },
@@ -22,9 +22,9 @@ export const PERMISSION_UI_COPY: Record<PermissionUiState, PermissionUiCopy> = {
   },
   shared_edit: {
     shortLabel: 'Delt visning',
-    ownerDetail: 'Andre kan se dette indhold, men ikke redigere det i denne repair-pass.',
-    memberDetail: 'Du kan se dette indhold, men ikke redigere det i denne repair-pass.',
-    neutralDetail: 'Dette indhold deles som laeseadgang i denne repair-pass.',
+    ownerDetail: 'Andre kan se dette indhold, men ikke redigere det.',
+    memberDetail: 'Du kan se dette indhold, men ikke redigere det.',
+    neutralDetail: 'Dette indhold deles som læseadgang.',
   },
   household: {
     shortLabel: 'Husstand',

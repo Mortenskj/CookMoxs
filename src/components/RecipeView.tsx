@@ -541,7 +541,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
           <div className="glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-6">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
+              <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic flex items-center gap-3 text-engraved">
                 <ChefHat className="text-heath-mid" size={24} />
                 Ingredienser
               </h2>
@@ -729,7 +729,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
           <div className="glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-6">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
+              <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic flex items-center gap-3 text-engraved">
                 <Flame className="text-heath-mid" size={24} />
                 Fremgangsmåde
               </h2>
@@ -883,23 +883,23 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           {showSmartModal && canMutateRecipe && (
             <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic mb-4 flex items-center gap-3 text-engraved">
+                <h3 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic mb-4 flex items-center gap-3 text-engraved">
                   <div className="p-2 bg-white dark:bg-black/20 rounded-xl shadow-sm border border-black/5 dark:border-white/10">
                     <Wand2 size={24} className="text-heath-mid"/>
                   </div>
                   Smart Tilpasning
                 </h3>
-                <p className="text-sm text-forest-mid dark:text-white/70 mb-6 italic leading-relaxed">
+                <p className="text-sm text-forest-mid cm-light-surface-ink-muted mb-6 italic leading-relaxed">
                   Fortæl AI&apos;en hvordan opskriften skal tilpasses. Den bruger gastronomisk logik til at justere mængder, enheder og tilberedningstid.
                 </p>
                 <textarea
                   value={smartInstruction}
                   onChange={e => setSmartInstruction(e.target.value)}
                   placeholder="F.eks. 'Jeg har 500g oksekød i stedet for 300g', eller 'Lav gram om til dl'."
-                  className="w-full bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-forest-dark dark:text-white text-sm mb-6 focus:outline-none focus:border-heath-mid resize-none h-32 shadow-sm font-serif italic placeholder-forest-mid/50 dark:placeholder-white/30"
+                  className="w-full bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-forest-dark cm-light-surface-ink text-sm mb-6 focus:outline-none focus:border-heath-mid resize-none h-32 shadow-sm font-serif italic placeholder-forest-mid/50 cm-light-surface-placeholder"
                 />
                 <div className="flex gap-3">
-                  <button onClick={() => setShowSmartModal(false)} className="flex-1 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/70 font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all">Annuller</button>
+                  <button onClick={() => setShowSmartModal(false)} className="flex-1 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-forest-mid cm-light-surface-ink-muted font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all">Annuller</button>
                   <button
                     onClick={() => {
                       onSmartAdjust(editData, smartInstruction);
@@ -978,7 +978,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {/* Meta */}
       <div className="print-meta mb-8 space-y-6">
         <div className="glass-brushed p-6 sm:p-8 rounded-[2.5rem]">
-          <h1 className="text-4xl font-serif text-forest-dark dark:text-white mb-4 leading-tight italic text-engraved">
+          <h1 className="text-4xl font-serif text-forest-dark cm-light-surface-ink mb-4 leading-tight italic text-engraved">
             {recipe.title}
             {recipe.variantPrefix && (
               <span className="ml-3 inline-block text-xs font-sans not-italic font-bold uppercase tracking-widest bg-heath-mid/15 text-heath-mid px-3 py-1 rounded-full align-middle">
@@ -1089,7 +1089,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
 
             {!canMutateRecipe && (
               <div className="cm-recipe-inline-status rounded-2xl border border-amber-200 bg-amber-50/80 text-sm text-amber-900">
-                Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult i denne stabiliserings-pass.
+                Denne opskrift er delt som visning. Redigering, favoritter og andre ændringer er skjult.
               </div>
             )}
 
@@ -1123,7 +1123,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             <div className="cm-surface-utility p-2 rounded-xl">
               <Wand2 size={20} className="text-heath-mid" />
             </div>
-            <h3 className="font-serif text-xl text-forest-dark dark:text-white italic text-engraved">AI Tilpasning</h3>
+            <h3 className="font-serif text-xl text-forest-dark cm-light-surface-ink italic text-engraved">AI Tilpasning</h3>
           </div>
           <p className="text-sm text-forest-mid cm-light-surface-ink-muted leading-relaxed whitespace-pre-wrap mb-8 italic">
             {recipe.aiRationale}
@@ -1177,7 +1177,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 max-w-sm w-full shadow-2xl relative bg-sand/95 dark:bg-[#1A221E]/95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button 
               onClick={() => setShowTipsModal(false)}
-              className="absolute right-6 top-6 text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white transition-colors p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full"
+              className="absolute right-6 top-6 text-forest-mid cm-light-surface-ink hover:text-forest-dark transition-colors p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full"
             >
               <X size={22} />
             </button>
@@ -1185,20 +1185,20 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <div className="p-4 bg-white dark:bg-black/20 rounded-2xl shadow-sm border border-black/5 dark:border-white/10">
                 {isGeneratingTips ? <Loader2 size={28} className="text-heath-mid animate-spin" /> : <Lightbulb size={28} className="text-heath-mid" />}
               </div>
-              <h3 className="font-serif text-2xl text-forest-dark dark:text-white italic text-engraved">Tips & Tricks</h3>
+              <h3 className="font-serif text-2xl text-forest-dark cm-light-surface-ink italic text-engraved">Tips & Tricks</h3>
             </div>
 
             {recipeTips.length > 0 ? (
               <ul className="space-y-5 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                 {recipeTips.map((tip, idx) => (
-                  <li key={idx} className="flex gap-4 text-sm text-forest-mid dark:text-white/80 leading-relaxed italic">
+                  <li key={idx} className="flex gap-4 text-sm text-forest-mid cm-light-surface-ink-muted leading-relaxed italic">
                     <span className="text-heath-mid font-bold mt-1 shrink-0">•</span>
                     <span>{tip}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="text-center py-10 text-forest-mid dark:text-white/80">
+              <div className="text-center py-10 text-forest-mid cm-light-surface-ink-muted">
                 <p className="mb-2 font-serif italic text-lg">Ingen tips endnu.</p>
                 <p className="text-xs opacity-60 dark:opacity-100">Få AI til at generere smarte tips og tricks til denne opskrift.</p>
               </div>
@@ -1225,7 +1225,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       <section className="print-ingredients mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-4">
-            <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
+            <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic flex items-center gap-3 text-engraved">
               <ChefHat className="text-heath-mid" size={24} />
               Ingredienser
             </h2>
@@ -1341,7 +1341,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <AlertTriangle className="text-[#DC2626] shrink-0 mt-0.5" size={20} />
               <div>
                 <h4 className="text-xs font-bold text-[#DC2626] uppercase tracking-[0.2em] mb-1.5 text-engraved">Faldgruber</h4>
-                <ul className="text-sm text-forest-dark cm-light-surface-ink dark:text-white/80 space-y-1.5 leading-relaxed">
+                <ul className="text-sm text-forest-dark cm-light-surface-ink space-y-1.5 leading-relaxed">
                   {recipePitfalls.map((g, i) => <li key={i} className="flex gap-2"><span className="text-[#DC2626]/60">•</span>{g}</li>)}
                 </ul>
               </div>
@@ -1354,7 +1354,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       <section className="print-steps mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-serif text-forest-dark dark:text-white italic flex items-center gap-3 text-engraved">
+            <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic flex items-center gap-3 text-engraved">
               <Flame className="text-heath-mid" size={24} />
               Fremgangsmåde
             </h2>
@@ -1424,7 +1424,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           canAttach={Boolean(recipe.isSaved && canMutateRecipe)}
           canEstimate={canMutateRecipe}
           canClear={canMutateRecipe}
-          readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke ændres for delte opskrifter i denne stabiliserings-pass.'}
+          readOnlyMessage={canMutateRecipe ? null : 'Produktdata kan ikke ændres for delte opskrifter.'}
           isEstimating={isEstimatingNutrition}
           aiDisabledReason={aiDisabledReason}
           onEstimate={() => onEstimateNutrition?.(recipe)}
@@ -1438,20 +1438,20 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-sand/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic text-engraved">Tilføj Ingrediens</h3>
-              <button onClick={() => setShowAddIngredientModal(false)} className="text-forest-mid dark:text-white/90 hover:text-forest-dark dark:hover:text-white p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors">
+              <h3 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">Tilføj Ingrediens</h3>
+              <button onClick={() => setShowAddIngredientModal(false)} className="text-forest-mid cm-light-surface-ink hover:text-forest-dark p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors">
                 <X size={22} />
               </button>
             </div>
             <div className="space-y-6">
               <div className="relative">
-                <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Navn</label>
+                <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted dark:opacity-100 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Navn</label>
                 <input 
                   type="text" 
                   value={newIngredient.name}
                   onChange={e => setNewIngredient({...newIngredient, name: e.target.value})}
                   placeholder="f.eks. Mælk"
-                  className="w-full bg-white/60 dark:bg-black/20 px-5 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-base outline-none focus:border-heath-mid text-forest-dark dark:text-white font-serif italic shadow-sm placeholder-forest-mid/50 dark:placeholder-white/30"
+                  className="w-full bg-white/60 dark:bg-black/20 px-5 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-base outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic shadow-sm placeholder-forest-mid/50 cm-light-surface-placeholder"
                   autoFocus
                 />
                 {newIngredient.name.length > 0 && (
@@ -1475,7 +1475,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                           
                           setNewIngredient({...newIngredient, name: cat, unit});
                         }}
-                        className="w-full text-left px-5 py-3 text-sm text-forest-dark dark:text-white/80 hover:bg-white/60 dark:hover:bg-white/10 transition-colors border-b border-black/5 dark:border-white/10 last:border-0"
+                        className="w-full text-left px-5 py-3 text-sm text-forest-dark cm-light-surface-ink hover:bg-white/60 dark:hover:bg-white/10 transition-colors border-b border-black/5 dark:border-white/10 last:border-0"
                       >
                         {cat}
                       </button>
@@ -1486,27 +1486,27 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               
               <div className="flex items-center gap-3">
                 <div className="relative flex-1">
-                  <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Enhed</label>
+                  <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted dark:opacity-100 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Enhed</label>
                   <input
                     type="text"
                     list="new-units-list"
                     value={newIngredient.unit}
                     onChange={e => setNewIngredient({...newIngredient, unit: e.target.value})}
                     placeholder="Enhed"
-                    className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white shadow-sm placeholder-forest-mid/50 dark:placeholder-white/30"
+                    className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink shadow-sm placeholder-forest-mid/50 cm-light-surface-placeholder"
                   />
                   <datalist id="new-units-list">
                     {COMMON_RECIPE_UNITS.map(u => <option key={u} value={u} />)}
                   </datalist>
                 </div>
                 <div className="w-28">
-                  <label className="text-xs font-bold text-forest-mid dark:text-white/85 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Mængde</label>
+                  <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted dark:opacity-100 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Mængde</label>
                   <input 
                     type="number" 
                     value={newIngredient.amount || ''}
                     onChange={e => setNewIngredient({...newIngredient, amount: e.target.value ? Number(e.target.value) : null})}
                     placeholder="0"
-                    className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark dark:text-white shadow-sm placeholder-forest-mid/50 dark:placeholder-white/30"
+                    className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink shadow-sm placeholder-forest-mid/50 cm-light-surface-placeholder"
                   />
                 </div>
               </div>
@@ -1521,7 +1521,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     }
                   }}
                   disabled={!newIngredient.name.trim()}
-                  className="flex-1 py-4 cm-surface-utility text-forest-mid dark:text-white/90 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all disabled:opacity-50"
+                  className="flex-1 py-4 cm-surface-utility text-forest-mid cm-light-surface-ink rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all disabled:opacity-50"
                 >
                   Tilføj & Næste
                 </button>
@@ -1548,23 +1548,23 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       {showSmartModal && canMutateRecipe && (
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 w-full max-w-sm bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic mb-4 flex items-center gap-3 text-engraved">
+            <h3 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic mb-4 flex items-center gap-3 text-engraved">
               <div className="p-2 bg-white dark:bg-black/20 rounded-xl shadow-sm border border-black/5 dark:border-white/10">
                 <Wand2 size={24} className="text-heath-mid"/>
               </div>
               Smart Tilpasning
             </h3>
-            <p className="text-sm text-forest-mid dark:text-white/85 mb-6 italic leading-relaxed">
+            <p className="text-sm text-forest-mid cm-light-surface-ink-muted dark:opacity-100 mb-6 italic leading-relaxed">
               Fortæl AI'en hvordan opskriften skal tilpasses. Den bruger gastronomisk logik til at justere mængder, enheder og tilberedningstid.
             </p>
             <textarea 
               value={smartInstruction}
               onChange={e => setSmartInstruction(e.target.value)}
               placeholder="F.eks. 'Jeg har 500g oksekød i stedet for 300g', eller 'Lav gram om til dl'."
-              className="w-full bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-forest-dark dark:text-white text-sm mb-6 focus:outline-none focus:border-heath-mid resize-none h-32 shadow-sm font-serif italic placeholder-forest-mid/50 dark:placeholder-white/30"
+              className="w-full bg-white/60 dark:bg-black/20 border border-black/5 dark:border-white/10 rounded-2xl p-4 text-forest-dark cm-light-surface-ink text-sm mb-6 focus:outline-none focus:border-heath-mid resize-none h-32 shadow-sm font-serif italic placeholder-forest-mid/50 cm-light-surface-placeholder"
             />
             <div className="flex gap-3">
-              <button onClick={() => setShowSmartModal(false)} className="flex-1 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-forest-mid dark:text-white/90 font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all">Annuller</button>
+              <button onClick={() => setShowSmartModal(false)} className="flex-1 py-4 rounded-2xl border border-black/5 dark:border-white/10 text-forest-mid cm-light-surface-ink font-bold text-xs uppercase tracking-widest hover:bg-white dark:hover:bg-white/10 transition-all">Annuller</button>
               <button 
                 onClick={() => {
                   onSmartAdjust(recipe, smartInstruction);
@@ -1607,7 +1607,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[2rem] p-6 w-full max-w-xs bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl text-center">
             <Trash2 size={32} className="text-[#DC2626] mx-auto mb-4" />
-            <h3 className="text-xl font-serif text-forest-dark dark:text-white italic mb-2">Slet opskrift?</h3>
+            <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic mb-2">Slet opskrift?</h3>
             <p className="text-sm text-forest-mid cm-light-surface-ink-muted mb-6">
               "{recipe.title}" slettes. Du kan fortryde i kort tid efterfølgende.
             </p>
@@ -1634,16 +1634,16 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="cm-dialog-surface glass-brushed bg-white/90 dark:bg-forest-dark/95 w-full max-w-sm rounded-[2.5rem] p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-serif text-forest-dark dark:text-white italic text-engraved">Gem i mappe</h3>
+              <h3 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic text-engraved">Gem i mappe</h3>
               <button onClick={() => {
                 setPendingFolderSaveId(null);
                 setShowFolderPicker(false);
-              }} className="p-2 hover:bg-black/5 dark:hover:bg-white/10 text-forest-mid dark:text-white/90 rounded-full transition-colors">
+              }} className="p-2 hover:bg-black/5 dark:hover:bg-white/10 text-forest-mid cm-light-surface-ink rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
 
-            <p className="text-sm text-forest-mid dark:text-white/85 italic mb-6">Vælg hvor du vil gemme din opskrift.</p>
+            <p className="text-sm text-forest-mid cm-light-surface-ink-muted dark:opacity-100 italic mb-6">Vælg hvor du vil gemme din opskrift.</p>
 
             <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar mb-6">
               {mutableFolders.filter(f => !f.isDefault).map(folder => (
@@ -1658,9 +1658,9 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   }}
                   className="w-full flex items-center gap-4 p-4 glass-brushed rounded-2xl hover:bg-white dark:hover:bg-white/10 transition-all text-left group border border-black/5 dark:border-white/10"
                 >
-                  <Folder size={20} className="text-forest-mid dark:text-white/90 group-hover:scale-110 transition-transform" />
+                  <Folder size={20} className="text-forest-mid cm-light-surface-ink group-hover:scale-110 transition-transform" />
                   <div className="min-w-0 flex-1">
-                    <span className="block font-serif text-forest-dark dark:text-white italic">{folder.name}</span>
+                    <span className="block font-serif text-forest-dark cm-light-surface-ink italic">{folder.name}</span>
                     <div className="mt-2">
                       <OwnershipBadge ownership={getFolderOwnershipDisplay(folder, currentUser)} />
                     </div>
@@ -1675,7 +1675,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     value={newFolderName}
                     onChange={e => setNewFolderName(e.target.value)}
                     placeholder="Ny mappe..."
-                    className="flex-1 glass-brushed bg-white/60 dark:bg-black/20 px-4 py-2 rounded-xl text-sm outline-none border border-black/5 dark:border-white/10 focus:ring-2 focus:ring-forest-mid/10 text-forest-dark dark:text-white placeholder-forest-mid/50 dark:placeholder-white/30"
+                    className="flex-1 glass-brushed bg-white/60 dark:bg-black/20 px-4 py-2 rounded-xl text-sm outline-none border border-black/5 dark:border-white/10 focus:ring-2 focus:ring-forest-mid/10 text-forest-dark cm-light-surface-ink placeholder-forest-mid/50 cm-light-surface-placeholder"
                     autoFocus
                   />
                   <button 
@@ -1696,8 +1696,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   onClick={() => setShowNewFolderInput(true)}
                   className="w-full flex items-center gap-4 p-4 border border-dashed border-forest-mid/30 rounded-2xl hover:bg-white/40 dark:hover:bg-white/10 transition-all text-left"
                 >
-                  <Plus size={20} className="text-forest-mid dark:text-white/90" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/90">Ny mappe</span>
+                  <Plus size={20} className="text-forest-mid cm-light-surface-ink" />
+                  <span className="text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink">Ny mappe</span>
                 </button>
               )}
             </div>
@@ -1714,7 +1714,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   </button>
                   <button
                     onClick={() => setPendingFolderSaveId(null)}
-                    className="flex-1 rounded-2xl glass-brushed py-3 text-xs font-bold uppercase tracking-widest text-forest-mid dark:text-white/90"
+                    className="flex-1 rounded-2xl glass-brushed py-3 text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink"
                   >
                     Annuller
                   </button>

@@ -138,8 +138,8 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
           </button>
         )}
         <div className="flex items-center gap-2">
-          <TreePine size={28} className="text-forest-dark dark:text-white" />
-          <h1 className="text-3xl font-serif text-forest-dark dark:text-white tracking-tight italic text-engraved">Bibliotek</h1>
+          <TreePine size={28} className="text-forest-dark cm-light-surface-ink" />
+          <h1 className="text-3xl font-serif text-forest-dark cm-light-surface-ink tracking-tight italic text-engraved">Bibliotek</h1>
         </div>
       </div>
 
@@ -164,7 +164,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
 
       {searchQuery ? (
         <div>
-          <h2 className="text-xs font-bold text-forest-mid dark:text-white/90 uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Søgeresultater</h2>
+          <h2 className="text-xs font-bold text-forest-mid cm-light-surface-ink uppercase tracking-[0.2em] mb-4 opacity-70 dark:opacity-100 text-engraved">Søgeresultater</h2>
           {renderRecipeList(getSortedRecipes(searchResults), 'Ingen opskrifter matchede din søgning.')}
         </div>
       ) : activeSection === 'home' ? (
@@ -276,7 +276,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
                 <>
             <div className="flex justify-between items-center mb-6">
               <div className="flex flex-col">
-                <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved">
+                <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink flex items-center gap-2 italic text-engraved">
                   <Folder size={20} className="text-forest-mid cm-light-surface-icon"/> {selectedFolder.name}
                 </h2>
                 <div className="ml-7 mt-2 flex items-center gap-2">
@@ -364,7 +364,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
 
             {folderIdToDelete === selectedFolder.id && (
               <div className="mb-8 glass-brushed p-6 rounded-[2rem] border-red-100 dark:border-red-900/30 bg-red-50/30 dark:bg-red-900/10">
-                <p className="text-sm text-forest-dark dark:text-white mb-4 font-medium">Er du sikker på at du vil slette denne mappe? Opskrifterne vil blive flyttet til "Opskrifter".</p>
+                <p className="text-sm text-forest-dark cm-light-surface-ink mb-4 font-medium">Er du sikker på at du vil slette denne mappe? Opskrifterne vil blive flyttet til "Opskrifter".</p>
                 <div className="flex gap-3">
                   <button 
                     onClick={() => {
@@ -391,7 +391,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         ) : (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Book size={20} className="text-forest-mid cm-light-surface-icon"/> Kogebøger</h2>
+              <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink flex items-center gap-2 italic text-engraved"><Book size={20} className="text-forest-mid cm-light-surface-icon"/> Kogebøger</h2>
               <button 
                 onClick={() => setShowNewFolderInput(true)}
                 className="text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted flex items-center gap-1.5 glass-brushed px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-black/5 transition-all"
@@ -464,7 +464,7 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
       ) : activeSection === 'all' ? (
         <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><List size={20} className="text-forest-mid dark:text-white/90"/> Alle opskrifter</h2>
+            <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink flex items-center gap-2 italic text-engraved"><List size={20} className="text-forest-mid cm-light-surface-ink"/> Alle opskrifter</h2>
             <LibrarySortSelect value={sortOrder} onChange={setSortOrder} />
           </div>
           {renderRecipeList(getSortedRecipes(savedRecipes), 'Du har ingen opskrifter endnu.', 'Start med at importere en opskrift eller opret en ny i en mappe.')}
@@ -473,14 +473,14 @@ export function LibraryView({ savedRecipes, allFolders, onOpenRecipe, onCreateFo
         selectedCategory ? (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-serif text-forest-dark dark:text-white flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid dark:text-white/90"/> {selectedCategory}</h2>
+              <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid cm-light-surface-ink"/> {selectedCategory}</h2>
               <LibrarySortSelect value={sortOrder} onChange={setSortOrder} />
             </div>
             {renderRecipeList(getSortedRecipes(savedRecipes.filter(r => r.categories?.includes(selectedCategory))), 'Ingen opskrifter i denne kategori.')}
           </div>
         ) : (
           <div>
-            <h2 className="text-2xl font-serif text-forest-dark dark:text-white mb-6 flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid dark:text-white/90"/> Kategorier</h2>
+            <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink mb-6 flex items-center gap-2 italic text-engraved"><Tag size={20} className="text-forest-mid cm-light-surface-ink"/> Kategorier</h2>
             <div className="flex flex-wrap gap-3">
               {allCategories.map(cat => {
                 const count = savedRecipes.filter(r => r.categories?.includes(cat)).length;

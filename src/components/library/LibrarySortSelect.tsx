@@ -15,7 +15,7 @@ export function LibrarySortSelect({ value, onChange, className }: LibrarySortSel
       onChange={(e) => onChange(e.target.value as SortOrder)}
       className={
         className ||
-        'glass-brushed text-forest-mid dark:text-white/70 text-xs font-bold uppercase tracking-widest rounded-xl px-3 py-2 outline-none dark:bg-black/20'
+        'glass-brushed text-forest-mid cm-light-surface-ink-muted text-xs font-bold uppercase tracking-widest rounded-xl px-3 py-2 outline-none'
       }
     >
       <option value="newest">Nyeste</option>

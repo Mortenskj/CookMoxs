@@ -41,28 +41,28 @@ export function normalizeImportError(error: unknown): { category: ImportErrorCat
     if (error.code === 'offline' || error.code === 'network_error') {
       return {
         category: 'network',
-        message: 'Netvaerket drillede, saa opskriften kunne ikke hentes. Tjek forbindelsen og proev igen.',
+        message: 'Netværket drillede, så opskriften kunne ikke hentes. Tjek forbindelsen og prøv igen.',
       };
     }
 
     if (error.code === 'ai_model_error') {
       return {
         category: 'ai_failure',
-        message: 'AI er midlertidigt utilgaengelig paa serveren. Importen kan ikke fortsaette, foer modelkonfigurationen er rettet.',
+        message: 'AI er midlertidigt utilgængelig på serveren. Importen kan ikke fortsætte, før modelkonfigurationen er rettet.',
       };
     }
 
     if (error.code === 'ai_parse_error' || error.code === 'ai_empty_response') {
       return {
         category: 'malformed_response',
-        message: 'Vi fik et ugyldigt svar tilbage under importen. Proev igen eller brug tekst i stedet.',
+        message: 'Vi fik et ugyldigt svar tilbage under importen. Prøv igen eller brug tekst i stedet.',
       };
     }
 
     if (error.code === 'ai_transport_error') {
       return {
         category: 'ai_failure',
-        message: 'AI kunne ikke kontaktes lige nu. Proev igen om lidt.',
+        message: 'AI kunne ikke kontaktes lige nu. Prøv igen om lidt.',
       };
     }
   }
@@ -192,28 +192,28 @@ export function normalizeAiActionError(error: unknown): { category: AiActionErro
     if (error.code === 'offline' || error.code === 'network_error') {
       return {
         category: 'network',
-        message: 'Netvaerket drillede, saa AI-handlingen kunne ikke gennemfoeres. Tjek forbindelsen og proev igen.',
+        message: 'Netværket drillede, så AI-handlingen kunne ikke gennemføres. Tjek forbindelsen og prøv igen.',
       };
     }
 
     if (error.code === 'ai_model_error') {
       return {
         category: 'invalid_model',
-        message: 'AI er midlertidigt utilgaengelig paa serveren. Modelkonfigurationen eller serveropsaetningen skal rettes.',
+        message: 'AI er midlertidigt utilgængelig på serveren. Modelkonfigurationen eller serveropsætningen skal rettes.',
       };
     }
 
     if (error.code === 'ai_parse_error' || error.code === 'ai_empty_response') {
       return {
         category: 'malformed_response',
-        message: 'AI returnerede et svar, som ikke kunne bruges sikkert. Proev igen om lidt.',
+        message: 'AI returnerede et svar, som ikke kunne bruges sikkert. Prøv igen om lidt.',
       };
     }
 
     if (error.code === 'ai_transport_error') {
       return {
         category: 'ai_unavailable',
-        message: 'AI kunne ikke kontaktes lige nu. Proev igen om lidt.',
+        message: 'AI kunne ikke kontaktes lige nu. Prøv igen om lidt.',
       };
     }
   }
@@ -229,7 +229,7 @@ export function normalizeAiActionError(error: unknown): { category: AiActionErro
   ) {
     return {
       category: 'network',
-      message: 'Netvaerket drillede, saa AI-handlingen kunne ikke gennemfoeres. Tjek forbindelsen og proev igen.',
+      message: 'Netværket drillede, så AI-handlingen kunne ikke gennemføres. Tjek forbindelsen og prøv igen.',
     };
   }
 
@@ -241,7 +241,7 @@ export function normalizeAiActionError(error: unknown): { category: AiActionErro
   ) {
     return {
       category: 'invalid_model',
-      message: 'AI er midlertidigt utilgaengelig paa serveren. Modelkonfigurationen eller serveropsaetningen skal rettes.',
+      message: 'AI er midlertidigt utilgængelig på serveren. Modelkonfigurationen eller serveropsætningen skal rettes.',
     };
   }
 
@@ -253,12 +253,12 @@ export function normalizeAiActionError(error: unknown): { category: AiActionErro
   ) {
     return {
       category: 'malformed_response',
-      message: 'AI returnerede et svar, som ikke kunne bruges sikkert. Proev igen om lidt.',
+      message: 'AI returnerede et svar, som ikke kunne bruges sikkert. Prøv igen om lidt.',
     };
   }
 
   return {
     category: 'ai_unavailable',
-    message: 'AI kunne ikke kontaktes lige nu. Proev igen om lidt.',
+    message: 'AI kunne ikke kontaktes lige nu. Prøv igen om lidt.',
   };
 }

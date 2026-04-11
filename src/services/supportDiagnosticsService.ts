@@ -61,7 +61,7 @@ export function buildSupportDiagnosticsSnapshot(input: SupportDiagnosticsInput):
           label: 'Netværk',
           state: 'problem',
           summary: 'Appen er offline lige nu.',
-          detail: 'Nogle handlinger virker stadig, men cloud og AI kan vaere utilgængelige.',
+          detail: 'Nogle handlinger virker stadig, men cloud og AI kan være utilgængelige.',
         },
     input.cloudSyncStatus === 'error'
       ? {
@@ -91,7 +91,7 @@ export function buildSupportDiagnosticsSnapshot(input: SupportDiagnosticsInput):
               id: 'cloud',
               label: 'Cloud',
               state: 'attention',
-              summary: 'Appen koerer kun lokalt lige nu.',
+              summary: 'Appen kører kun lokalt lige nu.',
               detail: 'Log ind, hvis du vil bruge cloud-sync mellem enheder.',
             },
     input.aiDisabledReason
@@ -106,7 +106,7 @@ export function buildSupportDiagnosticsSnapshot(input: SupportDiagnosticsInput):
           id: 'ai',
           label: 'AI-hjælp',
           state: 'ok',
-          summary: 'AI-hjælp er tilgængelig, naar du vil bruge den.',
+          summary: 'AI-hjælp er tilgængelig, når du vil bruge den.',
         },
   ];
 

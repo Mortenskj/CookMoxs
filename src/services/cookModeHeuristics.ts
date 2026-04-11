@@ -16,8 +16,8 @@ const HEAT_NOTE_BY_LEVEL: Partial<Record<CanonicalHeatLevel, string>> = {
   4: 'middel-lav varme',
   5: 'middel varme',
   6: 'rolig stegning',
-  7: 'middel-hoej varme',
-  8: 'hoej varme',
+  7: 'middel-høj varme',
+  8: 'høj varme',
   9: 'bring i kog',
 };
 

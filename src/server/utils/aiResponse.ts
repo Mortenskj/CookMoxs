@@ -12,11 +12,11 @@ type AiFailureMeta = {
 const AI_FAILURE_DETAILS: Record<AiFailureCode, { status: number; message: string }> = {
   ai_model_error: {
     status: 503,
-    message: 'AI-modellen er utilgaengelig eller forkert konfigureret paa serveren.',
+    message: 'AI-modellen er utilgængelig eller forkert konfigureret på serveren.',
   },
   ai_transport_error: {
     status: 502,
-    message: 'AI-forbindelsen fejlede. Proev igen om lidt.',
+    message: 'AI-forbindelsen fejlede. Prøv igen om lidt.',
   },
   ai_empty_response: {
     status: 502,
@@ -24,7 +24,7 @@ const AI_FAILURE_DETAILS: Record<AiFailureCode, { status: number; message: strin
   },
   ai_parse_error: {
     status: 502,
-    message: 'AI returnerede et svar, som ikke kunne laeses sikkert.',
+    message: 'AI returnerede et svar, som ikke kunne læses sikkert.',
   },
 };
 
