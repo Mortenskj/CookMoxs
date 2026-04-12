@@ -637,21 +637,23 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                       <div className="flex w-full sm:w-auto flex-1 gap-3">
                         <div className="relative flex-1 min-w-[80px]">
-                          <input
-                            type="text"
-                            list="units-list"
-                            value={ing.unit}
+                          <select
+                            value={COMMON_RECIPE_UNITS.includes(ing.unit as any) ? ing.unit : '__custom__'}
                             onChange={e => {
+                              const val = e.target.value;
+                              if (val === '__custom__') return;
                               const newIngs = [...editIngredients];
-                              newIngs[i].unit = e.target.value;
+                              newIngs[i].unit = val;
                               updateEditData({...editData, ingredients: newIngs});
                             }}
-                            placeholder="Enhed"
-                            className="w-full bg-white/80 dark:bg-black/20 px-3 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic pr-8 placeholder-forest-mid/50 cm-light-surface-placeholder"
-                          />
-                          <datalist id="units-list">
-                            {COMMON_RECIPE_UNITS.map(u => <option key={u} value={u} />)}
-                          </datalist>
+                            className="w-full bg-white/80 dark:bg-black/20 px-3 py-3 rounded-xl border border-black/10 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink font-serif italic pr-8 appearance-none"
+                          >
+                            <option value="" label="Enhed" />
+                            {COMMON_RECIPE_UNITS.filter(u => u !== '').map(u => <option key={u} value={u}>{u}</option>)}
+                            {ing.unit && !COMMON_RECIPE_UNITS.includes(ing.unit as any) && (
+                              <option value="__custom__">{ing.unit}</option>
+                            )}
+                          </select>
                           {canConvertIngredientBetweenGramsAndDeciliters(ing) && (
                             <button 
                               onClick={(e) => { e.preventDefault(); convertUnit(i); }}
@@ -1487,17 +1489,21 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <div className="flex items-center gap-3">
                 <div className="relative flex-1">
                   <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted dark:opacity-100 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Enhed</label>
-                  <input
-                    type="text"
-                    list="new-units-list"
-                    value={newIngredient.unit}
-                    onChange={e => setNewIngredient({...newIngredient, unit: e.target.value})}
-                    placeholder="Enhed"
-                    className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink shadow-sm placeholder-forest-mid/50 cm-light-surface-placeholder"
-                  />
-                  <datalist id="new-units-list">
-                    {COMMON_RECIPE_UNITS.map(u => <option key={u} value={u} />)}
-                  </datalist>
+                  <select
+                    value={COMMON_RECIPE_UNITS.includes(newIngredient.unit as any) ? newIngredient.unit : (newIngredient.unit ? '__custom__' : '')}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '__custom__') return;
+                      setNewIngredient({...newIngredient, unit: val});
+                    }}
+                    className="w-full bg-white/60 dark:bg-black/20 px-4 py-3 rounded-xl border border-black/5 dark:border-white/10 text-sm outline-none focus:border-heath-mid text-forest-dark cm-light-surface-ink shadow-sm appearance-none"
+                  >
+                    <option value="" label="Enhed" />
+                    {COMMON_RECIPE_UNITS.filter(u => u !== '').map(u => <option key={u} value={u}>{u}</option>)}
+                    {newIngredient.unit && !COMMON_RECIPE_UNITS.includes(newIngredient.unit as any) && (
+                      <option value="__custom__">{newIngredient.unit}</option>
+                    )}
+                  </select>
                 </div>
                 <div className="w-28">
                   <label className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted dark:opacity-100 uppercase tracking-[0.2em] block mb-2 opacity-60 dark:opacity-100 ml-1">Mængde</label>

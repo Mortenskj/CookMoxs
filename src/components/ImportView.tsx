@@ -297,6 +297,9 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               </button>
               <p className="text-forest-dark cm-light-surface-ink font-serif text-xl italic">Upload PDF eller dokument</p>
               <p className="text-sm text-forest-mid cm-light-surface-ink-muted italic opacity-60 dark:opacity-100">Denne importtype kræver AI.</p>
+              <p className="text-xs text-forest-mid cm-light-surface-ink-soft italic opacity-60 dark:opacity-100 mt-1">
+                Google Docs? Brug Link-import i stedet — indsæt dokumentets delingslink.
+              </p>
               {submittingTab === 'file' && (
                 <div className="cm-feedback-enter flex justify-center">
                   <InlineLoadingLabel label="Klargør fil til import" />

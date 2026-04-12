@@ -47,6 +47,7 @@ import {
   reconcileDefaultFolderState,
 } from './services/defaultFolderService';
 import { normalizeRecipeForCookMode, normalizeRecipesForCookMode } from './services/recipeStepNormalization';
+import { SEED_RECIPE } from './config/seedRecipe';
 import { hasRecipeBeenRemoved } from './services/recipeStateCleanup';
 import { createBackupPayload, downloadBackupFile, parseBackupPayload } from './services/backupService';
 import { mergeAutoImportEnhancement } from './services/importEnhancementService';
@@ -542,6 +543,14 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // Seed a demo recipe when the app loads with nothing
+  useEffect(() => {
+    if (!isActiveRecipeCacheReady || !isSavedRecipeCacheReady) return;
+    if (!activeRecipe && savedRecipes.length === 0) {
+      setActiveRecipe(normalizeRecipeForCookMode({ ...SEED_RECIPE, lastUsed: new Date().toISOString() }));
+    }
+  }, [isActiveRecipeCacheReady, isSavedRecipeCacheReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isSavedRecipeCacheReady) return;

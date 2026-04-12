@@ -1218,33 +1218,44 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
         }
 
         const prompt = `Extract the recipe from this document or image. ${sharedRules}`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), SERVER_AI_TIMEOUT_MS);
-        try {
-          const result = await getAiClient().models.generateContent({
-            model: IMPORT_MODEL,
-            contents: [{ parts: [
-              { inlineData: { data: fileData.data, mimeType: fileData.mimeType } },
-              { text: prompt },
-            ] }],
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: RECIPE_SCHEMA,
-              httpOptions: { timeout: SERVER_AI_TIMEOUT_MS },
-              abortSignal: controller.signal,
-            },
-          });
-          const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
-          const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
-          return res.json({ parsedData });
-        } catch (error: any) {
-          if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED' || error?.message?.includes('timed out')) {
-            throw new Error(`AI request to ${IMPORT_MODEL} timed out after ${SERVER_AI_TIMEOUT_MS / 1000}s`);
+        const maxRetries = 1;
+        let lastInlineError: any;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), SERVER_AI_TIMEOUT_MS);
+          try {
+            const result = await getAiClient().models.generateContent({
+              model: IMPORT_MODEL,
+              contents: [{ parts: [
+                { inlineData: { data: fileData.data, mimeType: fileData.mimeType } },
+                { text: prompt },
+              ] }],
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: RECIPE_SCHEMA,
+                httpOptions: { timeout: SERVER_AI_TIMEOUT_MS },
+                abortSignal: controller.signal,
+              },
+            });
+            const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
+            const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
+            return res.json({ parsedData });
+          } catch (error: any) {
+            lastInlineError = error;
+            if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED' || error?.message?.includes('timed out')) {
+              lastInlineError = new Error(`AI request to ${IMPORT_MODEL} timed out after ${SERVER_AI_TIMEOUT_MS / 1000}s`);
+            }
+            if (attempt < maxRetries && isRetryableError(error)) {
+              const delayMs = 2000 * (attempt + 1);
+              console.log(`[import] Retrying inline file import after ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+              continue;
+            }
+          } finally {
+            clearTimeout(timeoutId);
           }
-          throw error;
-        } finally {
-          clearTimeout(timeoutId);
         }
+        throw lastInlineError;
       }
 
       return res.status(400).json({ error: 'Manglende indhold til import' });
