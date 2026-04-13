@@ -14,7 +14,7 @@ type ErrorResponseBody = {
   code?: string;
 };
 
-const AI_REQUEST_TIMEOUT_MS = 45000;
+const AI_REQUEST_TIMEOUT_MS = 120000;
 
 export class AiRequestError extends Error {
   readonly code: AiRequestErrorCode;

@@ -362,471 +362,379 @@ export function RecipeNutritionAttachmentCard({
   };
 
   return (
-    <section className="cm-nutrition-section mb-8 glass-brushed p-4 sm:p-6 rounded-[2rem] border border-black/5 dark:border-white/10">
-      <div className="cm-nutrition-header mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-white/60 dark:bg-black/20 rounded-2xl border border-black/5 dark:border-white/10">
-            <Link2 size={18} className="text-heath-mid" />
-          </div>
-          <div>
-            <h3 className="font-serif text-xl text-forest-dark cm-light-surface-ink italic text-engraved">Produktdata til opskriften</h3>
-            <p className="text-xs text-forest-mid cm-light-surface-ink-muted opacity-80">
-              {getRecipeNutritionExplanation(attachment)}
-            </p>
-          </div>
+    <section className="cm-nutrition-section mb-8 glass-brushed p-5 sm:p-6 rounded-[2rem] border border-black/5 dark:border-white/10">
+      {/* Header row — toggle expands/collapses entire section */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded((current) => !current)}
+        className="w-full flex items-center justify-between gap-3"
+        aria-expanded={isExpanded}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Link2 size={16} className="text-heath-mid shrink-0" />
+          <h3 className="font-serif text-base sm:text-lg text-forest-dark cm-light-surface-ink italic text-engraved truncate">Ernæring</h3>
+          {displayEstimate && recipeNutritionEstimateVisible && (
+            <span className="shrink-0 rounded-full bg-forest-dark/10 dark:bg-white/10 px-2 py-0.5 text-[0.625rem] sm:text-xs font-semibold text-forest-mid cm-light-surface-ink-muted">
+              {estimateCoverageLabel}
+            </span>
+          )}
         </div>
-        <div className="cm-nutrition-actions">
+        <span className="text-forest-mid/60 cm-light-surface-ink-soft shrink-0">
+          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div className="mt-5 space-y-4">
+          {/* Estimate action + AI-disabled notice */}
           {canTriggerEstimate && (
             <button
               type="button"
               onClick={onEstimate}
               disabled={isEstimating || Boolean(aiDisabledReason)}
-              className="inline-flex items-center gap-2 rounded-full border border-[#3A2A22] bg-[#2A1F1A] px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#D4B886] transition-colors hover:bg-[#3A2A22] disabled:opacity-50"
+              className="btn-botanical w-full justify-center gap-2 disabled:opacity-50"
             >
-              {isEstimating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-              {isEstimating ? 'Estimerer...' : 'AI - Estimer macro/kcal'}
+              {isEstimating ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+              {isEstimating ? 'Estimerer...' : 'Estimer ernæring med AI'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setIsExpanded((current) => !current)}
-            className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/55 dark:bg-black/20 px-4 py-2 text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted transition-colors hover:bg-white/80 dark:hover:bg-white/10"
-            aria-expanded={isExpanded}
-          >
-            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            {isExpanded ? 'Skjul' : 'Vis'}
-          </button>
-        </div>
-      </div>
 
-      {displayEstimate && recipeNutritionEstimateVisible && (
-        <div className="mb-4 rounded-3xl border border-[#D4B886]/40 bg-[#FFF8EA]/80 p-5 text-sm text-forest-mid shadow-sm dark:border-[#D4B886]/20 dark:bg-[#2A1F1A]/50 cm-light-surface-ink-muted">
-          <div className="cm-nutrition-estimate-head">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-serif text-lg italic text-forest-dark cm-light-surface-ink">AI-estimat for opskriften</p>
-                <span className="rounded-full bg-[#2A1F1A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#D4B886]">
-                  AI-estimat
-                </span>
-              </div>
-              <p className="mt-1 text-xs opacity-75">
-                Vejledende beregning ud fra ingredienslisten. Ikke producentdata. Senest opdateret {new Date(displayEstimate.generatedAt).toLocaleString('da-DK')}.
-              </p>
-            </div>
-            <div className="cm-nutrition-badges">
-              <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
-                {estimateCoverageLabel}
-              </span>
-              <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-heath-mid dark:bg-black/20">
-                Sikkerhed: {displayEstimate.confidence}
-              </span>
-            </div>
-          </div>
-          {selectedSnapshot && macroOverviewItems.length > 0 && (
-            <div className="cm-nutrition-summary-shell mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
-              <div className="cm-nutrition-summary-head">
-                <div>
-                  <p className="font-bold uppercase tracking-widest opacity-60">Overblik</p>
-                  <p className="mt-2 text-3xl font-serif italic text-forest-dark cm-light-surface-ink">
-                    {formatMacroValue(selectedSnapshot.energyKcal)} kcal
-                  </p>
-                  <p className="mt-1 opacity-75">
-                    {macroBasis === 'perPortion' ? 'Pr. portion' : 'Pr. 100 g'}
-                  </p>
-                </div>
-                <div className="cm-nutrition-distribution-tabs rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
-                  <button
-                    type="button"
-                    onClick={() => setDistributionBasis('grams')}
-                    className={`cm-nutrition-distribution-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${distributionBasis === 'grams' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid cm-light-surface-ink-muted'}`}
-                  >
-                    Gramfordeling
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDistributionBasis('calories')}
-                    className={`cm-nutrition-distribution-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${distributionBasis === 'calories' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid cm-light-surface-ink-muted'}`}
-                  >
-                    Kaloriefordeling
-                  </button>
-                </div>
-              </div>
-              <div className="cm-nutrition-summary-grid mt-4">
-                {macroOverviewItems.map((macro) => (
-                  <div key={`overview-${macro.key}`} className="cm-nutrition-summary-item rounded-[1.25rem] border border-black/5 bg-white/50 px-4 py-3 dark:border-white/10 dark:bg-black/10">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="cm-nutrition-summary-dot"
-                        style={{ backgroundColor: macro.stroke }}
-                        aria-hidden="true"
-                      />
-                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-60">{macro.label}</p>
-                    </div>
-                    <p className={`mt-3 text-xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
-                    <p className="mt-1 opacity-75">{formatMacroPercent(macro.percent)} af {distributionBasisLabel}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {aiDisabledReason && (
+            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 italic opacity-80">
+              AI-estimat er midlertidigt slået fra. {aiDisabledReason}
+            </p>
           )}
-          <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
-            <p className="font-bold uppercase tracking-widest opacity-60">Ingrediensdækning</p>
-            <p className="mt-2">
-              Medregnet {countedIngredientCount} af {totalIngredientCount} ingredienser.
-            </p>
-            {omittedIngredients.length > 0 && (
-              <p className="mt-2 text-red-700 dark:text-red-300">
-                Mangler i estimate: {omittedIngredients.join(', ')}
-              </p>
-            )}
-            {validationWarnings.length > 0 && (
-              <ul className="mt-3 space-y-1 text-amber-800 dark:text-amber-200">
-                {validationWarnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="mt-4 rounded-[2rem] border border-black/5 bg-[linear-gradient(135deg,rgba(255,255,255,0.85),rgba(255,248,234,0.92))] p-5 shadow-sm print:hidden dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(28,22,19,0.92),rgba(42,31,26,0.88))]">
-            <div className="cm-nutrition-overview-head">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] opacity-60">Makrofordeling</p>
-                <p className="mt-1 text-xs opacity-75">{distributionDescription}</p>
-              </div>
-              <div className="cm-nutrition-macro-tabs rounded-full border border-black/10 bg-white/70 p-1 dark:border-white/10 dark:bg-black/20">
-                <button
-                  type="button"
-                  onClick={() => setMacroBasis('perPortion')}
-                  className={`cm-nutrition-macro-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'perPortion' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid cm-light-surface-ink-muted'}`}
-                >
-                  Pr. portion
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMacroBasis('per100g')}
-                  className={`cm-nutrition-macro-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${macroBasis === 'per100g' ? 'bg-[#2A1F1A] text-[#F5E7C6]' : 'text-forest-mid cm-light-surface-ink-muted'}`}
-                >
-                  Pr. 100 g
-                </button>
-              </div>
-            </div>
 
-            {canRenderMacroOverview && selectedSnapshot && macroOverview ? (
-              <div className="cm-nutrition-macro-card mt-6">
-                <div className="cm-nutrition-donut-wrap">
-                  <div className="relative flex h-[180px] w-[180px] items-center justify-center">
-                    <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
-                      <circle
-                        cx="70"
-                        cy="70"
-                        r="54"
-                        fill="none"
-                        stroke="rgba(49,86,73,0.12)"
-                        strokeWidth="18"
-                      />
-                      {donutSegments.map((segment) => (
-                        <circle
-                          key={segment.key}
-                          cx="70"
-                          cy="70"
-                          r={segment.radius}
-                          fill="none"
-                          stroke={segment.stroke}
-                          strokeWidth="18"
-                          strokeLinecap="round"
-                          strokeDasharray={segment.dashArray}
-                          strokeDashoffset={segment.dashOffset}
-                        />
-                      ))}
-                    </svg>
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-forest-mid/70 cm-light-surface-ink-soft">
-                        {macroBasis === 'perPortion' ? 'Pr. portion' : 'Pr. 100 g'}
-                      </span>
-                      <span className="mt-1 font-serif text-3xl italic text-forest-dark cm-light-surface-ink">
-                        {formatMacroValue(selectedSnapshot.energyKcal)}
-                      </span>
-                      <span className="text-xs text-forest-mid/75 cm-light-surface-ink-muted">kcal</span>
+          {!canTriggerEstimate && readOnlyMessage && (
+            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 italic opacity-80">
+              {readOnlyMessage}
+            </p>
+          )}
+
+          {/* AI estimate results */}
+          {displayEstimate && recipeNutritionEstimateVisible && (
+            <div className="space-y-4">
+              {/* Meta line */}
+              <p className="text-xs sm:text-sm text-forest-mid cm-light-surface-ink-muted opacity-75 leading-relaxed">
+                Vejledende AI-beregning ud fra ingredienslisten.
+                {' '}{countedIngredientCount}/{totalIngredientCount} ingredienser medregnet.
+                {' '}Sikkerhed: {displayEstimate.confidence}.
+              </p>
+
+              {omittedIngredients.length > 0 && (
+                <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">
+                  Mangler: {omittedIngredients.join(', ')}
+                </p>
+              )}
+
+              {validationWarnings.length > 0 && (
+                <ul className="space-y-1 text-xs sm:text-sm text-amber-800 dark:text-amber-200">
+                  {validationWarnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Macro chart */}
+              {canRenderMacroOverview && selectedSnapshot && macroOverview ? (
+                <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/10 p-4 sm:p-5 print:hidden">
+                  {/* Basis toggles */}
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <div className="cm-nutrition-macro-tabs rounded-full border border-black/8 dark:border-white/10 bg-white/60 dark:bg-black/15 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setMacroBasis('perPortion')}
+                        className={`cm-nutrition-macro-tab text-xs sm:text-sm font-medium transition-colors ${macroBasis === 'perPortion' ? 'bg-forest-dark text-white' : 'text-forest-mid cm-light-surface-ink-muted'}`}
+                      >
+                        Pr. portion
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMacroBasis('per100g')}
+                        className={`cm-nutrition-macro-tab text-xs sm:text-sm font-medium transition-colors ${macroBasis === 'per100g' ? 'bg-forest-dark text-white' : 'text-forest-mid cm-light-surface-ink-muted'}`}
+                      >
+                        Pr. 100 g
+                      </button>
+                    </div>
+                    <div className="cm-nutrition-distribution-tabs rounded-full border border-black/8 dark:border-white/10 bg-white/60 dark:bg-black/15 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setDistributionBasis('grams')}
+                        className={`cm-nutrition-distribution-tab text-xs sm:text-sm font-medium transition-colors ${distributionBasis === 'grams' ? 'bg-forest-dark text-white' : 'text-forest-mid cm-light-surface-ink-muted'}`}
+                      >
+                        Gram
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDistributionBasis('calories')}
+                        className={`cm-nutrition-distribution-tab text-xs sm:text-sm font-medium transition-colors ${distributionBasis === 'calories' ? 'bg-forest-dark text-white' : 'text-forest-mid cm-light-surface-ink-muted'}`}
+                      >
+                        Kcal
+                      </button>
                     </div>
                   </div>
-                </div>
-                <div className="cm-nutrition-macro-grid">
-                  {macroOverview.map((macro) => (
-                    <div key={macro.key} className={`rounded-[1.25rem] border border-black/5 px-3 py-3 dark:border-white/10 ${macro.softBg}`}>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">{macro.label}</p>
-                      <p className={`mt-2 text-xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
-                        <p className="mt-1 text-[11px] opacity-75">{formatMacroPercent(macro.percent)} af {distributionBasisLabel}</p>
-                      </div>
-                    ))}
-                  </div>
 
-                <div className="cm-nutrition-stat-grid text-xs opacity-75">
-                  <span>Samlet vægt: {formatMacroValue(displayEstimate.estimatedTotalWeightGrams)} g</span>
-                  <span>Visning: {sourceBasisLabel}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 dark:border-amber-300/30 dark:bg-amber-950/30 dark:text-amber-100">
-                Makrodiagrammet vises kun, når estimatet er komplet og uden manglende ingrediensdækning.
-              </div>
-            )}
-          </div>
-
-          <div className="hidden print:block mt-4 rounded-2xl border border-black/10 bg-white p-4 text-black">
-            <p className="text-sm font-bold uppercase tracking-widest">AI-makroestimat</p>
-            <p className="mt-2 text-xs">Vejledende beregning ud fra ingredienslisten. {estimateCoverageLabel}. Sikkerhed: {displayEstimate.confidence}.</p>
-            <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-              <div>Pr. 100 g: {formatMacroValue(displayEstimate.per100g.energyKcal)} kcal, fedt {formatMacroValue(displayEstimate.per100g.fatGrams)} g, kulhydrat {formatMacroValue(displayEstimate.per100g.carbsGrams)} g, protein {formatMacroValue(displayEstimate.per100g.proteinGrams)} g</div>
-              <div>Pr. portion: {formatMacroValue(displayEstimate.perPortion.energyKcal)} kcal, fedt {formatMacroValue(displayEstimate.perPortion.fatGrams)} g, kulhydrat {formatMacroValue(displayEstimate.perPortion.carbsGrams)} g, protein {formatMacroValue(displayEstimate.perPortion.proteinGrams)} g</div>
-            </div>
-            {validationWarnings.length > 0 && (
-              <ul className="mt-3 text-xs">
-                {validationWarnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
-            <p className="font-bold uppercase tracking-widest opacity-60">Antagelser</p>
-            <p className="mt-2">{displayEstimate.rationale}</p>
-            <p className="mt-3 opacity-75">
-              Estimeret samlet vægt: {displayEstimate.estimatedTotalWeightGrams ?? '-'} g
-            </p>
-          </div>
-          {ingredientBreakdown.length > 0 && (
-            <div className="mt-4 rounded-2xl border border-black/5 bg-white/55 p-4 text-xs leading-relaxed dark:border-white/10 dark:bg-black/20">
-              <div className="cm-nutrition-source-head">
-                <div>
-                  <p className="font-bold uppercase tracking-widest opacity-60">Makrokilder</p>
-                  <p className="mt-1 opacity-75">Se hvor {MACRO_META[activeMacroTab].label.toLowerCase()} kommer fra i estimatet.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowMacroSources((current) => !current)}
-                  className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-forest-mid transition-colors hover:bg-white/90 dark:bg-black/20 cm-light-surface-ink-muted dark:hover:bg-black/30"
-                  aria-expanded={showMacroSources}
-                >
-                  {showMacroSources ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  {showMacroSources ? 'Skjul kilder' : 'Se hvor macroene kommer fra'}
-                </button>
-              </div>
-
-              {showMacroSources && (
-                <>
-                  <div className="cm-nutrition-lookup-tabs mt-4">
-                    {(['protein', 'fat', 'carbs'] as MacroTab[]).map((tab) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setActiveMacroTab(tab)}
-                        className={`cm-nutrition-source-tab text-[11px] font-bold uppercase tracking-widest transition-colors ${
-                          activeMacroTab === tab
-                            ? 'bg-[#2A1F1A] text-[#F5E7C6]'
-                            : 'bg-white/70 text-forest-mid hover:bg-white/90 dark:bg-black/20 cm-light-surface-ink-muted dark:hover:bg-black/30'
-                        }`}
-                      >
-                        {MACRO_META[tab].label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <p className="mt-4 opacity-75">
-                    Viser bidrag {sourceBasisLabel}. Ingredienserne er sorteret efter største bidrag.
-                  </p>
-
-                  <ul className="cm-nutrition-source-list mt-3">
-                    {macroSourceItems.map((item) => (
-                      <li key={`${activeMacroTab}-${item.ingredientName}`} className="cm-nutrition-source-item rounded-2xl bg-white/60 px-3 py-3 dark:bg-black/20">
-                        <div className="cm-nutrition-source-item-row">
-                          <div>
-                            <p className="font-medium text-forest-dark cm-light-surface-ink">{item.ingredientName}</p>
-                            <p className="mt-1 opacity-80">
-                              {MACRO_META[activeMacroTab].label} {formatMacroValue(item.scaledValue)} g
-                              {item.scaledWeight != null ? ` fra ca. ${formatMacroValue(item.scaledWeight)} g` : ''}
-                            </p>
-                            <p className="mt-1 opacity-75">{formatIngredientMacroLine(item)}</p>
-                            {item.note && <p className="mt-1 opacity-75">{item.note}</p>}
-                          </div>
-                          <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${MACRO_META[activeMacroTab].softBg} ${MACRO_META[activeMacroTab].pillText}`}>
-                            {formatMacroValue(item.scaledValue)} g
+                  <div className="cm-nutrition-macro-card">
+                    <div className="cm-nutrition-donut-wrap">
+                      <div className="relative flex h-[140px] w-[140px] sm:h-[160px] sm:w-[160px] items-center justify-center">
+                        <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+                          <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(49,86,73,0.12)" strokeWidth="16" />
+                          {donutSegments.map((segment) => (
+                            <circle
+                              key={segment.key}
+                              cx="70" cy="70" r={segment.radius}
+                              fill="none" stroke={segment.stroke} strokeWidth="16" strokeLinecap="round"
+                              strokeDasharray={segment.dashArray} strokeDashoffset={segment.dashOffset}
+                            />
+                          ))}
+                        </svg>
+                        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span className="font-serif text-2xl sm:text-3xl italic text-forest-dark cm-light-surface-ink">
+                            {formatMacroValue(selectedSnapshot.energyKcal)}
                           </span>
+                          <span className="text-xs text-forest-mid/75 cm-light-surface-ink-muted">kcal</span>
                         </div>
-                      </li>
+                      </div>
+                    </div>
+                    <div className="cm-nutrition-macro-grid">
+                      {macroOverview.map((macro) => (
+                        <div key={macro.key} className={`rounded-2xl border border-black/5 dark:border-white/10 px-3 py-2.5 ${macro.softBg}`}>
+                          <p className="text-[0.625rem] sm:text-xs font-semibold uppercase tracking-wider opacity-60">{macro.label}</p>
+                          <p className={`mt-1 text-lg sm:text-xl font-serif italic ${macro.pillText}`}>{formatMacroValue(macro.grams)} g</p>
+                          <p className="text-[0.625rem] sm:text-xs opacity-65">{formatMacroPercent(macro.percent)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs sm:text-sm text-forest-mid cm-light-surface-ink-muted opacity-60 text-center">
+                    Samlet vægt ca. {formatMacroValue(displayEstimate.estimatedTotalWeightGrams)} g · {sourceBasisLabel}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 italic opacity-80">
+                  Makrodiagrammet vises kun ved komplet ingrediensdækning.
+                </p>
+              )}
+
+              {/* Print-only block */}
+              <div className="hidden print:block rounded-2xl border border-black/10 bg-white p-4 text-black">
+                <p className="text-sm font-bold uppercase tracking-widest">Ernæringsestimat</p>
+                <p className="mt-2 text-xs">Vejledende beregning. {estimateCoverageLabel}. Sikkerhed: {displayEstimate.confidence}.</p>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                  <div>Pr. 100 g: {formatMacroValue(displayEstimate.per100g.energyKcal)} kcal, fedt {formatMacroValue(displayEstimate.per100g.fatGrams)} g, kulhydrat {formatMacroValue(displayEstimate.per100g.carbsGrams)} g, protein {formatMacroValue(displayEstimate.per100g.proteinGrams)} g</div>
+                  <div>Pr. portion: {formatMacroValue(displayEstimate.perPortion.energyKcal)} kcal, fedt {formatMacroValue(displayEstimate.perPortion.fatGrams)} g, kulhydrat {formatMacroValue(displayEstimate.perPortion.carbsGrams)} g, protein {formatMacroValue(displayEstimate.perPortion.proteinGrams)} g</div>
+                </div>
+                {validationWarnings.length > 0 && (
+                  <ul className="mt-3 text-xs">
+                    {validationWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
                     ))}
                   </ul>
+                )}
+              </div>
 
-                  {ingredientBreakdown.length > 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllMacroSources((current) => !current)}
-                      className="mt-4 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-forest-mid transition-colors hover:bg-white/90 dark:bg-black/20 cm-light-surface-ink-muted dark:hover:bg-black/30"
-                    >
-                      {showAllMacroSources ? 'Vis færre' : 'Vis flere'}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {!canTriggerEstimate && readOnlyMessage && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          {readOnlyMessage}
-        </div>
-      )}
-
-      {aiDisabledReason && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          AI-estimat er midlertidigt slået fra. {aiDisabledReason}
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10 px-4 py-3 text-sm text-forest-mid cm-light-surface-ink-muted">
-        <p className="font-medium">{hasAttachment ? 'Knyttet produktdata' : 'Ingen knyttet produktdata'}</p>
-        <p className="mt-1 text-xs opacity-80">{summaryLine}</p>
-      </div>
-
-      {isExpanded && (attachment ? (
-        <div className="mt-4 rounded-3xl border border-black/5 dark:border-white/10 bg-white/45 dark:bg-black/20 p-5">
-          <div className="cm-nutrition-attachment-head">
-            <div>
-              <p className="font-serif text-lg text-forest-dark cm-light-surface-ink italic">{attachment.title}</p>
-              <p className="mt-1 text-xs text-forest-mid cm-light-surface-ink-muted opacity-75">
-                {[attachment.brand, attachment.barcode].filter(Boolean).join(' · ') || 'Intet ekstra produkt-id'}
-              </p>
-            </div>
-            {canClear && (
-              <button
-                onClick={onClear}
-                className="inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-forest-mid cm-light-surface-ink-muted hover:bg-white/40 dark:hover:bg-white/10 transition-colors"
-              >
-                <Unlink2 size={14} />
-                Fjern link
-              </button>
-            )}
-          </div>
-          <p className="mt-3 text-xs text-forest-mid cm-light-surface-ink-soft opacity-80">
-            {getRecipeNutritionSummaryLine(attachment)}
-          </p>
-          {attachment.nutrition && (
-            <div className="cm-nutrition-attachment-grid mt-4 text-xs text-forest-mid cm-light-surface-ink-muted">
-              <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">kcal/100g: {attachment.nutrition.energyKcalPer100g ?? '-'}</div>
-              <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">Fedt: {attachment.nutrition.fatPer100g ?? '-'} g</div>
-              <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">Kulhydrat: {attachment.nutrition.carbsPer100g ?? '-'} g</div>
-              <div className="rounded-2xl bg-white/55 dark:bg-black/20 px-3 py-3">Protein: {attachment.nutrition.proteinPer100g ?? '-'} g</div>
-            </div>
-          )}
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-            Vejledende produktdata pr. 100 g. Opskriftens ingredienser og portioner bliver ikke regnet om automatisk.
-          </div>
-          {attachment.provenance.sourceUrl && (
-            <a
-              href={attachment.provenance.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex text-xs font-bold uppercase tracking-widest text-heath-mid hover:underline"
-            >
-              Se kilde
-            </a>
-          )}
-        </div>
-      ) : (
-        <div className="mt-4 rounded-3xl border border-dashed border-black/10 dark:border-white/10 bg-white/35 dark:bg-black/10 p-5 text-sm text-forest-mid cm-light-surface-ink-muted">
-          Ingen produktdata er knyttet til denne opskrift endnu.
-        </div>
-      ))}
-
-      {isExpanded && !canAttach && !readOnlyMessage && (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900">
-          {readOnlyMessage || 'Gem opskriften først, hvis du vil knytte produktdata til den.'}
-        </div>
-      )}
-
-      {isExpanded && canAttach && (
-        <>
-          <div className="cm-nutrition-lookup-tabs mt-5 bg-white/40 dark:bg-black/10 rounded-2xl p-1.5 border border-black/5 dark:border-white/10">
-            <button
-              onClick={() => setMode('barcode')}
-              className={`cm-nutrition-lookup-tab px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'barcode' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid cm-light-surface-ink-muted hover:bg-white/40 dark:hover:bg-white/10'}`}
-            >
-              <Barcode size={14} /> Stregkode
-            </button>
-            <button
-              onClick={() => setMode('text_search')}
-              className={`cm-nutrition-lookup-tab px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${mode === 'text_search' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid cm-light-surface-ink-muted hover:bg-white/40 dark:hover:bg-white/10'}`}
-            >
-              <Search size={14} /> Produktsogning
-            </button>
-          </div>
-
-          <div className="cm-nutrition-search mt-4">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !loading) {
-                  void handleLookup();
-                }
-              }}
-              placeholder={mode === 'barcode' ? 'Fx 3017620422003' : 'Fx nutella'}
-              className="flex-1 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/20 px-4 py-3 text-sm text-forest-dark cm-light-surface-ink outline-none focus:border-forest-mid"
-            />
-            <button
-              onClick={() => void handleLookup()}
-              disabled={!input.trim() || loading}
-              className="px-5 py-3 text-xs font-bold uppercase tracking-widest rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50"
-            >
-              {loading ? 'Soger...' : 'Find produkt'}
-            </button>
-          </div>
-
-          {error && (
-            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {result && (
-            <div className="mt-4 space-y-3">
-              {result.items.length === 0 && (
-                <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/10 p-4 text-sm text-forest-mid cm-light-surface-ink-muted">
-                  Ingen produkter fundet for denne sogning.
-                </div>
-              )}
-              {result.items.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/45 dark:bg-black/20 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-serif text-lg text-forest-dark cm-light-surface-ink italic">{item.title}</p>
-                      <p className="mt-1 text-xs text-forest-mid cm-light-surface-ink-muted opacity-75">
-                        {[item.brand, item.barcode].filter(Boolean).join(' · ') || 'Ingen ekstra produktinfo'}
-                      </p>
-                      <p className="mt-2 text-xs text-forest-mid cm-light-surface-ink-muted opacity-80">
-                        {getRecipeNutritionSummaryLine(createRecipeNutritionAttachment(result, item))}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => onAttach(createRecipeNutritionAttachment(result, item))}
-                      disabled={!canAttach}
-                      className="rounded-full bg-forest-dark text-white px-4 py-2 text-xs font-bold uppercase tracking-widest disabled:opacity-50"
-                    >
-                      Knyt til opskrift
-                    </button>
+              {/* Rationale */}
+              {displayEstimate.rationale && (
+                <details className="group rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10">
+                  <summary className="cursor-pointer px-4 py-3 text-xs sm:text-sm font-medium text-forest-mid cm-light-surface-ink-muted select-none">
+                    Antagelser og kilder
+                  </summary>
+                  <div className="px-4 pb-4 text-xs sm:text-sm leading-relaxed text-forest-mid cm-light-surface-ink-muted opacity-80">
+                    <p>{displayEstimate.rationale}</p>
+                    <p className="mt-2 opacity-75">
+                      Estimeret samlet vægt: {displayEstimate.estimatedTotalWeightGrams ?? '-'} g
+                    </p>
                   </div>
-                  {item.provenance.isFallback && (
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-                      <ShieldAlert size={12} />
-                      Fallback-kilde
+                </details>
+              )}
+
+              {/* Macro sources */}
+              {ingredientBreakdown.length > 0 && (
+                <details className="group rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10">
+                  <summary className="cursor-pointer px-4 py-3 text-xs sm:text-sm font-medium text-forest-mid cm-light-surface-ink-muted select-none">
+                    Makrokilder pr. ingrediens
+                  </summary>
+                  <div className="px-4 pb-4">
+                    <div className="cm-nutrition-lookup-tabs mb-3">
+                      {(['protein', 'fat', 'carbs'] as MacroTab[]).map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => setActiveMacroTab(tab)}
+                          className={`cm-nutrition-source-tab text-xs sm:text-sm font-medium transition-colors ${
+                            activeMacroTab === tab
+                              ? 'bg-forest-dark text-white'
+                              : 'bg-white/60 dark:bg-black/15 text-forest-mid cm-light-surface-ink-muted hover:bg-white/80 dark:hover:bg-black/25'
+                          }`}
+                        >
+                          {MACRO_META[tab].label}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <p className="text-xs sm:text-sm opacity-65 mb-3">
+                      Sorteret efter størst bidrag ({sourceBasisLabel}).
+                    </p>
+
+                    <ul className="cm-nutrition-source-list">
+                      {macroSourceItems.map((item) => (
+                        <li key={`${activeMacroTab}-${item.ingredientName}`} className="cm-nutrition-source-item rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2.5">
+                          <div className="cm-nutrition-source-item-row">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-forest-dark cm-light-surface-ink truncate">{item.ingredientName}</p>
+                              <p className="text-xs opacity-70 mt-0.5">{formatIngredientMacroLine(item)}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${MACRO_META[activeMacroTab].softBg} ${MACRO_META[activeMacroTab].pillText}`}>
+                              {formatMacroValue(item.scaledValue)} g
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {ingredientBreakdown.length > 5 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllMacroSources((current) => !current)}
+                        className="mt-3 text-xs sm:text-sm font-medium text-heath-mid hover:underline"
+                      >
+                        {showAllMacroSources ? 'Vis færre' : `Vis alle ${ingredientBreakdown.length}`}
+                      </button>
+                    )}
+                  </div>
+                </details>
+              )}
             </div>
           )}
-        </>
+
+          {/* Attached product data */}
+          {hasAttachment && attachment ? (
+            <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/10 p-4">
+              <div className="cm-nutrition-attachment-head">
+                <div className="min-w-0">
+                  <p className="text-sm sm:text-base font-serif text-forest-dark cm-light-surface-ink italic truncate">{attachment.title}</p>
+                  <p className="mt-1 text-xs sm:text-sm text-forest-mid cm-light-surface-ink-muted opacity-75">
+                    {[attachment.brand, attachment.barcode].filter(Boolean).join(' · ') || 'Produktdata'}
+                  </p>
+                </div>
+                {canClear && (
+                  <button
+                    onClick={onClear}
+                    className="shrink-0 inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-heath-mid hover:underline"
+                  >
+                    <Unlink2 size={14} />
+                    Fjern
+                  </button>
+                )}
+              </div>
+              {attachment.nutrition && (
+                <div className="cm-nutrition-attachment-grid mt-3 text-xs sm:text-sm text-forest-mid cm-light-surface-ink-muted">
+                  <div className="rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2">{attachment.nutrition.energyKcalPer100g ?? '-'} kcal</div>
+                  <div className="rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2">Fedt {attachment.nutrition.fatPer100g ?? '-'} g</div>
+                  <div className="rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2">Kulh. {attachment.nutrition.carbsPer100g ?? '-'} g</div>
+                  <div className="rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2">Protein {attachment.nutrition.proteinPer100g ?? '-'} g</div>
+                </div>
+              )}
+              <p className="mt-3 text-xs opacity-60">Pr. 100 g. Opskriftens portioner regnes ikke om automatisk.</p>
+              {attachment.provenance.sourceUrl && (
+                <a href={attachment.provenance.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex text-xs font-medium text-heath-mid hover:underline">
+                  Se kilde
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/35 dark:bg-black/10 px-4 py-3 text-xs sm:text-sm text-forest-mid cm-light-surface-ink-muted">
+              <p className="font-medium">Ingen knyttet produktdata</p>
+              <p className="mt-1 opacity-70">{summaryLine}</p>
+            </div>
+          )}
+
+          {/* Product lookup */}
+          {!canAttach && !readOnlyMessage && (
+            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 italic opacity-80">
+              Gem opskriften først, hvis du vil knytte produktdata til den.
+            </p>
+          )}
+
+          {canAttach && (
+            <>
+              <div className="cm-nutrition-lookup-tabs bg-white/40 dark:bg-black/10 rounded-2xl p-1 border border-black/5 dark:border-white/10">
+                <button
+                  onClick={() => setMode('barcode')}
+                  className={`cm-nutrition-lookup-tab px-4 py-2 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm transition-all ${mode === 'barcode' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid cm-light-surface-ink-muted hover:bg-white/40 dark:hover:bg-white/10'}`}
+                >
+                  <Barcode size={14} /> Stregkode
+                </button>
+                <button
+                  onClick={() => setMode('text_search')}
+                  className={`cm-nutrition-lookup-tab px-4 py-2 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm transition-all ${mode === 'text_search' ? 'bg-forest-dark text-white shadow-sm' : 'text-forest-mid cm-light-surface-ink-muted hover:bg-white/40 dark:hover:bg-white/10'}`}
+                >
+                  <Search size={14} /> Produktsøgning
+                </button>
+              </div>
+
+              <div className="cm-nutrition-search">
+                <input
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !loading) {
+                      void handleLookup();
+                    }
+                  }}
+                  placeholder={mode === 'barcode' ? 'Fx 3017620422003' : 'Fx nutella'}
+                  className="flex-1 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/20 px-4 py-2.5 text-sm text-forest-dark cm-light-surface-ink outline-none focus:border-forest-mid"
+                />
+                <button
+                  onClick={() => void handleLookup()}
+                  disabled={!input.trim() || loading}
+                  className="px-4 py-2.5 text-xs sm:text-sm font-medium rounded-2xl bg-forest-dark text-white shadow-sm disabled:opacity-50"
+                >
+                  {loading ? 'Søger...' : 'Find'}
+                </button>
+              </div>
+
+              {error && (
+                <p className="text-xs sm:text-sm text-red-700 dark:text-red-300">{error}</p>
+              )}
+
+              {result && (
+                <div className="space-y-2">
+                  {result.items.length === 0 && (
+                    <p className="text-xs sm:text-sm text-forest-mid cm-light-surface-ink-muted opacity-70">
+                      Ingen produkter fundet.
+                    </p>
+                  )}
+                  {result.items.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-black/15 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm sm:text-base font-serif text-forest-dark cm-light-surface-ink italic truncate">{item.title}</p>
+                          <p className="mt-1 text-xs text-forest-mid cm-light-surface-ink-muted opacity-75">
+                            {[item.brand, item.barcode].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => onAttach(createRecipeNutritionAttachment(result, item))}
+                          disabled={!canAttach}
+                          className="shrink-0 btn-botanical !py-2 !px-4 text-xs sm:text-sm disabled:opacity-50"
+                        >
+                          Knyt til
+                        </button>
+                      </div>
+                      {item.provenance.isFallback && (
+                        <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                          <ShieldAlert size={12} /> Fallback-kilde
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       <div className="cm-nutrition-mobile-clearance" aria-hidden="true" />

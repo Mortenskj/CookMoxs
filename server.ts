@@ -235,7 +235,7 @@ function getAiClient() {
   return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 }
 
-const SERVER_AI_TIMEOUT_MS = 90000;
+const SERVER_AI_TIMEOUT_MS = 105000;
 
 async function generateAIContentOnce(model: string, prompt: string, responseSchema: any) {
   const controller = new AbortController();

@@ -1,5 +1,5 @@
 ﻿import { Recipe, Ingredient, Step, Folder as FolderType } from '../types';
-import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle } from 'lucide-react';
+import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DEFAULT_RECIPE_CATEGORIES, COMMON_INGREDIENT_SUGGESTIONS, COMMON_RECIPE_UNITS } from '../config/recipeEditorOptions';
@@ -926,44 +926,59 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   return (
     <div className="recipe-print-root p-4 pb-48 sm:pb-36 max-w-md mx-auto min-h-screen">
       {/* Header */}
-      <div className="recipe-print-header cm-topbar-surface flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 py-4 z-10 print:hidden">
-        <div className="flex gap-2">
-          <button onClick={onBack} className="flex items-center gap-1 p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
-            <ArrowLeft size={22} />
-            <span className="text-sm font-medium pr-2 hidden sm:inline">Tilbage</span>
+      <nav className="recipe-print-header cm-topbar-surface flex items-center justify-between mb-6 sticky top-0 py-1.5 px-2 z-10 print:hidden rounded-b-[20px]">
+        <button onClick={onBack} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title="Tilbage">
+          <span className="cm-nav-icon"><ArrowLeft size={18} /></span>
+          <span className="cm-nav-label">Tilbage</span>
+        </button>
+        {hasForward && onForward && (
+          <button onClick={onForward} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title="Frem">
+            <span className="cm-nav-icon"><ArrowRight size={18} /></span>
           </button>
-          {hasForward && onForward && (
-            <button onClick={onForward} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
-              <ArrowRight size={22} />
-            </button>
-          )}
-        </div>
-        <div className="flex gap-2 flex-wrap justify-end">
-          {canMutateRecipe && (recipe.folder === DEFAULT_FOLDER_NAME || !recipe.isSaved) && (
-            <button 
-              onClick={openFolderPickerForSave} 
-              className="flex items-center gap-2 px-6 py-2 bg-heath-mid text-white rounded-full text-xs font-bold tracking-widest uppercase shadow-lg hover:bg-heath-dark transition-all"
+        )}
+        <div className="flex items-center gap-0.5 ml-auto">
+          {canMutateRecipe && !recipe.isSaved && (
+            <button
+              onClick={() => openFolderPickerForSave()}
+              className="cm-nav-item cm-nav-item--active !min-h-0 !w-auto !gap-1 px-2.5 py-1.5"
+              title="Gem opskrift"
             >
-              <Save size={18} />
-              Gem Opskrift
+              <span className="cm-nav-icon"><Save size={16} /></span>
+              <span className="cm-nav-label">Gem</span>
             </button>
           )}
           {canMutateRecipe && (
-            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 cm-surface-utility text-forest-mid cm-light-surface-ink rounded-full transition-colors hover:bg-white/40 dark:hover:bg-black/5">
-              <Edit3 size={18} />
-              <span className="text-sm font-medium hidden sm:inline">Rediger</span>
+            <button onClick={() => setIsEditing(true)} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title="Rediger">
+              <span className="cm-nav-icon"><Edit3 size={16} /></span>
             </button>
           )}
           {canMutateRecipe && (
-            <button onClick={() => onToggleFavorite(recipe)} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
-              <Heart size={22} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} />
+            <button onClick={() => onToggleFavorite(recipe)} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title={recipe.isFavorite ? 'Fjern favorit' : 'Tilføj favorit'}>
+              <span className="cm-nav-icon"><Heart size={16} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} /></span>
             </button>
           )}
-          <button onClick={() => window.print()} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">
-            <Printer size={22} />
+          <button
+            onClick={() => {
+              if (typeof navigator !== 'undefined' && navigator.share) {
+                navigator.share({
+                  title: recipe.title,
+                  text: `${recipe.title}${recipe.summary ? '\n\n' + recipe.summary : ''}\n\n${(recipe.ingredients || []).map(i => `${i.amount ?? ''} ${i.unit} ${i.name}`.trim()).join('\n')}`,
+                }).catch(() => {});
+              } else {
+                const text = `${recipe.title}\n\n${recipe.summary || ''}\n\nIngredienser:\n${(recipe.ingredients || []).map(i => `${i.amount ?? ''} ${i.unit} ${i.name}`.trim()).join('\n')}\n\nFremgangsmåde:\n${(recipe.steps || []).map((s, i) => `${i + 1}. ${s.text}`).join('\n')}`;
+                navigator.clipboard?.writeText(text).catch(() => {});
+              }
+            }}
+            className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5"
+            title="Del opskrift"
+          >
+            <span className="cm-nav-icon"><Share2 size={16} /></span>
+          </button>
+          <button onClick={() => window.print()} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title="Print">
+            <span className="cm-nav-icon"><Printer size={16} /></span>
           </button>
         </div>
-      </div>
+      </nav>
 
       <style dangerouslySetInnerHTML={{ __html: RECIPE_PRINT_STYLES }} />
 
