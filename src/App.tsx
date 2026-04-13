@@ -1,12 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { OvenAnimation } from './components/OvenAnimation';
-import { PotAnimation } from './components/PotAnimation';
 import { TimerAnimationIcon, getTimerAnimationType } from './components/TimerAnimationIcon';
-import { CookingPot, BookOpen, Timer as TimerIcon, Microwave, Home, PlusCircle } from 'lucide-react';
-// Removed direct usage of @google/genai.  All AI functionality is handled
-// server-side via services/aiService.  The RECIPE_SCHEMA constant below
-// served as a reference for AI prompts but is no longer used in the
-// client.  See server.ts for schema details.
+import { CookingPot, BookOpen, Home, PlusCircle } from 'lucide-react';
 import {
   adjustRecipe as aiAdjustRecipe,
   generateSteps as aiGenerateSteps,
@@ -88,23 +82,10 @@ import { useNetworkStatus } from './hooks/useNetworkStatus';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { usePendingQueue } from './hooks/usePendingQueue';
 import { useOfflineQueueProcessor } from './hooks/useOfflineQueueProcessor';
+import { useAppNavigation } from './hooks/useAppNavigation';
+import { useConfirmDialog } from './hooks/useConfirmDialog';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import type { OfflineQueueItem } from './services/offlineQueueService';
-
-// Remove direct instantiation of GoogleGenAI on the client.  All AI work
-// is delegated to the server via services/aiService.
-
-
-const getTimerIcon = (description: string) => {
-  if (!description) return TimerIcon;
-  const desc = description.toLowerCase();
-  if (desc.includes('ovn') || desc.includes('bage') || desc.includes('stegeso')) {
-    return Microwave;
-  }
-  if (desc.includes('simre') || desc.includes('koge') || desc.includes('gryde') || desc.includes('pande')) {
-    return CookingPot;
-  }
-  return TimerIcon;
-};
 
 const parseAIError = (err: any, defaultMsg: string) => {
   return normalizeAiActionError(err).message || defaultMsg;
@@ -157,9 +138,8 @@ const blobToBase64Data = (blob: Blob) =>
   });
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewState>('home');
-  const [viewHistory, setViewHistory] = useState<ViewState[]>(['home']);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const { currentView, setCurrentView, navigateTo: rawNavigateTo, goBack, goForward, hasForward } = useAppNavigation();
+  const { isOpen: confirmOpen, message: confirmMessage, confirm, onConfirm, onCancel } = useConfirmDialog();
   const [cookProgress, setCookProgress] = useState<Record<string, number>>({});
   const [theme, setTheme] = useState<string>(() => localStorage.getItem(STORAGE_KEYS.theme) || DEFAULT_SEASONAL_THEME);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem(STORAGE_KEYS.darkMode) === 'true');
@@ -265,12 +245,8 @@ export default function App() {
 
   const navigateTo = useCallback((view: ViewState) => {
     setActiveTimerPopup(null);
-    const newHistory = viewHistory.slice(0, historyIndex + 1);
-    newHistory.push(view);
-    setViewHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-    setCurrentView(view);
-  }, [historyIndex, viewHistory]);
+    rawNavigateTo(view);
+  }, [rawNavigateTo]);
 
   const {
     markCloudSyncing,
@@ -309,21 +285,6 @@ export default function App() {
     }
   };
 
-  const goBack = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      setCurrentView(viewHistory[historyIndex - 1]);
-    } else {
-      setCurrentView('home');
-    }
-  };
-
-  const goForward = () => {
-    if (historyIndex < viewHistory.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      setCurrentView(viewHistory[historyIndex + 1]);
-    }
-  };
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
@@ -988,7 +949,7 @@ export default function App() {
           }
 
           if (importPreference === 'ask_first') {
-            const shouldUseAI = window.confirm('Grundimport kunne ikke klare denne side alene. Vil du prøve AI-import i stedet?');
+            const shouldUseAI = await confirm('Grundimport kunne ikke klare denne side alene. Vil du prøve AI-import i stedet?');
             if (!shouldUseAI) {
               throw new Error('Importen blev afbrudt, fordi AI-import ikke blev godkendt.');
             }
@@ -1010,7 +971,7 @@ export default function App() {
         }
 
         if (importPreference === 'ask_first' && type !== 'url') {
-          const shouldUseAI = window.confirm('Denne type import kræver AI. Vil du fortsætte med AI-import?');
+          const shouldUseAI = await confirm('Denne type import kræver AI. Vil du fortsætte med AI-import?');
           if (!shouldUseAI) {
             throw new Error('Importen blev afbrudt, fordi AI-import ikke blev godkendt.');
           }
@@ -1161,7 +1122,7 @@ export default function App() {
         setLoading(false);
       }
     }
-  }, [aiDisabledReason, autoAiImportEnhancement, folders, getAnalyticsContext, importPreference, navigateTo, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
+  }, [aiDisabledReason, autoAiImportEnhancement, confirm, folders, getAnalyticsContext, importPreference, navigateTo, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
 
   const handleImport = async (content: string | { data: string, mimeType: string }, type: 'url' | 'text' | 'file' | 'image') => {
     await executeImportFlow(content, type);
@@ -1833,7 +1794,7 @@ export default function App() {
           onFolderCreate={handleCreateFolder}
           onBack={goBack}
           onForward={goForward}
-          hasForward={historyIndex < viewHistory.length - 1}
+          hasForward={hasForward}
           onStartCook={handleStartCook}
           onSave={handleSaveRecipe}
           onDelete={() => handleDeleteRecipe(viewingRecipe.id)}
@@ -1998,7 +1959,6 @@ export default function App() {
       {currentView !== 'cook' && timers.length > 0 && (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
           {timers.map((t, index) => {
-            const Icon = getTimerIcon(t.description);
             const animType = getTimerAnimationType(t.description);
             return (
               <div
@@ -2077,6 +2037,13 @@ export default function App() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        message={confirmMessage}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
 
       {/* Bottom Navigation */}
       {currentView !== 'cook' && currentView !== 'settings' && (
