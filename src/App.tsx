@@ -91,6 +91,18 @@ const parseAIError = (err: any, defaultMsg: string) => {
   return normalizeAiActionError(err).message || defaultMsg;
 };
 
+const mergeRecipesById = (...recipeGroups: Recipe[][]): Recipe[] => {
+  const recipesById = new Map<string, Recipe>();
+
+  for (const group of recipeGroups) {
+    for (const recipe of group) {
+      recipesById.set(recipe.id, recipe);
+    }
+  }
+
+  return Array.from(recipesById.values());
+};
+
 type AiActionKey =
   | 'smart_adjust'
   | 'generate_steps'
@@ -398,7 +410,7 @@ export default function App() {
         hasReceivedCloudRecipes = true;
         setIsSavedRecipeCacheReady(true);
         const shared = savedRecipesRef.current.filter((recipe) => recipe.authorUID !== user.uid);
-        commitSavedRecipes([...recipes, ...shared]);
+        commitSavedRecipes(mergeRecipesById(recipes, shared));
       }, handleSyncListenerError);
 
       const unsubFoldersSync = listenToAccessibleFolders(user.uid, (snapshotFolders) => {
@@ -448,7 +460,7 @@ export default function App() {
         setFolders(reconciled.folders);
         const myRecipes = reconciled.recipes.filter((recipe) => recipe.authorUID === user.uid);
         const shared = savedRecipesRef.current.filter((recipe) => recipe.authorUID !== user.uid);
-        commitSavedRecipes([...myRecipes, ...shared]);
+        commitSavedRecipes(mergeRecipesById(myRecipes, shared));
 
         if (unsubSharedRecipes) {
           unsubSharedRecipes();
@@ -458,7 +470,7 @@ export default function App() {
         if (sharedFolderIds.length > 0) {
           unsubSharedRecipes = listenToSharedRecipes(sharedFolderIds, (sharedRecipes) => {
             const myRecipes = savedRecipesRef.current.filter((recipe) => recipe.authorUID === user.uid);
-            commitSavedRecipes([...myRecipes, ...sharedRecipes]);
+            commitSavedRecipes(mergeRecipesById(sharedRecipes, myRecipes));
           }, handleSyncListenerError);
         }
       }, handleSyncListenerError);

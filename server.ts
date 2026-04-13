@@ -299,6 +299,17 @@ function isGeminiSupportedMime(mimeType: string): boolean {
   return GEMINI_SUPPORTED_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
 }
 
+function normalizeExtractedText(rawText: string): string {
+  return rawText
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function extractTextFromGoogleDocShortcut(text: string, googleAccessToken?: string): Promise<string | null> {
   try {
     const parsed = JSON.parse(text);
@@ -342,7 +353,9 @@ async function extractTextFromGoogleDocShortcut(text: string, googleAccessToken?
         } else {
           const $ = cheerio.load(response.data);
           $('script, style, nav, footer, iframe, noscript, svg').remove();
-          bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+          $('body').find('br').replaceWith('\n');
+          $('body').find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
+          bodyText = normalizeExtractedText($('body').text());
         }
         if (bodyText) {
           console.log(`[gdoc] Public URL success: ${gdocUrl}, text length: ${bodyText.length}`);
@@ -417,9 +430,9 @@ async function extractTextFromFile(base64Data: string, mimeType: string, googleA
   return null;
 }
 
-async function importRecipeFromTextWithFallback(text: string, prompt: string, fallbackLabel: string) {
+async function importRecipeFromTextWithFallback(text: string, prompt: string, fallbackLabel: string, maxRetries = 0) {
   try {
-    return await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, 2);
+    return await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, maxRetries);
   } catch (error) {
     console.warn(`[import] AI import failed for ${fallbackLabel}, falling back to deterministic text parser: ${error instanceof Error ? error.message : error}`);
     try {
@@ -737,7 +750,7 @@ async function fetchRecipeSource(url: string) {
     const contentElement = targetElement || $('body');
     contentElement.find('br').replaceWith('\n');
     contentElement.find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
-    return { html: contentElement.text().replace(/\s+/g, ' ').trim() };
+    return { html: normalizeExtractedText(contentElement.text()) };
   } catch (error) {
     if (error instanceof UnsafeUrlError) {
       throw new HttpError(error.status, error.message);
@@ -1256,7 +1269,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
               IMPORT_MODEL,
               `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`,
               RECIPE_SCHEMA,
-              2,
+              0,
             )
           : sourceType === 'text'
             ? await importRecipeFromTextWithFallback(
@@ -1264,11 +1277,10 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
                 `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
                 sourceType,
               )
-            : await generateAIContent(
-                IMPORT_MODEL,
+            : await importRecipeFromTextWithFallback(
+                textContent,
                 `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
-                RECIPE_SCHEMA,
-                2,
+                sourceType,
               );
         return res.json({ parsedData });
       }

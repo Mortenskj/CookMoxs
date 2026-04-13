@@ -14,11 +14,21 @@ interface UseOfflineQueueProcessorOptions {
 }
 
 type QueueProcessTrigger = 'manual' | 'online' | 'resume';
+const STALE_PROCESSING_MS = 5 * 60 * 1000;
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
   return String(error ?? 'Ukendt fejl');
+}
+
+function isStaleProcessingItem(item: OfflineQueueItem) {
+  if (item.status !== 'processing') return false;
+
+  const updatedAtMs = Date.parse(item.updatedAt);
+  if (!Number.isFinite(updatedAtMs)) return true;
+
+  return Date.now() - updatedAtMs >= STALE_PROCESSING_MS;
 }
 
 export function useOfflineQueueProcessor({ isOnline, canProcess, onProcessItem, onQueueChanged }: UseOfflineQueueProcessorOptions) {
@@ -46,7 +56,11 @@ export function useOfflineQueueProcessor({ isOnline, canProcess, onProcessItem, 
 
     try {
       const items = await listOfflineQueueItems();
-      const candidates = items.filter(item => item.status === 'pending' || (trigger === 'manual' && item.status === 'failed'));
+      const candidates = items.filter((item) =>
+        item.status === 'pending'
+        || isStaleProcessingItem(item)
+        || (trigger === 'manual' && item.status === 'failed'),
+      );
 
       if (candidates.length === 0) {
         if (trigger === 'manual') {

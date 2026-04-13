@@ -98,11 +98,6 @@ export function CookView({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const minSwipeDistance = 50;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onStepChange is an inline callback; only fire on step change
-  useEffect(() => {
-    if (onStepChange) onStepChange(currentStep);
-  }, [currentStep]);
-
   useEffect(() => {
     setHudMessage(null);
   }, [currentStep]);
@@ -148,10 +143,10 @@ export function CookView({
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd || !recipe) return;
     const distance = touchStart - touchEnd;
-    if (distance > minSwipeDistance && currentStep < recipe.steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else if (distance < -minSwipeDistance && currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    if (distance > minSwipeDistance && safeCurrentStep < steps.length - 1) {
+      setCurrentStep(safeCurrentStep + 1);
+    } else if (distance < -minSwipeDistance && safeCurrentStep > 0) {
+      setCurrentStep(safeCurrentStep - 1);
     }
   };
 
@@ -163,12 +158,30 @@ export function CookView({
     };
     return includePrep ? [prepStep, ...recipe.steps] : recipe.steps;
   }, [recipe, includePrep]);
+  const maxStepIndex = Math.max(steps.length - 1, 0);
+  const clampedInitialStep = Math.min(Math.max(initialStep, 0), maxStepIndex);
+  const safeCurrentStep = Math.min(Math.max(currentStep, 0), maxStepIndex);
 
-  const isPrepStep = includePrep && currentStep === 0;
+  const isPrepStep = includePrep && safeCurrentStep === 0;
   const prepActions = useMemo(() => {
     if (!recipe || !isPrepStep) return [];
     return categorizePrepIngredients(recipe.ingredients || []);
   }, [recipe, isPrepStep]);
+
+  useEffect(() => {
+    setCurrentStep(clampedInitialStep);
+  }, [clampedInitialStep, recipe?.id]);
+
+  useEffect(() => {
+    if (currentStep !== safeCurrentStep) {
+      setCurrentStep(safeCurrentStep);
+    }
+  }, [currentStep, safeCurrentStep]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onStepChange is an inline callback; only fire on step change
+  useEffect(() => {
+    if (onStepChange) onStepChange(safeCurrentStep);
+  }, [safeCurrentStep]);
 
   const toggleChecked = (index: number) => {
     setCheckedIngredients((prev) => {
@@ -198,13 +211,29 @@ export function CookView({
     );
   }
 
-  const step = steps[currentStep];
-  const nextStep = steps[currentStep + 1];
+  const step = steps[safeCurrentStep];
+  const nextStep = steps[safeCurrentStep + 1];
+
+  if (!step) {
+    return (
+      <div className="cm-cook-shell p-4 pb-24 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center">
+        <div className="cm-cook-surface w-24 h-24 rounded-[28px] flex items-center justify-center mb-8">
+          <ChefHat size={48} className="text-heath-mid" />
+        </div>
+        <h2 className="text-3xl font-serif mb-4 italic text-[#F9F9F7]">Ingen trin tilgængelige</h2>
+        <p className="text-heath-mid mb-10 max-w-xs italic opacity-70 leading-relaxed">
+          Opskriften mangler trin eller kunne ikke gendannes sikkert i cook mode.
+        </p>
+        <button onClick={onExit} className="cm-cook-secondary-button">Gå tilbage</button>
+      </div>
+    );
+  }
+
   const displayHeat = isPrepStep ? null : formatStepHeatDisplay(step);
-  const mentionedIngredients = isPrepStep ? [] : (step.relevantIngredients?.length ? step.relevantIngredients : []);
+  const mentionedIngredients = isPrepStep ? [] : (step?.relevantIngredients?.length ? step.relevantIngredients : []);
   const canStartStepTimer =
     !isPrepStep &&
-    !!step.timer &&
+    !!step?.timer &&
     !timers.some((t) => t.description === step.timer!.description && t.duration === step.timer!.duration * 60);
 
   const formatTime = (seconds: number) => {
@@ -230,12 +259,12 @@ export function CookView({
           <div className="cm-cook-progress-track absolute top-0 left-0 right-0 h-1 z-50">
             <div
               className="cm-cook-progress-bar h-full"
-              style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+                style={{ width: `${((safeCurrentStep + 1) / steps.length) * 100}%` }}
             />
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-bold text-heath-mid uppercase tracking-widest mb-1 truncate">
-              Trin {currentStep + 1} af {steps.length}
+                Trin {safeCurrentStep + 1} af {steps.length}
             </span>
             <button onClick={onStopCooking} className="cm-cook-danger-button self-start mt-1 text-xs">
               Stop
@@ -440,8 +469,8 @@ export function CookView({
         {!isPrepStep && (
           <div className="shrink-0 px-4 sm:px-6 py-2 flex justify-between items-center">
             <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0}
+              onClick={() => setCurrentStep(Math.max(0, safeCurrentStep - 1))}
+              disabled={safeCurrentStep === 0}
               className="cm-cook-nav-button disabled:opacity-0 disabled:pointer-events-none"
               aria-label="Forrige trin"
             >
@@ -449,8 +478,8 @@ export function CookView({
             </button>
             <button
               onClick={() => {
-                if (currentStep < steps.length - 1) {
-                  setCurrentStep(currentStep + 1);
+                if (safeCurrentStep < steps.length - 1) {
+                  setCurrentStep(safeCurrentStep + 1);
                 } else {
                   onCompleteCooking();
                 }
