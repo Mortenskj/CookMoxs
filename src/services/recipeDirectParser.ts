@@ -206,6 +206,17 @@ const STEP_SECTION_PATTERNS = [
   /^fremgang\b/,
 ];
 
+function normalizeForMatch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\u00e6/g, 'ae')
+    .replace(/\u00f8/g, 'oe')
+    .replace(/\u00e5/g, 'aa')
+    .trim();
+}
+
 function stripListPrefix(value: string): string {
   return value
     .replace(/^\s*[\u2022*•\-–]\s*/, '')
