@@ -1,0 +1,66 @@
+:root {
+  --cm-bg: #e0c29b;
+  --cm-scene-desktop: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
+  --cm-scene-mobile: url('/backgrounds/seasonal/autumn-mobile-1080x1920.jpg');
+  --cm-overlay-top: rgba(248, 210, 149, 0.28);
+  --cm-overlay-bottom: rgba(76, 34, 12, 0.16);
+  --cm-haze-a: rgba(255, 255, 255, 0.14);
+  --cm-haze-b: rgba(255, 255, 255, 0.08);
+  --cm-haze-c: rgba(255, 255, 255, 0.06);
+  --cm-noise-opacity: 0.72;
+  --cm-cook-image-filter: brightness(0.84) saturate(0.9);
+  --cm-cook-overlay-top: rgba(11, 12, 14, 0.16);
+  --cm-cook-overlay-bottom: rgba(11, 12, 14, 0.38);
+}
+
+.cm-seasonal-scene[data-season="spring"] {
+  --cm-bg: #e7eedf;
+  --cm-scene-desktop: url('/backgrounds/seasonal/spring-hero-1600x900.jpg');
+  --cm-scene-mobile: url('/backgrounds/seasonal/spring-mobile-1080x1920.jpg');
+  --cm-overlay-top: rgba(247, 232, 199, 0.3);
+  --cm-overlay-bottom: rgba(222, 234, 215, 0.12);
+}
+
+.cm-seasonal-scene[data-season="summer"] {
+  --cm-bg: #efe0b9;
+  --cm-scene-desktop: url('/backgrounds/seasonal/summer-hero-1600x900.jpg');
+  --cm-scene-mobile: url('/backgrounds/seasonal/summer-mobile-1080x1920.jpg');
+  --cm-overlay-top: rgba(252, 220, 158, 0.34);
+  --cm-overlay-bottom: rgba(110, 73, 21, 0.1);
+}
+
+.cm-seasonal-scene[data-season="autumn"] {
+  --cm-bg: #e0c29b;
+  --cm-scene-desktop: url('/backgrounds/seasonal/autumn-hero-1600x900.jpg');
+  --cm-scene-mobile: url('/backgrounds/seasonal/autumn-mobile-1080x1920.jpg');
+  --cm-overlay-top: rgba(248, 210, 149, 0.28);
+  --cm-overlay-bottom: rgba(76, 34, 12, 0.16);
+}
+
+.cm-seasonal-scene[data-season="winter"] {
+  --cm-bg: #d8dfe5;
+  --cm-scene-desktop: url('/backgrounds/seasonal/winter-hero-1600x900.jpg');
+  --cm-scene-mobile: url('/backgrounds/seasonal/winter-mobile-1080x1920.jpg');
+  --cm-overlay-top: rgba(237, 241, 245, 0.24);
+  --cm-overlay-bottom: rgba(32, 50, 64, 0.14);
+}
+
+.dark .cm-seasonal-scene[data-season="spring"] {
+  --cm-overlay-top: rgba(10, 20, 14, 0.4);
+  --cm-overlay-bottom: rgba(10, 20, 14, 0.56);
+}
+
+.dark .cm-seasonal-scene[data-season="summer"] {
+  --cm-overlay-top: rgba(28, 21, 12, 0.38);
+  --cm-overlay-bottom: rgba(28, 21, 12, 0.56);
+}
+
+.dark .cm-seasonal-scene[data-season="autumn"] {
+  --cm-overlay-top: rgba(18, 22, 20, 0.38);
+  --cm-overlay-bottom: rgba(18, 22, 20, 0.56);
+}
+
+.dark .cm-seasonal-scene[data-season="winter"] {
+  --cm-overlay-top: rgba(18, 28, 38, 0.36);
+  --cm-overlay-bottom: rgba(18, 28, 38, 0.52);
+}

@@ -1,0 +1,73 @@
+<svg width="1080" height="420" viewBox="0 0 1080 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>CookMoxs CS-01 v1 Spring contour study</title>
+  <desc>Spring contour foundation with lighter lifted phrasing, breathable spacing, and subtle upward buoyancy. Natural silhouette first, hidden Vivaldi second.</desc>
+
+  <rect width="1080" height="420" fill="#F4F1E6"/>
+
+  <!-- light structural field: still a contour study, not a final background -->
+  <path d="
+      M0 220
+      C34 212, 66 206, 98 205
+      C130 204, 162 210, 194 216
+      C226 222, 258 226, 292 223
+      C326 220, 360 209, 394 196
+      C428 183, 462 174, 496 173
+      C530 172, 564 179, 598 188
+      C632 197, 666 203, 700 201
+      C734 199, 768 191, 802 181
+      C836 171, 870 163, 904 162
+      C938 161, 972 167, 1008 176
+      C1044 185, 1068 191, 1080 194
+      L1080 420
+      L0 420
+      Z"
+      fill="#B8C2A1" opacity="0.12"/>
+
+  <!-- main contour: 8 meaningful rises/falls with air between events -->
+  <path d="
+      M0 214
+      C30 203, 60 195, 92 193
+      C124 191, 156 198, 188 207
+      C220 216, 252 223, 286 221
+      C320 219, 354 207, 388 192
+      C422 177, 456 165, 490 162
+      C524 159, 558 165, 592 175
+      C626 185, 660 193, 694 192
+      C728 191, 762 182, 796 169
+      C830 156, 864 144, 898 141
+      C932 138, 966 145, 1002 157
+      C1038 169, 1064 177, 1080 182"
+      stroke="#66735B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- secondary contour: slightly quicker phrasing, still restrained -->
+  <path d="
+      M0 232
+      C32 224, 64 218, 96 217
+      C128 216, 160 222, 191 228
+      C222 234, 253 238, 286 236
+      C319 234, 352 225, 385 214
+      C418 203, 451 193, 484 190
+      C517 187, 550 191, 583 199
+      C616 207, 649 213, 682 213
+      C715 213, 748 206, 781 195
+      C814 184, 847 174, 880 170
+      C913 166, 946 170, 980 178
+      C1014 186, 1048 194, 1080 201"
+      stroke="#7E8B71" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.82"/>
+
+  <!-- support contour: keeps center alive without becoming scenic -->
+  <path d="
+      M0 256
+      C36 251, 72 248, 108 249
+      C144 250, 180 255, 214 259
+      C248 263, 282 265, 316 262
+      C350 259, 384 252, 418 244
+      C452 236, 486 230, 520 229
+      C554 228, 588 232, 622 238
+      C656 244, 690 248, 724 247
+      C758 246, 792 241, 826 234
+      C860 227, 894 222, 928 221
+      C962 220, 998 224, 1038 232
+      C1057 236, 1071 239, 1080 241"
+      stroke="#97A389" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+</svg>

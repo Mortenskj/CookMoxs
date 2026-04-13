@@ -1,0 +1,51 @@
+{
+  "name": "cookmoxs",
+  "version": "1.1.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "sync:cache-version": "node scripts/sync-cache-version.mjs",
+    "prestart": "npm run sync:cache-version",
+    "start": "tsx server.ts",
+    "predev": "npm run sync:cache-version",
+    "dev": "cross-env NODE_ENV=development tsx server.ts",
+    "pretypecheck": "npm run sync:cache-version",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run sync:cache-version",
+    "build": "vite build",
+    "build:strict": "npm run typecheck && npm run build",
+    "preverify:parser": "npm run sync:cache-version",
+    "verify:parser": "tsx scripts/verify-direct-parser.ts",
+    "lint": "npm run typecheck"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@google/genai": "^1.46.0",
+    "axios": "^1.13.6",
+    "cheerio": "^1.0.0",
+    "dotenv": "^17.4.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "firebase": "^12.11.0",
+    "framer-motion": "^12.23.24",
+    "helmet": "^8.0.0",
+    "lucide-react": "^0.577.0",
+    "mammoth": "^1.12.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "cross-env": "^10.1.0",
+    "tailwindcss": "^4.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0"
+  },
+  "description": "CookMoxs showcase - AI-drevet opskriftsassistent med PWA-fundament"
+}

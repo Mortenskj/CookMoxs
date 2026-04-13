@@ -1,0 +1,53 @@
+{
+  "structuredRecipe": {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "name": "Frikadeller med ovnkartofler",
+    "description": "En dansk hverdagsret med sprøde kartofler og saftige frikadeller.",
+    "recipeYield": "4 personer",
+    "recipeCategory": [
+      "Aftensmad",
+      "Dansk"
+    ],
+    "keywords": "hverdagsmad, frikadeller, ovn",
+    "recipeIngredient": [
+      "500 g hakket svinekød",
+      "1 løg",
+      "1 æg",
+      "1 dl mælk",
+      "4 spsk havregryn",
+      "800 g kartofler",
+      "2 spsk olie",
+      "1 tsk salt",
+      "1/2 tsk peber"
+    ],
+    "recipeInstructions": [
+      "Rør hakket svinekød sammen med revet løg, æg, mælk, havregryn, salt og peber.",
+      "Form frikadeller og brun dem af på en pande ved middel varme i 4 minutter på hver side.",
+      "Vend kartofler med olie og salt, læg dem i et fad og bag dem i ovnen ved 200 grader i 25 minutter."
+    ]
+  },
+  "expectations": {
+    "title": "Frikadeller med ovnkartofler",
+    "ingredientCount": 9,
+    "stepCount": 3,
+    "requiredIngredientNames": [
+      "svinekød",
+      "løg",
+      "æg",
+      "mælk",
+      "kartofler"
+    ],
+    "requiredCategories": [
+      "Aftensmad",
+      "Dansk",
+      "hverdagsmad"
+    ],
+    "requiredTimerDurations": [
+      4,
+      25
+    ],
+    "requiresStovetopHeat": true,
+    "requiresOvenGuide": true
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "CookMoxs",
+  "description": "En AI-drevet opskriftsassistent og kogebogsapp med import, redigering og kogning. Appen håndterer alt AI-arbejde server-side for sikkerhed og ydeevne.",
+  "requestFramePermissions": []
+}
