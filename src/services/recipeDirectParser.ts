@@ -190,6 +190,253 @@ function splitLongInstructionText(texts: string[]): string[] {
   return texts;
 }
 
+const INGREDIENT_SECTION_PATTERNS = [
+  /^ingredienser\b/,
+  /^det skal du bruge\b/,
+  /^du skal bruge\b/,
+];
+
+const STEP_SECTION_PATTERNS = [
+  /^fremgangsmaade\b/,
+  /^tilberedning\b/,
+  /^metode\b/,
+  /^saadan goer du\b/,
+  /^saadan laver du\b/,
+  /^trin(?: for trin)?\b/,
+  /^fremgang\b/,
+];
+
+function stripListPrefix(value: string): string {
+  return value
+    .replace(/^\s*[\u2022*•\-–]\s*/, '')
+    .replace(/^\s*\d+\s*[\.\)]\s*/, '')
+    .replace(/^\s*(?:trin|step)\s*\d+\s*[:.)-]?\s*/i, '')
+    .trim();
+}
+
+function isSectionHeading(line: string, patterns: RegExp[]): boolean {
+  const normalized = normalizeForMatch(stripListPrefix(line));
+  return patterns.some((pattern) => pattern.test(normalized));
+}
+
+function isIngredientSectionHeading(line: string): boolean {
+  return isSectionHeading(line, INGREDIENT_SECTION_PATTERNS);
+}
+
+function isStepSectionHeading(line: string): boolean {
+  return isSectionHeading(line, STEP_SECTION_PATTERNS);
+}
+
+function isLikelyIngredientGroupHeading(line: string): boolean {
+  const stripped = stripListPrefix(line);
+  if (!stripped.endsWith(':')) return false;
+  if (isIngredientSectionHeading(stripped) || isStepSectionHeading(stripped)) return false;
+  return stripped.length <= 60;
+}
+
+function isLikelyIngredientLine(line: string): boolean {
+  const stripped = stripListPrefix(line);
+  if (!stripped) return false;
+  if (isIngredientSectionHeading(stripped) || isStepSectionHeading(stripped) || isLikelyIngredientGroupHeading(stripped)) {
+    return false;
+  }
+
+  if (/^\s*[\u2022*•\-–]\s+/.test(line) || /^\s*\d+\s*[\.\)]\s+/.test(line)) {
+    return true;
+  }
+
+  if (/^(?:ca\.?\s*)?\d/.test(stripped)) {
+    return true;
+  }
+
+  if (/^(?:en|et|to|tre|fire|fem|seks|syv|otte|ni|ti|halv|halve|½)\b/i.test(stripped)) {
+    return true;
+  }
+
+  return /\b(g|kg|mg|ml|dl|cl|l|tsk|spsk|stk|fed|d[åa]se|glas|knsp|pakke|pk|bundt|pose|skiver|skive|blade|blad|nip|h[åa]ndfuld|kviste|kvist)\b/i.test(stripped);
+}
+
+function isLikelyInstructionLine(line: string): boolean {
+  const normalized = normalizeForMatch(stripListPrefix(line));
+  return /^(forvarm|varm|smelt|snit|hak|roer|bland|kom|tilsaet|steg|saute|sauter|svits|bring|kog|lad|bag|server|anret|vend|haeld|skyl|rens|skaer|riv|pres|pisk|mos|top|drys|fordel|smag|juster|mariner|brun|saenk|skru)\b/.test(normalized);
+}
+
+function parseServingsFromPlainText(lines: string[]): { servings: number; servingsUnit?: string } {
+  for (const line of lines.slice(0, 12)) {
+    const normalized = normalizeForMatch(line);
+    if (!/\b(til|giver|raekker til|serverer|personer|portioner|stk|stykker|frikadeller|boller)\b/.test(normalized)) {
+      continue;
+    }
+    const match = normalized.match(/(?:til|giver|raekker til|serverer)?\s*(?:ca\s*)?(\d+(?:[.,]\d+)?)(?:\s*[-–]\s*(\d+(?:[.,]\d+)?))?\s*(personer|portioner|stk|stykker|frikadeller|boller)?/);
+    if (!match) continue;
+
+    const min = Number(match[1].replace(',', '.'));
+    const max = match[2] ? Number(match[2].replace(',', '.')) : min;
+    const servings = Number.isFinite(max) && max > 0 ? max : min;
+    if (!Number.isFinite(servings) || servings <= 0) continue;
+
+    return {
+      servings,
+      servingsUnit: match[3] || 'personer',
+    };
+  }
+
+  return { servings: 4, servingsUnit: 'personer' };
+}
+
+function buildPlainTextStepTexts(lines: string[]): string[] {
+  const steps: string[] = [];
+  let current = '';
+
+  for (const rawLine of lines) {
+    const stripped = stripListPrefix(rawLine);
+    if (!stripped) continue;
+
+    const startsNewStep = /^\s*[\u2022*•\-–]\s+/.test(rawLine)
+      || /^\s*\d+\s*[\.\)]\s+/.test(rawLine)
+      || /^\s*(?:trin|step)\s*\d+/i.test(rawLine)
+      || !current
+      || (/^[A-ZÆØÅ]/.test(stripped) && /[.!?]$/.test(current));
+
+    if (startsNewStep) {
+      if (current) {
+        steps.push(normalizeText(current));
+      }
+      current = stripped;
+      continue;
+    }
+
+    current = `${current} ${stripped}`.trim();
+  }
+
+  if (current) {
+    steps.push(normalizeText(current));
+  }
+
+  return splitLongInstructionText(steps);
+}
+
+export function parsePlainTextRecipeToRecipe(rawText: string, options?: { sourceUrl?: string }): Recipe {
+  const lines = rawText
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    throw new DirectParseError('Opskriftsteksten var tom.');
+  }
+
+  const title = stripListPrefix(lines[0]);
+  if (!title || isIngredientSectionHeading(title) || isStepSectionHeading(title)) {
+    throw new DirectParseError('Opskriftens titel kunne ikke findes i teksten.');
+  }
+
+  const summaryLines: string[] = [];
+  const ingredientLines: Array<{ raw: string; group: string }> = [];
+  const stepLines: string[] = [];
+  let mode: 'lead' | 'ingredients' | 'steps' = 'lead';
+  let currentGroup = 'Andre';
+
+  for (const line of lines.slice(1)) {
+    if (isIngredientSectionHeading(line)) {
+      mode = 'ingredients';
+      currentGroup = 'Andre';
+      continue;
+    }
+
+    if (isStepSectionHeading(line)) {
+      mode = 'steps';
+      continue;
+    }
+
+    if (mode !== 'steps' && mode !== 'ingredients' && isLikelyIngredientLine(line)) {
+      mode = 'ingredients';
+    }
+
+    if (mode === 'ingredients' && isLikelyInstructionLine(line)) {
+      mode = 'steps';
+    }
+
+    if (mode === 'lead') {
+      summaryLines.push(stripListPrefix(line));
+      continue;
+    }
+
+    if (mode === 'ingredients') {
+      if (isLikelyIngredientGroupHeading(line)) {
+        currentGroup = stripListPrefix(line).replace(/:$/, '').trim() || 'Andre';
+        continue;
+      }
+
+      if (!isLikelyIngredientLine(line)) {
+        continue;
+      }
+
+      ingredientLines.push({
+        raw: stripListPrefix(line),
+        group: currentGroup,
+      });
+      continue;
+    }
+
+    stepLines.push(line);
+  }
+
+  const ingredients = ingredientLines.map(({ raw, group }, index) => ({
+    ...parseIngredient(raw, index),
+    group: group || 'Andre',
+  }));
+  const stepTexts = buildPlainTextStepTexts(stepLines);
+
+  if (ingredients.length === 0) {
+    throw new DirectParseError('Opskriftsteksten manglede genkendelige ingredienser.');
+  }
+
+  if (stepTexts.length === 0) {
+    throw new DirectParseError('Opskriftsteksten manglede genkendelige trin.');
+  }
+
+  const now = new Date().toISOString();
+  const { servings, servingsUnit } = parseServingsFromPlainText(lines);
+  const steps = stepTexts.map((text, index) => ({
+    id: `step-${index}`,
+    text,
+    heat: inferHeatFromStepText(text),
+    timer: inferTimerFromStepText(text),
+    relevantIngredients: findRelevantIngredientsForStep(text, ingredients),
+  }));
+  const { heatGuide, ovenGuide } = buildHeatAndOvenGuides(steps);
+
+  return {
+    id: `plain-${Date.now()}`,
+    title,
+    summary: normalizeText(summaryLines.join(' ')),
+    recipeType: '',
+    categories: [],
+    folder: 'Ikke gemte',
+    folderId: 'default-un-saved-direct',
+    isSaved: false,
+    notes: '',
+    servings,
+    servingsUnit,
+    ingredients,
+    steps,
+    flavorBoosts: [],
+    pitfalls: [],
+    hints: [],
+    substitutions: [],
+    heatGuide,
+    ovenGuide,
+    kitchenTimeline: [],
+    sourceUrl: options?.sourceUrl,
+    lastUsed: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function parseStructuredRecipeToRecipe(structuredRecipe: unknown, options?: { sourceUrl?: string }): Recipe {
   if (!structuredRecipe || typeof structuredRecipe !== 'object') {
     throw new DirectParseError('Den strukturerede opskriftdata var ugyldig.');

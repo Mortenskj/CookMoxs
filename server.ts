@@ -15,7 +15,7 @@ import {
 } from './src/server/utils/aiResponse.ts';
 import axios from 'axios';
 import { fetchWithSafeRedirects, UnsafeUrlError } from './src/server/utils/urlSafety.ts';
-import { DirectParseError, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
+import { DirectParseError, parsePlainTextRecipeToRecipe, parseStructuredRecipeToRecipe } from './src/services/recipeDirectParser.ts';
 import {
   NutritionLookupError,
   lookupNutritionByBarcode,
@@ -299,81 +299,136 @@ function isGeminiSupportedMime(mimeType: string): boolean {
   return GEMINI_SUPPORTED_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
 }
 
-async function extractTextFromFile(base64Data: string, mimeType: string, googleAccessToken?: string): Promise<string | null> {
-  const buffer = Buffer.from(base64Data, 'base64');
+async function extractTextFromGoogleDocShortcut(text: string, googleAccessToken?: string): Promise<string | null> {
+  try {
+    const parsed = JSON.parse(text);
+    const docId = parsed.doc_id;
 
-  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    const result = await mammoth.extractRawText({ buffer });
-    return result.value || null;
-  }
-
-  if (mimeType === 'text/plain' || mimeType === 'text/rtf' || mimeType === 'text/html') {
-    return buffer.toString('utf-8');
-  }
-
-  // .gdoc files are small JSON shortcut files with a doc_id or url field
-  if (mimeType === 'application/vnd.google-apps.document' || mimeType === 'application/json') {
-    try {
-      const text = buffer.toString('utf-8');
-      const parsed = JSON.parse(text);
-      const docId = parsed.doc_id;
-
-      // If we have a Google access token and a doc_id, use Drive API to export as plain text
-      if (docId && googleAccessToken) {
-        try {
-          const driveExportUrl = `https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text/plain`;
-          console.log(`[gdoc] Fetching via Drive API with access token`);
-          const driveResp = await axios.get<string>(driveExportUrl, {
-            headers: { Authorization: `Bearer ${googleAccessToken}` },
-            responseType: 'text',
-            timeout: 15000,
-          });
-          const bodyText = (typeof driveResp.data === 'string' ? driveResp.data : '').trim();
-          if (bodyText) {
-            console.log(`[gdoc] Drive API success, text length: ${bodyText.length}`);
-            return bodyText;
-          }
-        } catch (driveErr) {
-          console.log(`[gdoc] Drive API failed: ${driveErr instanceof Error ? driveErr.message : driveErr}`);
+    if (docId && googleAccessToken) {
+      try {
+        const driveExportUrl = `https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text/plain`;
+        console.log('[gdoc] Fetching via Drive API with access token');
+        const driveResp = await axios.get<string>(driveExportUrl, {
+          headers: { Authorization: `Bearer ${googleAccessToken}` },
+          responseType: 'text',
+          timeout: 15000,
+        });
+        const bodyText = (typeof driveResp.data === 'string' ? driveResp.data : '').trim();
+        if (bodyText) {
+          console.log(`[gdoc] Drive API success, text length: ${bodyText.length}`);
+          return bodyText;
         }
+      } catch (driveErr) {
+        console.log(`[gdoc] Drive API failed: ${driveErr instanceof Error ? driveErr.message : driveErr}`);
       }
-
-      // Fallback: try public URLs without auth
-      const gdocUrls = parsed.url
-        ? [parsed.url]
-        : docId
-          ? [
-              `https://docs.google.com/document/d/${docId}/export?format=txt`,
-              `https://docs.google.com/document/d/${docId}/pub`,
-            ]
-          : [];
-      for (const gdocUrl of gdocUrls) {
-        try {
-          const { response } = await fetchWithSafeRedirects(gdocUrl);
-          const isPlainText = gdocUrl.includes('export?format=txt');
-          let bodyText: string;
-          if (isPlainText) {
-            bodyText = (typeof response.data === 'string' ? response.data : '').trim();
-          } else {
-            const $ = cheerio.load(response.data);
-            $('script, style, nav, footer, iframe, noscript, svg').remove();
-            bodyText = $('body').text().replace(/\s+/g, ' ').trim();
-          }
-          if (bodyText) {
-            console.log(`[gdoc] Public URL success: ${gdocUrl}, text length: ${bodyText.length}`);
-            return bodyText;
-          }
-        } catch (urlErr) {
-          console.log(`[gdoc] URL failed: ${gdocUrl} — ${urlErr instanceof Error ? urlErr.message : urlErr}`);
-          continue;
-        }
-      }
-    } catch (e) {
-      console.error(`[gdoc] Failed to process .gdoc file:`, e);
     }
+
+    const gdocUrls = parsed.url
+      ? [parsed.url]
+      : docId
+        ? [
+            `https://docs.google.com/document/d/${docId}/export?format=txt`,
+            `https://docs.google.com/document/d/${docId}/pub`,
+          ]
+        : [];
+
+    for (const gdocUrl of gdocUrls) {
+      try {
+        const { response } = await fetchWithSafeRedirects(gdocUrl);
+        const isPlainText = gdocUrl.includes('export?format=txt');
+        let bodyText: string;
+        if (isPlainText) {
+          bodyText = (typeof response.data === 'string' ? response.data : '').trim();
+        } else {
+          const $ = cheerio.load(response.data);
+          $('script, style, nav, footer, iframe, noscript, svg').remove();
+          bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+        }
+        if (bodyText) {
+          console.log(`[gdoc] Public URL success: ${gdocUrl}, text length: ${bodyText.length}`);
+          return bodyText;
+        }
+      } catch (urlErr) {
+        console.log(`[gdoc] URL failed: ${gdocUrl} â€” ${urlErr instanceof Error ? urlErr.message : urlErr}`);
+      }
+    }
+  } catch (error) {
+    console.error('[gdoc] Failed to process .gdoc file:', error);
   }
 
   return null;
+}
+
+function isZipLikeBuffer(buffer: Buffer): boolean {
+  return buffer.length >= 4
+    && buffer[0] === 0x50
+    && buffer[1] === 0x4b
+    && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07);
+}
+
+function looksLikeTextPayload(buffer: Buffer): boolean {
+  const sample = buffer.subarray(0, Math.min(buffer.length, 4096)).toString('utf-8');
+  if (!sample.trim()) return false;
+
+  const printableChars = Array.from(sample).filter((char) => {
+    const code = char.charCodeAt(0);
+    return code === 9 || code === 10 || code === 13 || (code >= 32 && code < 65533);
+  }).length;
+
+  return printableChars / sample.length >= 0.85;
+}
+
+async function extractTextFromFile(base64Data: string, mimeType: string, googleAccessToken?: string): Promise<string | null> {
+  const buffer = Buffer.from(base64Data, 'base64');
+  const utf8Text = buffer.toString('utf-8');
+  const trimmedUtf8Text = utf8Text.trim();
+
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || (mimeType === 'application/octet-stream' && isZipLikeBuffer(buffer))) {
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      if (result.value?.trim()) {
+        return result.value;
+      }
+    } catch (docxError) {
+      console.log(`[import] Mammoth extraction failed: ${docxError instanceof Error ? docxError.message : docxError}`);
+    }
+  }
+
+  if (
+    mimeType === 'application/vnd.google-apps.document'
+    || mimeType === 'application/json'
+    || (mimeType === 'application/octet-stream' && trimmedUtf8Text.startsWith('{'))
+  ) {
+    const gdocText = await extractTextFromGoogleDocShortcut(utf8Text, googleAccessToken);
+    if (gdocText) {
+      return gdocText;
+    }
+  }
+
+  if (
+    mimeType === 'text/plain'
+    || mimeType === 'text/rtf'
+    || mimeType === 'text/html'
+    || (mimeType === 'application/octet-stream' && looksLikeTextPayload(buffer))
+  ) {
+    return utf8Text;
+  }
+
+  return null;
+}
+
+async function importRecipeFromTextWithFallback(text: string, prompt: string, fallbackLabel: string) {
+  try {
+    return await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, 2);
+  } catch (error) {
+    console.warn(`[import] AI import failed for ${fallbackLabel}, falling back to deterministic text parser: ${error instanceof Error ? error.message : error}`);
+    try {
+      return parsePlainTextRecipeToRecipe(text);
+    } catch (fallbackError) {
+      console.warn(`[import] Deterministic text parser also failed for ${fallbackLabel}: ${fallbackError instanceof Error ? fallbackError.message : fallbackError}`);
+      throw error;
+    }
+  }
 }
 
 function getLevelStyleInstruction(level: string | undefined, mode: 'steps' | 'fill' | 'import') {
@@ -1196,10 +1251,25 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
 
     try {
       if ((sourceType === 'url' || sourceType === 'text') && typeof textContent === 'string') {
-        const prompt = isStructuredData
-          ? `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`
-          : `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`;
-        const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, 2);
+        const parsedData = isStructuredData
+          ? await generateAIContent(
+              IMPORT_MODEL,
+              `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`,
+              RECIPE_SCHEMA,
+              2,
+            )
+          : sourceType === 'text'
+            ? await importRecipeFromTextWithFallback(
+                textContent,
+                `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
+                sourceType,
+              )
+            : await generateAIContent(
+                IMPORT_MODEL,
+                `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
+                RECIPE_SCHEMA,
+                2,
+              );
         return res.json({ parsedData });
       }
 
@@ -1212,8 +1282,11 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
           if (!extractedText?.trim()) {
             return res.status(400).json({ error: 'Denne filtype kunne ikke læses. Prøv PDF, billede eller indsæt teksten direkte.' });
           }
-          const prompt = `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${extractedText.substring(0, 40000)}`;
-          const parsedData = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, 2);
+          const parsedData = await importRecipeFromTextWithFallback(
+            extractedText,
+            `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${extractedText.substring(0, 40000)}`,
+            `file:${fileData.mimeType}`,
+          );
           return res.json({ parsedData });
         }
 

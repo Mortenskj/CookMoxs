@@ -30,6 +30,7 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const { isOnline } = useNetworkStatus();
   const { pendingCount, isQueueSupported, refreshPendingCount } = usePendingQueue();
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
   const textAndFileDisabledReason = importPreference === 'basic_only'
     ? 'Du har valgt grundimport uden AI. Brug linkimport eller opret opskriften manuelt.'
@@ -281,11 +282,16 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
                   {textAndFileDisabledReason}
                 </div>
               )}
+              {isAndroid && (
+                <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 text-sm text-emerald-900 text-left">
+                  Android viser ofte ikke `.gdoc`-filer i filvælgeren. Brug dokumentets delingslink i stedet, eller vælg en eksporteret `.docx`, `.pdf` eller `.json`-fil.
+                </div>
+              )}
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={(e) => handleFileUpload(e, 'file')}
-                accept=".pdf,image/*,.txt,.doc,.docx,.gdoc"
+                accept=".pdf,image/*,.txt,.doc,.docx,.gdoc,.json,application/json,application/vnd.google-apps.document,application/octet-stream"
                 className="hidden"
               />
               <button
@@ -300,6 +306,16 @@ export function ImportView({ onImport, onCreateManual, loading, error, importPre
               <p className="text-xs text-forest-mid cm-light-surface-ink-soft italic opacity-60 dark:opacity-100 mt-1">
                 Google Docs? Brug Link-import i stedet — indsæt dokumentets delingslink.
               </p>
+              <button
+                onClick={() => {
+                  setQueueMessage(null);
+                  setActiveTab('url');
+                }}
+                disabled={loading || Boolean(submittingTab)}
+                className="mx-auto inline-flex items-center justify-center rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-5 py-3 text-xs font-bold uppercase tracking-widest text-emerald-900 transition-colors hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Brug Google Docs-link
+              </button>
               {submittingTab === 'file' && (
                 <div className="cm-feedback-enter flex justify-center">
                   <InlineLoadingLabel label="Klargør fil til import" />
