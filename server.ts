@@ -418,6 +418,19 @@ async function extractTextFromFile(base64Data: string, mimeType: string, googleA
     }
   }
 
+  if (mimeType === 'multipart/related' || mimeType === 'message/rfc822') {
+    const htmlMatch = utf8Text.match(/<html[\s\S]*<\/html>/i);
+    if (htmlMatch) {
+      const $ = cheerio.load(htmlMatch[0]);
+      $('script, style, nav, footer, iframe, noscript, svg').remove();
+      $('body').find('br').replaceWith('\n');
+      $('body').find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
+      const text = normalizeExtractedText($('body').text());
+      if (text.length > 20) return text;
+    }
+    return utf8Text;
+  }
+
   if (
     mimeType === 'text/plain'
     || mimeType === 'text/rtf'
@@ -807,7 +820,7 @@ async function startServer() {
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: '25mb' }));
   app.use('/api/events', express.text({ type: 'text/plain' }));
 
   const aiLimiter = rateLimit({
@@ -1264,6 +1277,16 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
 
     try {
       if ((sourceType === 'url' || sourceType === 'text') && typeof textContent === 'string') {
+        // Guard: reject near-empty content that would cause AI hallucination
+        const contentLength = textContent.replace(/\s+/g, ' ').trim().length;
+        if (!isStructuredData && contentLength < 80) {
+          console.warn(`[import] Content too short for AI import (${contentLength} chars), likely JS-rendered SPA`);
+          return res.status(422).json({
+            error: 'Siden indeholder ikke nok tekst til at importere en opskrift. Den er sandsynligvis JavaScript-renderet. Prøv at kopiere opskriftsteksten ind manuelt.',
+            code: 'content_too_short',
+          });
+        }
+
         const parsedData = isStructuredData
           ? await generateAIContent(
               IMPORT_MODEL,
