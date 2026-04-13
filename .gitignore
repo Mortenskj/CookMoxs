@@ -4,6 +4,7 @@ dist/
 coverage/
 .claude/
 .DS_Store
+.tmp.driveupload/
 *.log
 .env*
 !.env.example
