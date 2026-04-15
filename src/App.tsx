@@ -1400,6 +1400,7 @@ export default function App() {
 
     try {
       setAuthAction('logout');
+      sessionStorage.removeItem('google_access_token');
       await signOut(auth);
       setAuthErrorMessage(null);
       setSavedRecipes([]);

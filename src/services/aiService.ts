@@ -42,29 +42,20 @@ function normalizeErrorCode(code: unknown): AiRequestErrorCode {
   return 'unknown_error';
 }
 
-async function request<T>(url: string, body: unknown): Promise<T> {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    throw new AiRequestError('Du er offline. AI-funktioner kræver internetforbindelse.', 'offline');
-  }
+function isRetryableStatus(status: number): boolean {
+  return status === 503 || status === 504 || status === 429;
+}
 
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timeoutId = controller
-    ? globalThis.setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS)
-    : null;
-
+async function requestOnce<T>(url: string, body: unknown, signal?: AbortSignal): Promise<T> {
   let resp: Response;
   try {
     resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: controller?.signal,
+      signal,
     });
   } catch (error) {
-    if (timeoutId !== null) {
-      globalThis.clearTimeout(timeoutId);
-    }
-
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new AiRequestError(
         'AI-kaldet brugte for lang tid og blev afbrudt. Prøv igen om lidt.',
@@ -78,19 +69,16 @@ async function request<T>(url: string, body: unknown): Promise<T> {
     );
   }
 
-  if (timeoutId !== null) {
-    globalThis.clearTimeout(timeoutId);
-  }
-
   const data = await resp.json().catch(() => '__MALFORMED_RESPONSE__');
 
   if (!resp.ok) {
     const payload = (data && typeof data === 'object') ? (data as ErrorResponseBody) : null;
-    throw new AiRequestError(
+    const error = new AiRequestError(
       payload?.error || (typeof data === 'string' ? data : 'Der opstod en fejl ved AI-kaldet. Prøv igen om lidt.'),
       normalizeErrorCode(payload?.code),
       resp.status,
     );
+    throw error;
   }
 
   if (data === '__MALFORMED_RESPONSE__') {
@@ -98,6 +86,33 @@ async function request<T>(url: string, body: unknown): Promise<T> {
   }
 
   return data as T;
+}
+
+async function request<T>(url: string, body: unknown): Promise<T> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new AiRequestError('Du er offline. AI-funktioner kræver internetforbindelse.', 'offline');
+  }
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller
+    ? globalThis.setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS)
+    : null;
+
+  try {
+    return await requestOnce<T>(url, body, controller?.signal);
+  } catch (error) {
+    // Auto-retry once for transient server errors
+    if (error instanceof AiRequestError && error.status && isRetryableStatus(error.status)) {
+      console.warn(`[aiService] Retrying after ${error.status}...`);
+      await new Promise(r => setTimeout(r, 2000));
+      return await requestOnce<T>(url, body, controller?.signal);
+    }
+    throw error;
+  } finally {
+    if (timeoutId !== null) {
+      globalThis.clearTimeout(timeoutId);
+    }
+  }
 }
 
 export async function adjustRecipe(recipe: any, instruction: string): Promise<any> {

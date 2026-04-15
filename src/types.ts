@@ -52,9 +52,12 @@ export interface StepIngredient {
   unit: string;
 }
 
+export type TimerKind = 'exact' | 'approximate' | 'state_based' | 'none';
+
 export interface StepTimer {
   duration: number;
   description: string;
+  kind?: TimerKind;
 }
 
 export interface Step {

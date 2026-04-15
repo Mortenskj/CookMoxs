@@ -69,6 +69,13 @@ export function normalizeImportError(error: unknown): { category: ImportErrorCat
 
   const rawMessage = getErrorMessage(error).toLowerCase();
 
+  if (rawMessage.includes('tom opskrift') || rawMessage.includes('content_too_short') || rawMessage.includes('ikke nok tekst')) {
+    return {
+      category: 'unsupported_source',
+      message: 'Siden indeholder ikke nok opskriftstekst til import. Prøv at kopiere teksten ind manuelt i stedet.',
+    };
+  }
+
   if (rawMessage.includes('blev afbrudt') || rawMessage.includes('ikke blev godkendt')) {
     return {
       category: 'ai_failure',

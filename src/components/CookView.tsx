@@ -1,7 +1,5 @@
 import { Recipe, Timer, Ingredient } from '../types';
 import {
-  ChevronLeft,
-  ChevronRight,
   PlayCircle,
   PauseCircle,
   CheckCircle,
@@ -13,8 +11,11 @@ import {
   Type,
   AlertCircle,
   Check,
+  Plus,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
 import { formatStepHeatDisplay } from '../services/cookModeHeuristics';
@@ -89,20 +90,117 @@ export function CookView({
   setTimers,
 }: CookViewProps) {
   const levelMeta = LEVEL_META[userLevel];
-  const [currentStep, setCurrentStep] = useState(initialStep);
+
+  /* ── State ── */
+  const [activeStepIndex, setActiveStepIndex] = useState(initialStep);
+  const [showInlineIngredients, setShowInlineIngredients] = useState(false);
   const [showIngredients, setShowIngredients] = useState(false);
   const [hudMessage, setHudMessage] = useState<string | null>(null);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
+  const [showManualTimer, setShowManualTimer] = useState(false);
+  const [manualMinutes, setManualMinutes] = useState('5');
+  const [manualLabel, setManualLabel] = useState('Timer');
 
+  /* ── Refs ── */
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const isUserScrolling = useRef(true);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ── Derived data ── */
+  const steps = useMemo(() => {
+    if (!recipe) return [];
+    const prepStep = {
+      text: '__PREP__',
+      relevantIngredients: recipe.ingredients || [],
+    };
+    return includePrep ? [prepStep, ...recipe.steps] : recipe.steps;
+  }, [recipe, includePrep]);
+
+  const maxStepIndex = Math.max(steps.length - 1, 0);
+  const safeActiveStep = Math.min(Math.max(activeStepIndex, 0), maxStepIndex);
+
+  const prepActions = useMemo(() => {
+    if (!recipe || !includePrep) return [];
+    return categorizePrepIngredients(recipe.ingredients || []);
+  }, [recipe, includePrep]);
+
+  const scale = recipe?.scale || 1;
+
+  /* ── Scroll-based active step detection ── */
+  const updateActiveFromScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || steps.length === 0) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const containerCenter = containerRect.top + containerRect.height * 0.4; // Bias slightly upward
+
+    let closestIndex = 0;
+    let closestDistance = Infinity;
+
+    stepRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const elCenter = rect.top + rect.height / 2;
+      const distance = Math.abs(elCenter - containerCenter);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = i;
+      }
+    });
+
+    if (closestIndex !== activeStepIndex) {
+      setActiveStepIndex(closestIndex);
+    }
+  }, [activeStepIndex, steps.length]);
+
+  const handleScroll = useCallback(() => {
+    if (!isUserScrolling.current) return;
+    updateActiveFromScroll();
+  }, [updateActiveFromScroll]);
+
+  /* ── Auto-scroll to step ── */
+  const scrollToStep = useCallback((index: number, smooth = true) => {
+    const el = stepRefs.current[index];
+    if (!el || !scrollContainerRef.current) return;
+
+    isUserScrolling.current = false;
+    el.scrollIntoView({
+      behavior: smooth ? 'smooth' : 'instant',
+      block: 'center',
+    });
+
+    // Re-enable user scroll detection after animation
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isUserScrolling.current = true;
+    }, smooth ? 600 : 100);
+  }, []);
+
+  /* ── Initial scroll to starting step ── */
+  useEffect(() => {
+    const clampedInitial = Math.min(Math.max(initialStep, 0), maxStepIndex);
+    setActiveStepIndex(clampedInitial);
+    // Delay to let layout settle
+    const timeout = setTimeout(() => {
+      scrollToStep(clampedInitial, false);
+    }, 100);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe?.id]);
+
+  /* ── Notify parent of step changes ── */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (onStepChange) onStepChange(safeActiveStep);
+  }, [safeActiveStep]);
+
+  /* ── Clear HUD message on step change ── */
   useEffect(() => {
     setHudMessage(null);
-  }, [currentStep]);
+  }, [safeActiveStep]);
 
-  // Scroll lock when ingredient overlay is open
+  /* ── Scroll lock for ingredient overlay ── */
   useEffect(() => {
     if (!showIngredients) return;
     const prevOverflow = document.body.style.overflow;
@@ -115,7 +213,7 @@ export function CookView({
     };
   }, [showIngredients]);
 
-  // Wake lock
+  /* ── Wake lock ── */
   useEffect(() => {
     if (!getWakeLockEnabled()) return;
     let wakeLock: any = null;
@@ -132,70 +230,72 @@ export function CookView({
     return () => { if (wakeLock) wakeLock.release(); };
   }, []);
 
-  // Swipe handlers
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd || !recipe) return;
-    const distance = touchStart - touchEnd;
-    if (distance > minSwipeDistance && safeCurrentStep < steps.length - 1) {
-      setCurrentStep(safeCurrentStep + 1);
-    } else if (distance < -minSwipeDistance && safeCurrentStep > 0) {
-      setCurrentStep(safeCurrentStep - 1);
-    }
-  };
-
-  const steps = useMemo(() => {
-    if (!recipe) return [];
-    const prepStep = {
-      text: '__PREP__',
-      relevantIngredients: recipe.ingredients || [],
+  /* ── Cleanup ── */
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
-    return includePrep ? [prepStep, ...recipe.steps] : recipe.steps;
-  }, [recipe, includePrep]);
-  const maxStepIndex = Math.max(steps.length - 1, 0);
-  const clampedInitialStep = Math.min(Math.max(initialStep, 0), maxStepIndex);
-  const safeCurrentStep = Math.min(Math.max(currentStep, 0), maxStepIndex);
+  }, []);
 
-  const isPrepStep = includePrep && safeCurrentStep === 0;
-  const prepActions = useMemo(() => {
-    if (!recipe || !isPrepStep) return [];
-    return categorizePrepIngredients(recipe.ingredients || []);
-  }, [recipe, isPrepStep]);
-
-  useEffect(() => {
-    setCurrentStep(clampedInitialStep);
-  }, [clampedInitialStep, recipe?.id]);
-
-  useEffect(() => {
-    if (currentStep !== safeCurrentStep) {
-      setCurrentStep(safeCurrentStep);
-    }
-  }, [currentStep, safeCurrentStep]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onStepChange is an inline callback; only fire on step change
-  useEffect(() => {
-    if (onStepChange) onStepChange(safeCurrentStep);
-  }, [safeCurrentStep]);
-
+  /* ── Prep checklist ── */
   const toggleChecked = (index: number) => {
     setCheckedIngredients((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
       return next;
     });
   };
 
-  // Empty state
+  /* ── Timer helpers ── */
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const startStepTimer = useCallback((step: any) => {
+    if (!step?.timer || step.timer.duration <= 0) return;
+    if (timers.length >= 3) {
+      setHudMessage('Du kan højst have 3 timere i gang ad gangen.');
+      return;
+    }
+    setHudMessage(null);
+    setTimers((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString() + Math.random().toString(),
+        duration: step.timer.duration * 60,
+        remaining: step.timer.duration * 60,
+        description: step.timer.description,
+        active: true,
+      },
+    ]);
+  }, [timers.length, setTimers]);
+
+  const startManualTimer = useCallback(() => {
+    const mins = parseInt(manualMinutes, 10);
+    if (!mins || mins <= 0 || mins > 999) return;
+    if (timers.length >= 3) {
+      setHudMessage('Du kan højst have 3 timere i gang ad gangen.');
+      return;
+    }
+    setTimers((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString() + Math.random().toString(),
+        duration: mins * 60,
+        remaining: mins * 60,
+        description: manualLabel.trim() || 'Timer',
+        active: true,
+      },
+    ]);
+    setShowManualTimer(false);
+    setManualMinutes('5');
+    setManualLabel('Timer');
+  }, [manualMinutes, manualLabel, timers.length, setTimers]);
+
+  /* ── Empty state ── */
   if (!recipe) {
     return (
       <div className="cm-cook-shell p-4 pb-24 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center">
@@ -211,10 +311,7 @@ export function CookView({
     );
   }
 
-  const step = steps[safeCurrentStep];
-  const nextStep = steps[safeCurrentStep + 1];
-
-  if (!step) {
+  if (steps.length === 0) {
     return (
       <div className="cm-cook-shell p-4 pb-24 max-w-md mx-auto h-full flex flex-col items-center justify-center text-center">
         <div className="cm-cook-surface w-24 h-24 rounded-[28px] flex items-center justify-center mb-8">
@@ -229,48 +326,57 @@ export function CookView({
     );
   }
 
-  const displayHeat = isPrepStep ? null : formatStepHeatDisplay(step);
-  const mentionedIngredients = isPrepStep ? [] : (step?.relevantIngredients?.length ? step.relevantIngredients : []);
-  const canStartStepTimer =
-    !isPrepStep &&
-    !!step?.timer &&
-    !timers.some((t) => t.description === step.timer!.description && t.duration === step.timer!.duration * 60);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  /* ── Step-level helpers ── */
+  const canStartTimer = (step: any, stepIndex: number) => {
+    const isPrepStep = includePrep && stepIndex === 0;
+    const timerKind = step?.timer?.kind || (step?.timer?.duration ? 'exact' : 'none');
+    return (
+      !isPrepStep &&
+      !!step?.timer &&
+      step.timer.duration > 0 &&
+      (timerKind === 'exact' || timerKind === 'approximate') &&
+      !timers.some((t) => t.description === step.timer!.description && t.duration === step.timer!.duration * 60)
+    );
   };
 
-  const scale = recipe.scale || 1;
-  const hasHud = displayHeat || canStartStepTimer || timers.length > 0;
+  const stepFontSize = `clamp(${Math.max(COOK_FONT_META[fontSize].px * 0.55, 14)}px, ${COOK_FONT_META[fontSize].px / 6}vw + 8px, ${Math.min(COOK_FONT_META[fontSize].px, 32)}px)`;
 
   return (
-    <div
-      className="cm-cook-shell cm-cook-viewport cm-cook-grid max-w-md mx-auto relative"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
-      {/* ═══ TOP ZONE: Topbar + HUD (fixed) ═══ */}
-      <div className="cm-cook-top-zone z-30">
+    <div className="cm-cook-shell cm-cook-viewport flex flex-col max-w-md mx-auto relative">
+      {/* ═══ FIXED TOP: Topbar + Timer Dock ═══ */}
+      <div className="cm-cook-top-zone z-30 shrink-0">
         {/* Topbar */}
         <div className="cm-cook-topbar flex justify-between items-center p-3 sm:p-5 gap-2 pt-5 relative">
+          {/* Progress bar */}
           <div className="cm-cook-progress-track absolute top-0 left-0 right-0 h-1 z-50">
             <div
               className="cm-cook-progress-bar h-full"
-                style={{ width: `${((safeCurrentStep + 1) / steps.length) * 100}%` }}
+              style={{ width: `${((safeActiveStep + 1) / steps.length) * 100}%` }}
             />
           </div>
+
+          {/* Left: step counter + stop */}
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-bold text-heath-mid uppercase tracking-widest mb-1 truncate">
-                Trin {safeCurrentStep + 1} af {steps.length}
+              Trin {safeActiveStep + 1} af {steps.length}
             </span>
             <button onClick={onStopCooking} className="cm-cook-danger-button self-start mt-1 text-xs">
               Stop
             </button>
           </div>
+
+          {/* Right: controls */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Ingredient toggle */}
+            <button
+              onClick={() => setShowInlineIngredients((prev) => !prev)}
+              className={`cm-cook-icon-button ${showInlineIngredients ? 'ring-1 ring-white/30' : ''}`}
+              aria-label={showInlineIngredients ? 'Skjul ingredienser' : 'Vis ingredienser'}
+              title={showInlineIngredients ? 'Skjul ingredienser' : 'Vis ingredienser'}
+            >
+              {showInlineIngredients ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+            {/* Font size */}
             <button
               onClick={() =>
                 setFontSize((prev) =>
@@ -283,6 +389,7 @@ export function CookView({
             >
               <Type size={18} />
             </button>
+            {/* Full ingredient list */}
             <button
               onClick={() => setShowIngredients(true)}
               className="cm-cook-icon-button"
@@ -291,69 +398,21 @@ export function CookView({
             >
               <List size={18} />
             </button>
+            {/* Exit */}
             <button onClick={onExit} className="cm-cook-icon-button" aria-label="Luk cook mode" title="Luk">
               <X size={18} />
             </button>
           </div>
         </div>
 
-        {/* HUD: heat + timer strip (capped height) */}
-        {hasHud && (
+        {/* Timer dock — running timers + manual timer add */}
+        {(timers.length > 0 || showManualTimer) && (
           <div className="cm-cook-hud-strip">
-            {(displayHeat || canStartStepTimer) && (
-              <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-                {displayHeat && (
-                  <div className="cm-cook-heat-chip flex-1 min-w-0 px-4 py-3 rounded-2xl flex items-center justify-center gap-3">
-                    <Flame size={18} className="text-red-400 shrink-0" />
-                    <span className="text-xs font-bold uppercase tracking-[0.2em] truncate">{displayHeat}</span>
-                  </div>
-                )}
-                {canStartStepTimer && step.timer && (
-                  <div className="cm-cook-surface flex-1 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 min-w-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <TimerAnimationIcon type={getTimerAnimationType(step.timer.description)} size={28} />
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[0.5rem] sm:text-[0.6rem] font-bold uppercase tracking-widest text-heath-mid opacity-70 truncate">
-                          {step.timer.description}
-                        </span>
-                        <span className="text-lg sm:text-xl font-mono tracking-tighter text-[#F9F9F7] truncate">
-                          {formatTime(step.timer.duration * 60)}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (timers.length >= 3) {
-                          setHudMessage('Du kan højst have 3 timere i gang ad gangen.');
-                          return;
-                        }
-                        setHudMessage(null);
-                        setTimers([
-                          ...timers,
-                          {
-                            id: Date.now().toString() + Math.random().toString(),
-                            duration: step.timer.duration * 60,
-                            remaining: step.timer.duration * 60,
-                            description: step.timer.description,
-                            active: true,
-                          },
-                        ]);
-                      }}
-                      className="cm-cook-icon-button shrink-0"
-                      aria-label="Start timer"
-                      disabled={timers.length >= 3}
-                    >
-                      <PlayCircle size={24} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
             {hudMessage && (
               <div className="cm-inline-feedback cm-inline-feedback--info">{hudMessage}</div>
             )}
 
+            {/* Running timers */}
             {timers.length > 0 && (
               <div className="cm-cook-surface rounded-[22px] flex flex-col max-h-[8.5rem] overflow-y-auto custom-scrollbar">
                 {timers.map((t) => (
@@ -385,160 +444,261 @@ export function CookView({
                 ))}
               </div>
             )}
+
+            {/* Manual timer form */}
+            {showManualTimer && (
+              <div className="cm-cook-surface rounded-2xl p-4 flex flex-col gap-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-heath-mid/60">Manuel timer</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualLabel}
+                    onChange={(e) => setManualLabel(e.target.value)}
+                    placeholder="Navn (valgfrit)"
+                    className="flex-1 min-w-0 bg-white/8 border border-white/10 rounded-xl px-3 py-2 text-sm text-[#F9F9F7] placeholder:text-white/30 focus:outline-none focus:border-white/25"
+                  />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={manualMinutes}
+                      onChange={(e) => setManualMinutes(e.target.value)}
+                      min="1"
+                      max="999"
+                      className="w-16 bg-white/8 border border-white/10 rounded-xl px-3 py-2 text-sm text-[#F9F9F7] text-center focus:outline-none focus:border-white/25"
+                    />
+                    <span className="text-xs text-white/40">min</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowManualTimer(false)}
+                    className="cm-cook-secondary-button flex-1 py-2 rounded-xl text-xs"
+                  >
+                    Annuller
+                  </button>
+                  <button
+                    onClick={startManualTimer}
+                    className="cm-cook-primary-button flex-1 py-2 rounded-xl text-xs"
+                  >
+                    Start
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Manual timer trigger — always visible in topbar area when no manual form open */}
+        {!showManualTimer && timers.length < 3 && (
+          <div className="px-4 pb-2 flex justify-end">
+            <button
+              onClick={() => setShowManualTimer(true)}
+              className="text-xs text-white/40 hover:text-white/60 flex items-center gap-1 transition-colors"
+              aria-label="Tilføj manuel timer"
+            >
+              <Plus size={14} /> Timer
+            </button>
           </div>
         )}
       </div>
 
-      {/* ═══ MIDDLE ZONE: Step text or prep checklist (fills remaining space, internal scroll) ═══ */}
-      <div className="cm-cook-middle-zone relative min-h-0 flex flex-col">
-        <div
-          ref={contentRef}
-          className="cm-cook-step-scroll flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 sm:px-10 py-4"
-        >
-          {isPrepStep ? (
-            /* ── Prep checklist ── */
-            <div className="w-full max-w-[28rem] mx-auto space-y-5">
-              <h2 className="font-serif text-xl sm:text-2xl text-[#F9F9F7] italic mb-2">Klargør ingredienser</h2>
-              {prepActions.map((action) => (
-                <div key={action.label}>
-                  <p className="text-xs font-bold uppercase tracking-widest text-heath-mid/60 mb-2">{action.label}</p>
-                  <ul className="space-y-1">
-                    {action.items.map(({ ingredient: ing, index }) => {
-                      const checked = checkedIngredients.has(index);
-                      const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
-                      return (
-                        <li key={index}>
-                          <button
-                            type="button"
-                            onClick={() => toggleChecked(index)}
-                            className={`w-full text-left flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${
-                              checked
-                                ? 'bg-white/5 opacity-40'
-                                : 'bg-white/8 hover:bg-white/12 active:bg-white/15'
-                            }`}
-                          >
-                            <span className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              checked ? 'border-green-400 bg-green-400/20' : 'border-white/25'
-                            }`}>
-                              {checked && <Check size={14} className="text-green-400" />}
-                            </span>
-                            <span className={`text-base sm:text-lg font-serif text-[#F9F9F7] transition-all ${
-                              checked ? 'line-through' : ''
-                            }`}>
-                              <strong>{amountStr} {ing.unit}</strong> {ing.name}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-              <p className="text-xs text-white/30 italic mt-4">
-                Tryk for at afkrydse · {checkedIngredients.size}/{recipe.ingredients?.length || 0} klar
-              </p>
-            </div>
-          ) : (
-            /* ── Regular step text ── */
-            <div className="mx-auto flex min-h-full w-full max-w-[28rem] items-center">
-              <div className="w-full flex flex-col gap-6">
-                <div
-                  className="font-serif leading-relaxed text-[#F9F9F7] transition-all duration-300 w-full break-words text-balance"
-                  style={{ fontSize: `clamp(${Math.max(COOK_FONT_META[fontSize].px * 0.55, 14)}px, ${COOK_FONT_META[fontSize].px / 6}vw + 8px, ${Math.min(COOK_FONT_META[fontSize].px, 32)}px)` }}
-                >
-                  {step.text}
-                </div>
+      {/* ═══ SCROLLABLE FLOW: All steps ═══ */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar"
+        onScroll={handleScroll}
+      >
+        <div className="px-4 sm:px-6 py-4 space-y-4 pb-32">
+          {steps.map((step, stepIndex) => {
+            const isPrepStep = includePrep && stepIndex === 0;
+            const isActive = stepIndex === safeActiveStep;
+            const isPast = stepIndex < safeActiveStep;
+            const displayHeat = isPrepStep ? null : formatStepHeatDisplay(step);
+            const hasTimer = canStartTimer(step, stepIndex);
+            const mentionedIngredients = isPrepStep ? [] : (step?.relevantIngredients?.length ? step.relevantIngredients : []);
+            const stepNumber = includePrep ? stepIndex : stepIndex + 1;
 
-                {step.reminder && (
-                  <div className="cm-cook-surface-subtle rounded-2xl p-4 sm:p-5 flex gap-4 items-start border-[rgba(229,169,59,0.3)]">
-                    <div className="bg-[#E5A93B]/20 p-2 rounded-full shrink-0">
-                      <AlertCircle className="text-[#E5A93B]" size={24} />
+            return (
+              <div
+                key={stepIndex}
+                ref={(el) => { stepRefs.current[stepIndex] = el; }}
+                className={`cm-cook-flow-step rounded-2xl transition-all duration-300 ${
+                  isActive
+                    ? 'cm-cook-flow-step--active'
+                    : isPast
+                      ? 'cm-cook-flow-step--past'
+                      : 'cm-cook-flow-step--upcoming'
+                }`}
+                onClick={() => {
+                  if (!isActive) {
+                    setActiveStepIndex(stepIndex);
+                    scrollToStep(stepIndex);
+                  }
+                }}
+              >
+                {isPrepStep ? (
+                  /* ── Prep checklist card ── */
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="cm-cook-flow-step-number">
+                        <Beaker size={16} />
+                      </div>
+                      <h2 className="font-serif text-lg sm:text-xl text-[#F9F9F7] italic">Klargør ingredienser</h2>
                     </div>
-                    <div className="flex flex-col gap-1 min-w-0">
-                      <span className="text-[#E5A93B] font-bold uppercase tracking-widest text-xs">{levelMeta.reminderLabel}</span>
-                      <p className="text-[#F9F9F7] font-serif text-base sm:text-lg leading-relaxed">{step.reminder}</p>
+                    {isActive && (
+                      <div className="space-y-4 mt-3">
+                        {prepActions.map((action) => (
+                          <div key={action.label}>
+                            <p className="text-xs font-bold uppercase tracking-widest text-heath-mid/60 mb-2">{action.label}</p>
+                            <ul className="space-y-1">
+                              {action.items.map(({ ingredient: ing, index }) => {
+                                const checked = checkedIngredients.has(index);
+                                const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
+                                return (
+                                  <li key={index}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); toggleChecked(index); }}
+                                      className={`w-full text-left flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${
+                                        checked
+                                          ? 'bg-white/5 opacity-40'
+                                          : 'bg-white/8 hover:bg-white/12 active:bg-white/15'
+                                      }`}
+                                    >
+                                      <span className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                        checked ? 'border-green-400 bg-green-400/20' : 'border-white/25'
+                                      }`}>
+                                        {checked && <Check size={14} className="text-green-400" />}
+                                      </span>
+                                      <span className={`text-base font-serif text-[#F9F9F7] transition-all ${
+                                        checked ? 'line-through' : ''
+                                      }`}>
+                                        <strong>{amountStr} {ing.unit}</strong> {ing.name}
+                                      </span>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ))}
+                        <p className="text-xs text-white/30 italic mt-2">
+                          Tryk for at afkrydse · {checkedIngredients.size}/{recipe.ingredients?.length || 0} klar
+                        </p>
+                      </div>
+                    )}
+                    {!isActive && (
+                      <p className="text-sm text-white/40 italic font-serif mt-1">
+                        {checkedIngredients.size}/{recipe.ingredients?.length || 0} ingredienser klar
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  /* ── Regular step card ── */
+                  <div className="p-5 sm:p-6">
+                    {/* Step header: number + heat */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className={`cm-cook-flow-step-number ${isPast ? 'bg-green-500/20 border-green-500/40' : ''}`}>
+                        {isPast ? (
+                          <Check size={14} className="text-green-400" />
+                        ) : (
+                          <span className="text-xs font-bold">{stepNumber}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                        {displayHeat && (
+                          <div className="cm-cook-heat-chip px-3 py-1 rounded-full flex items-center gap-1.5 text-xs">
+                            <Flame size={12} className="text-red-400 shrink-0" />
+                            <span className="font-bold uppercase tracking-wider truncate">{displayHeat}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Step text */}
+                    <div
+                      className={`font-serif leading-relaxed text-[#F9F9F7] transition-all duration-300 break-words ${
+                        !isActive ? 'line-clamp-3' : ''
+                      }`}
+                      style={{ fontSize: isActive ? stepFontSize : `calc(${stepFontSize} * 0.85)` }}
+                    >
+                      {step.text}
+                    </div>
+
+                    {/* Reminder (only when active) */}
+                    {isActive && step.reminder && (
+                      <div className="cm-cook-surface-subtle rounded-2xl p-4 flex gap-3 items-start mt-4 border-[rgba(229,169,59,0.3)]">
+                        <div className="bg-[#E5A93B]/20 p-2 rounded-full shrink-0">
+                          <AlertCircle className="text-[#E5A93B]" size={20} />
+                        </div>
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <span className="text-[#E5A93B] font-bold uppercase tracking-widest text-xs">{levelMeta.reminderLabel}</span>
+                          <p className="text-[#F9F9F7] font-serif text-sm sm:text-base leading-relaxed">{step.reminder}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Timer start button (only when active and has startable timer) */}
+                    {isActive && hasTimer && step.timer && (
+                      <div className="mt-4">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); startStepTimer(step); }}
+                          className="cm-cook-surface rounded-2xl px-4 py-3 flex items-center justify-between gap-3 w-full hover:bg-white/8 transition-colors"
+                          disabled={timers.length >= 3}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <TimerAnimationIcon type={getTimerAnimationType(step.timer.description)} size={24} />
+                            <div className="flex flex-col min-w-0 text-left">
+                              <span className="text-[0.5rem] font-bold uppercase tracking-widest text-heath-mid opacity-70 truncate">
+                                {step.timer.description}
+                              </span>
+                              <span className="text-lg font-mono tracking-tighter text-[#F9F9F7]">
+                                {formatTime(step.timer.duration * 60)}
+                              </span>
+                            </div>
+                          </div>
+                          <PlayCircle size={24} className="text-white/70 shrink-0" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Inline ingredients (toggle-based) */}
+                    {isActive && showInlineIngredients && mentionedIngredients.length > 0 && (
+                      <div className="cm-cook-surface-subtle rounded-xl p-3 mt-4">
+                        <span className="text-[0.6rem] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1 mb-1.5">
+                          <Beaker size={10} /> {levelMeta.ingredientLabel}
+                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          {mentionedIngredients.map((ing, i) => {
+                            const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
+                            return (
+                              <span key={i} className="text-white/70 text-sm">
+                                <strong className="text-white/90">{amountStr} {ing.unit}</strong> {ing.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+          })}
+
+          {/* ── Completion card ── */}
+          <div className="text-center py-8 space-y-4">
+            <button
+              onClick={onCompleteCooking}
+              className="cm-cook-primary-button px-8 py-4 rounded-2xl text-sm font-bold uppercase tracking-widest inline-flex items-center gap-2"
+            >
+              <CheckCircle size={20} /> Afslut madlavning
+            </button>
+          </div>
         </div>
-
-        {/* Navigation row — sits below scrollable text, never overlaps */}
-        {!isPrepStep && (
-          <div className="shrink-0 px-4 sm:px-6 py-2 flex justify-between items-center">
-            <button
-              onClick={() => setCurrentStep(Math.max(0, safeCurrentStep - 1))}
-              disabled={safeCurrentStep === 0}
-              className="cm-cook-nav-button disabled:opacity-0 disabled:pointer-events-none"
-              aria-label="Forrige trin"
-            >
-              <ChevronLeft size={28} />
-            </button>
-            <button
-              onClick={() => {
-                if (safeCurrentStep < steps.length - 1) {
-                  setCurrentStep(safeCurrentStep + 1);
-                } else {
-                  onCompleteCooking();
-                }
-              }}
-              className="cm-cook-nav-button"
-              aria-label={currentStep === steps.length - 1 ? 'Afslut madlavning' : 'Næste trin'}
-            >
-              {currentStep === steps.length - 1 ? <CheckCircle size={28} /> : <ChevronRight size={28} />}
-            </button>
-          </div>
-        )}
-
-        {/* Prep step has a simple "next" bar at bottom instead */}
-        {isPrepStep && (
-          <div className="shrink-0 px-6 py-2">
-            <button
-              onClick={() => setCurrentStep(1)}
-              className="cm-cook-primary-button w-full py-4 rounded-2xl text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-            >
-              Start madlavning <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* ═══ BOTTOM ZONE: Mentioned ingredients + next step preview (fixed) ═══ */}
-      <div className="cm-cook-bottom-zone z-20 px-4 sm:px-6 pb-4 flex flex-col gap-3 pt-3">
-        {mentionedIngredients.length > 0 && (
-          <div className="cm-cook-surface-subtle rounded-xl p-2.5">
-            <span className="text-[0.6rem] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1 mb-1.5">
-              <Beaker size={10} /> {levelMeta.ingredientLabel}
-            </span>
-            <div className="flex flex-col gap-1">
-              {mentionedIngredients.map((ing, i) => {
-                const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
-                return (
-                  <span key={i} className="text-white/70 text-sm">
-                    <strong className="text-white/90">{amountStr} {ing.unit}</strong> {ing.name}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {nextStep && (
-          <div className="cm-cook-surface-subtle rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-1 gap-3">
-              <h3 className="text-[8px] font-bold text-heath-mid/40 uppercase tracking-widest">{levelMeta.nextStepLabel}</h3>
-              <span className="text-[8px] font-bold text-white/20 shrink-0">{currentStep + 2} / {steps.length}</span>
-            </div>
-            <p className="text-xs font-serif italic text-[#F9F9F7]/40 line-clamp-1">
-              {nextStep.text === '__PREP__' ? 'Klargør ingredienser' : nextStep.text}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* ═══ INGREDIENT OVERLAY — true full-screen modal ═══ */}
+      {/* ═══ INGREDIENT OVERLAY — full-screen modal ═══ */}
       {showIngredients && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
@@ -546,15 +706,12 @@ export function CookView({
           aria-modal="true"
           aria-label="Alle ingredienser"
         >
-          {/* Solid dark backdrop */}
           <div
             className="absolute inset-0 bg-black/85 backdrop-blur-md"
             onClick={() => setShowIngredients(false)}
           />
 
-          {/* Modal content */}
           <div className="relative w-full max-w-md mx-auto h-full flex flex-col bg-[#111914]">
-            {/* Modal topbar */}
             <div className="cm-cook-topbar flex items-center justify-between gap-3 p-5 sm:p-6 shrink-0">
               <h2 className="text-xl font-serif text-[#F9F9F7] italic">Alle ingredienser</h2>
               <button
@@ -566,7 +723,6 @@ export function CookView({
               </button>
             </div>
 
-            {/* Scrollable ingredient list */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-4 sm:px-6">
               <ul className="divide-y divide-white/8">
                 {(recipe.ingredients || []).map((ing, i) => {
@@ -581,7 +737,6 @@ export function CookView({
               </ul>
             </div>
 
-            {/* Bottom close button — large touch target */}
             <div className="shrink-0 p-5 sm:p-6 pt-3">
               <button
                 onClick={() => setShowIngredients(false)}

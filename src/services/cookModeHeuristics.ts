@@ -1,4 +1,4 @@
-import type { Ingredient, Step, StepIngredient, StepTimer } from '../types';
+import type { Ingredient, Step, StepIngredient, StepTimer, TimerKind } from '../types';
 
 export type CanonicalHeatLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
@@ -375,8 +375,41 @@ function convertDurationToMinutes(rawValue: number, unit: string): number {
   return rawValue;
 }
 
+const STATE_BASED_PATTERNS = [
+  /til [\w\s]+ er (bloede|moere?|gyldne?|brunet|smeltet|klar|gennemsigtig|opvarmet|varm|kogende)/,
+  /til det (dufter|bobler|tykner|karamellisere|reducere)/,
+  /til [\w\s]+ har faaet (farve|skorpe)/,
+  /til vaesken er (kogt ind|reduceret|fordampet)/,
+  /under omroering/,
+  /roer jaevnligt/,
+];
+
+function classifyTimerKind(normalizedText: string, isRange: boolean): TimerKind {
+  for (const pattern of STATE_BASED_PATTERNS) {
+    if (pattern.test(normalizedText)) return 'state_based';
+  }
+
+  if (isRange || /\bca\.?\b|\bcirka\b|\bet par\b|\bomkring\b|\bhoejst\b/.test(normalizedText)) {
+    return 'approximate';
+  }
+
+  return 'exact';
+}
+
 export function inferTimerFromStepText(text: string): StepTimer | undefined {
   const normalizedText = normalizeForMatch(text);
+
+  // Check for state-based timing without a numeric duration
+  for (const pattern of STATE_BASED_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        duration: 0,
+        description: detectTimerLabel(normalizedText),
+        kind: 'state_based',
+      };
+    }
+  }
+
   const rangeMatch = normalizedText.match(/(\d+)\s*-\s*(\d+)\s*(min(?:ut(?:ter)?)?|sek(?:under)?|time(?:r)?)/);
   const singleMatch = normalizedText.match(/(\d+)\s*(min(?:ut(?:ter)?)?|sek(?:under)?|time(?:r)?)/);
   const match = rangeMatch ?? singleMatch;
@@ -390,9 +423,12 @@ export function inferTimerFromStepText(text: string): StepTimer | undefined {
     return undefined;
   }
 
+  const kind = classifyTimerKind(normalizedText, !!rangeMatch);
+
   return {
     duration: convertDurationToMinutes(durationValue, match[match.length - 1]),
     description: detectTimerLabel(normalizedText),
+    kind,
   };
 }
 

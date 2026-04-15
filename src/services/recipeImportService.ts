@@ -10,12 +10,27 @@ interface BuildRecipeOptions {
   userId?: string;
 }
 
+export class EmptyRecipeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EmptyRecipeError';
+  }
+}
+
 export function buildRecipeFromImport({ parsedData, sourceType, originalContent, folders, userId }: BuildRecipeOptions): Recipe {
   const defaultFolder = findDefaultFolder(folders, userId || 'local') || folders[0];
 
+  const ingredients = (parsedData.ingredients || []).filter((ing: any) => ing?.name?.trim());
+  const steps = (parsedData.steps || []).filter((s: any) => s?.text?.trim());
+  const title = (parsedData.title || '').trim();
+
+  if (!title && ingredients.length === 0 && steps.length === 0) {
+    throw new EmptyRecipeError('AI returnerede en tom opskrift. Prøv at kopiere teksten ind manuelt eller brug et andet link.');
+  }
+
   return normalizeRecipeForCookMode({
     id: Date.now().toString(),
-    title: parsedData.title || 'Uden navn',
+    title: title || 'Uden navn',
     summary: parsedData.summary || '',
     recipeType: parsedData.recipeType || '',
     categories: parsedData.categories || [],
@@ -25,15 +40,15 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     notes: '',
     servings: parsedData.servings || 4,
     servingsUnit: parsedData.servingsUnit || 'personer',
-    ingredients: (parsedData.ingredients || []).map((ing: any, i: number) => ({
+    ingredients: ingredients.map((ing: any, i: number) => ({
       id: `ing-${i}`,
       amount: ing.amount || null,
       unit: ing.unit || '',
-      name: ing.name || '',
+      name: ing.name.trim(),
       group: ing.group || 'Andre',
       locked: ing.locked || false,
     })),
-    steps: (parsedData.steps || []).map((step: any, i: number) => ({
+    steps: steps.map((step: any, i: number) => ({
       id: `step-${i}`,
       text: step.text || '',
       heat: step.heat,

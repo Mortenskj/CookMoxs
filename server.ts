@@ -1299,11 +1299,13 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
                 textContent,
                 `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
                 sourceType,
+                1,
               )
             : await importRecipeFromTextWithFallback(
                 textContent,
                 `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
                 sourceType,
+                1,
               );
         return res.json({ parsedData });
       }
