@@ -100,6 +100,7 @@ export function CookView({
   const [showManualTimer, setShowManualTimer] = useState(false);
   const [manualMinutes, setManualMinutes] = useState('5');
   const [manualLabel, setManualLabel] = useState('Timer');
+  const [showAllTimers, setShowAllTimers] = useState(false);
 
   /* ── Refs ── */
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -128,29 +129,28 @@ export function CookView({
   const scale = recipe?.scale || 1;
 
   /* ── Scroll-based active step detection ── */
+  // Uses an "activation line" at ~28% from the top of the container.
+  // The last step whose top has crossed above this line becomes active.
+  // This is more stable than center-distance and avoids jitter.
   const updateActiveFromScroll = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container || steps.length === 0) return;
 
     const containerRect = container.getBoundingClientRect();
-    const containerCenter = containerRect.top + containerRect.height * 0.4; // Bias slightly upward
+    const activationLine = containerRect.top + containerRect.height * 0.28;
 
-    let closestIndex = 0;
-    let closestDistance = Infinity;
+    let nextActive = 0;
 
     stepRefs.current.forEach((el, i) => {
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const elCenter = rect.top + rect.height / 2;
-      const distance = Math.abs(elCenter - containerCenter);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestIndex = i;
+      if (rect.top <= activationLine) {
+        nextActive = i;
       }
     });
 
-    if (closestIndex !== activeStepIndex) {
-      setActiveStepIndex(closestIndex);
+    if (nextActive !== activeStepIndex) {
+      setActiveStepIndex(nextActive);
     }
   }, [activeStepIndex, steps.length]);
 
@@ -256,10 +256,6 @@ export function CookView({
 
   const startStepTimer = useCallback((step: any) => {
     if (!step?.timer || step.timer.duration <= 0) return;
-    if (timers.length >= 3) {
-      setHudMessage('Du kan højst have 3 timere i gang ad gangen.');
-      return;
-    }
     setHudMessage(null);
     setTimers((prev) => [
       ...prev,
@@ -271,15 +267,11 @@ export function CookView({
         active: true,
       },
     ]);
-  }, [timers.length, setTimers]);
+  }, [setTimers]);
 
   const startManualTimer = useCallback(() => {
     const mins = parseInt(manualMinutes, 10);
     if (!mins || mins <= 0 || mins > 999) return;
-    if (timers.length >= 3) {
-      setHudMessage('Du kan højst have 3 timere i gang ad gangen.');
-      return;
-    }
     setTimers((prev) => [
       ...prev,
       {
@@ -412,38 +404,59 @@ export function CookView({
               <div className="cm-inline-feedback cm-inline-feedback--info">{hudMessage}</div>
             )}
 
-            {/* Running timers */}
-            {timers.length > 0 && (
-              <div className="cm-cook-surface rounded-[22px] flex flex-col max-h-[8.5rem] overflow-y-auto custom-scrollbar">
-                {timers.map((t) => (
-                  <div key={t.id} className="px-4 py-2 flex items-center justify-between gap-2 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <TimerAnimationIcon type={getTimerAnimationType(t.description)} size={22} />
-                      <span className="text-sm font-serif italic text-[#F9F9F7] truncate">{t.description}</span>
+            {/* Running timers — show 3 directly, overflow behind toggle */}
+            {timers.length > 0 && (() => {
+              const visibleTimers = showAllTimers ? timers : timers.slice(0, 3);
+              const overflowCount = timers.length - 3;
+
+              return (
+                <div className="cm-cook-surface rounded-[22px] flex flex-col max-h-[12rem] overflow-y-auto custom-scrollbar">
+                  {visibleTimers.map((t) => (
+                    <div key={t.id} className="px-4 py-2 flex items-center justify-between gap-2 border-b border-white/5 last:border-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <TimerAnimationIcon type={getTimerAnimationType(t.description)} size={22} />
+                        <span className="text-sm font-serif italic text-[#F9F9F7] truncate">{t.description}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-lg font-mono tracking-tighter ${t.remaining === 0 ? 'text-red-400' : 'text-[#F9F9F7]'}`}>
+                          {formatTime(t.remaining)}
+                        </span>
+                        <button
+                          onClick={() => setTimers(timers.map((timer) => (timer.id === t.id ? { ...timer, active: !timer.active } : timer)))}
+                          className="cm-cook-icon-button cm-cook-icon-button--compact"
+                          aria-label={t.active && t.remaining > 0 ? 'Pause timer' : 'Start timer'}
+                        >
+                          {t.active && t.remaining > 0 ? <PauseCircle size={22} /> : <PlayCircle size={22} />}
+                        </button>
+                        <button
+                          onClick={() => setTimers(timers.filter((timer) => timer.id !== t.id))}
+                          className="cm-cook-icon-button cm-cook-icon-button--compact opacity-80"
+                          aria-label="Fjern timer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-lg font-mono tracking-tighter ${t.remaining === 0 ? 'text-red-400' : 'text-[#F9F9F7]'}`}>
-                        {formatTime(t.remaining)}
-                      </span>
-                      <button
-                        onClick={() => setTimers(timers.map((timer) => (timer.id === t.id ? { ...timer, active: !timer.active } : timer)))}
-                        className="cm-cook-icon-button cm-cook-icon-button--compact"
-                        aria-label={t.active && t.remaining > 0 ? 'Pause timer' : 'Start timer'}
-                      >
-                        {t.active && t.remaining > 0 ? <PauseCircle size={22} /> : <PlayCircle size={22} />}
-                      </button>
-                      <button
-                        onClick={() => setTimers(timers.filter((timer) => timer.id !== t.id))}
-                        className="cm-cook-icon-button cm-cook-icon-button--compact opacity-80"
-                        aria-label="Fjern timer"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                  {overflowCount > 0 && !showAllTimers && (
+                    <button
+                      onClick={() => setShowAllTimers(true)}
+                      className="px-4 py-2 text-xs text-white/50 hover:text-white/70 text-center transition-colors"
+                    >
+                      +{overflowCount} {overflowCount === 1 ? 'timer' : 'timere'} mere
+                    </button>
+                  )}
+                  {showAllTimers && timers.length > 3 && (
+                    <button
+                      onClick={() => setShowAllTimers(false)}
+                      className="px-4 py-1.5 text-xs text-white/40 hover:text-white/60 text-center transition-colors"
+                    >
+                      Vis færre
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Manual timer form */}
             {showManualTimer && (
@@ -489,7 +502,7 @@ export function CookView({
         )}
 
         {/* Manual timer trigger — always visible in topbar area when no manual form open */}
-        {!showManualTimer && timers.length < 3 && (
+        {!showManualTimer && (
           <div className="px-4 pb-2 flex justify-end">
             <button
               onClick={() => setShowManualTimer(true)}
@@ -644,7 +657,6 @@ export function CookView({
                         <button
                           onClick={(e) => { e.stopPropagation(); startStepTimer(step); }}
                           className="cm-cook-surface rounded-2xl px-4 py-3 flex items-center justify-between gap-3 w-full hover:bg-white/8 transition-colors"
-                          disabled={timers.length >= 3}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <TimerAnimationIcon type={getTimerAnimationType(step.timer.description)} size={24} />
