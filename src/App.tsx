@@ -73,6 +73,7 @@ import { RecipeView } from './components/RecipeView';
 import { CookView } from './components/CookView';
 import { SettingsView } from './components/SettingsView';
 import { UndoToast } from './components/UndoToast';
+import { GlobalAiActivity } from './components/GlobalAiActivity';
 import { AppUpdateToast } from './components/AppUpdateToast';
 import { PendingQueueToast } from './components/PendingQueueToast';
 import { SeasonalScene } from './components/SeasonalScene';
@@ -192,6 +193,7 @@ export default function App() {
   const [backupAction, setBackupAction] = useState<'export' | 'import' | null>(null);
   const [undoDeleteRecipe, setUndoDeleteRecipe] = useState<{ recipe: Recipe; index: number; timeoutId: any } | null>(null);
   const [undoDeleteFolder, setUndoDeleteFolder] = useState<{ folder: Folder; prevFolders: Folder[]; prevRecipes: Recipe[]; movedRecipes: Recipe[]; timeoutId: any } | null>(null);
+  const [lastAiSnapshot, setLastAiSnapshot] = useState<{ previous: Recipe; action: AiActionKey } | null>(null);
   const backupImportRef = useRef<HTMLInputElement | null>(null);
   const { isOnline } = useNetworkStatus();
   const { updateAvailable, applyUpdate, dismiss } = useServiceWorkerUpdate();
@@ -313,6 +315,22 @@ export default function App() {
   savedRecipesRef.current = savedRecipes;
   const adjusting = activeAiAction !== null;
   const hasActiveTimers = timers.some((timer) => timer.active && timer.remaining > 0);
+
+  const getAiActivityLabel = (action: AiActionKey | null, isLoading: boolean): string => {
+    if (isLoading) return 'Analyserer og klargør import...';
+    switch (action) {
+      case 'smart_adjust': return 'AI justerer opskriften...';
+      case 'generate_steps': return 'AI forbedrer trin...';
+      case 'fill_rest': return 'AI udfylder resten...';
+      case 'polish_ingredients': return 'AI strammer ingredienser op...';
+      case 'polish_steps': return 'AI forbedrer fremgangsmåden...';
+      case 'suggest_tags': return 'AI foreslår tags...';
+      case 'generate_tips': return 'AI genererer tips...';
+      case 'estimate_nutrition': return 'AI estimerer ernæring...';
+      case 'apply_prefix': return 'AI laver variant...';
+      default: return 'AI arbejder...';
+    }
+  };
 
   const commitSavedRecipes = useCallback((nextRecipes: Recipe[]) => {
     savedRecipesRef.current = nextRecipes;
@@ -1309,6 +1327,19 @@ export default function App() {
   };
 
   const handleDeleteRecipe = (recipeId: string) => {
+    // Handle unsaved draft — just discard it
+    const isSaved = savedRecipes.some(r => r.id === recipeId);
+    if (!isSaved) {
+      if (viewingRecipe?.id === recipeId) {
+        setViewingRecipe(null);
+        navigateTo('home');
+      }
+      if (activeRecipe?.id === recipeId) {
+        saveActiveRecipe(null);
+      }
+      return;
+    }
+
     if (user && !isOnline) {
       setError('Du er offline. Sletning i cloud kræver internetforbindelse.');
       return;
@@ -1419,6 +1450,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('smart_adjust');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'smart_adjust' });
     trackAiActionStarted('smart_adjust', recipe.id);
     try {
       const updated = await aiAdjustRecipe(recipe, instruction);
@@ -1442,6 +1474,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('generate_steps');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'generate_steps' });
     trackAiActionStarted('generate_steps', recipe.id);
     try {
       const updated = await aiGenerateSteps(recipe, userLevel);
@@ -1465,6 +1498,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('fill_rest');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'fill_rest' });
     trackAiActionStarted('fill_rest', recipe.id);
     try {
       const updated = await aiFillRest(recipe, userLevel);
@@ -1489,6 +1523,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('polish_ingredients');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'polish_ingredients' });
     trackAiActionStarted('polish_ingredients', recipe.id);
     try {
       const updated = await aiPolishIngredients(recipe, userLevel);
@@ -1513,6 +1548,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('polish_steps');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'polish_steps' });
     trackAiActionStarted('polish_steps', recipe.id);
     try {
       const updated = await aiPolishSteps(recipe, userLevel);
@@ -1537,6 +1573,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('suggest_tags');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'suggest_tags' });
     trackAiActionStarted('suggest_tags', recipe.id);
     try {
       const updated = await aiSuggestTags(recipe);
@@ -1561,6 +1598,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('generate_tips');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'generate_tips' });
     trackAiActionStarted('generate_tips', recipe.id);
     try {
       const tipsAndTricks = await aiGenerateTips(recipe);
@@ -1582,6 +1620,7 @@ export default function App() {
     const startedAt = Date.now();
     setActiveAiAction('estimate_nutrition');
     setError(null);
+    setLastAiSnapshot({ previous: recipe, action: 'estimate_nutrition' });
     trackAiActionStarted('estimate_nutrition', recipe.id);
     try {
       const nutritionEstimate = await aiEstimateRecipeNutrition(recipe, userLevel);
@@ -1601,6 +1640,23 @@ export default function App() {
     } finally {
       setActiveAiAction(null);
     }
+  };
+
+  const handleUndoLastAiChange = () => {
+    if (!lastAiSnapshot) return;
+    setViewingRecipe(lastAiSnapshot.previous);
+    // If the active recipe was also affected, restore it
+    if (activeRecipe?.id === lastAiSnapshot.previous.id) {
+      saveActiveRecipe(lastAiSnapshot.previous);
+    }
+    // For auto-saved actions (tips, nutrition), also restore in savedRecipes
+    const savedIdx = savedRecipes.findIndex(r => r.id === lastAiSnapshot.previous.id);
+    if (savedIdx >= 0) {
+      const restored = [...savedRecipes];
+      restored[savedIdx] = lastAiSnapshot.previous;
+      saveToLocalStorage(restored);
+    }
+    setLastAiSnapshot(null);
   };
 
   const handleApplyPrefix = async (recipe: Recipe, prefix: string) => {
@@ -1899,6 +1955,20 @@ export default function App() {
       )}
       </main>
 
+
+      <GlobalAiActivity
+        visible={loading || adjusting}
+        label={getAiActivityLabel(activeAiAction, loading)}
+      />
+
+      {lastAiSnapshot && !adjusting && (
+        <UndoToast
+          title="AI-ændring anvendt"
+          description="Fortryd for at gendanne den forrige version."
+          onUndo={handleUndoLastAiChange}
+          onDismiss={() => setLastAiSnapshot(null)}
+        />
+      )}
 
       {undoDeleteRecipe && (
         <UndoToast

@@ -1628,9 +1628,14 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[2rem] p-6 w-full max-w-xs bg-[#FDFBF7]/95 dark:bg-forest-dark/95 shadow-2xl text-center">
             <Trash2 size={32} className="text-[#DC2626] mx-auto mb-4" />
-            <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic mb-2">Slet opskrift?</h3>
+            <h3 className="text-xl font-serif text-forest-dark cm-light-surface-ink italic mb-2">
+              {recipe.isSaved ? 'Slet opskrift?' : 'Kassér kladde?'}
+            </h3>
             <p className="text-sm text-forest-mid cm-light-surface-ink-muted mb-6">
-              "{recipe.title}" slettes. Du kan fortryde i kort tid efterfølgende.
+              {recipe.isSaved
+                ? `"${recipe.title}" slettes. Du kan fortryde i kort tid efterfølgende.`
+                : `"${recipe.title || 'Unavngivet kladde'}" kasseres. Dette kan ikke fortrydes.`
+              }
             </p>
             <div className="flex gap-3">
               <button
@@ -1643,7 +1648,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                 onClick={() => { setShowDeleteConfirm(false); onDelete(); }}
                 className="flex-1 py-3 rounded-xl bg-[#DC2626] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#B91C1C] transition-colors"
               >
-                Slet
+                {recipe.isSaved ? 'Slet' : 'Kassér'}
               </button>
             </div>
           </div>
