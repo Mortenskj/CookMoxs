@@ -357,8 +357,8 @@ export function CookView({
 
           {/* Left: step counter + stop */}
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-heath-mid uppercase tracking-widest mb-1 truncate">
-              Trin {safeActiveStep + 1} af {steps.length}
+            <span className="text-xs font-bold text-heath-mid uppercase tracking-wider mb-1">
+              {safeActiveStep + 1}/{steps.length}
             </span>
             <button onClick={onStopCooking} className="cm-cook-danger-button self-start mt-1 text-xs">
               Stop
