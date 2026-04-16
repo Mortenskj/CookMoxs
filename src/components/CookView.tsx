@@ -22,40 +22,98 @@ import { formatStepHeatDisplay } from '../services/cookModeHeuristics';
 import { getWakeLockEnabled } from '../hooks/useWakeLockEnabled';
 import { TimerAnimationIcon, getTimerAnimationType } from './TimerAnimationIcon';
 
-/* ── Prep step checklist helpers ── */
+/* ── Prep grouping helpers (culinary, not unit-based) ── */
 
-interface PrepAction {
+interface PrepGroup {
   label: string;
   items: { ingredient: Ingredient; index: number }[];
+  mode?: 'inline' | 'expandable';
 }
 
-function categorizePrepIngredients(ingredients: Ingredient[]): PrepAction[] {
-  const weigh: PrepAction = { label: 'Vej af', items: [] };
-  const measure: PrepAction = { label: 'Mål op', items: [] };
-  const prepare: PrepAction = { label: 'Klargør', items: [] };
-  const other: PrepAction = { label: 'Find frem', items: [] };
+const DEFAULT_GENERIC_GROUPS = new Set([
+  '',
+  'ingredienser',
+  'andre',
+  'øvrigt',
+  'diverse',
+]);
 
-  const weightUnits = ['g', 'kg'];
-  const volumeUnits = ['dl', 'cl', 'ml', 'l', 'tsk', 'spsk'];
-  const prepWords = ['hakke', 'hak', 'revet', 'reven', 'skåret', 'tern', 'skive', 'finthak', 'snit', 'pil'];
+function normalizeGroupLabel(value?: string) {
+  return (value || '').trim().toLowerCase();
+}
 
-  ingredients.forEach((ing, index) => {
-    const entry = { ingredient: ing, index };
-    const nameLower = ing.name.toLowerCase();
-    const needsPrep = prepWords.some((w) => nameLower.includes(w));
+function titleCaseGroup(value: string) {
+  if (!value) return 'Ingredienser';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
-    if (needsPrep) {
-      prepare.items.push(entry);
-    } else if (weightUnits.includes(ing.unit.toLowerCase())) {
-      weigh.items.push(entry);
-    } else if (volumeUnits.includes(ing.unit.toLowerCase())) {
-      measure.items.push(entry);
-    } else {
-      other.items.push(entry);
+function fallbackGroupForIngredient(ing: Ingredient): string {
+  const name = ing.name.toLowerCase();
+
+  if (/(løg|hvidløg|chili|skalotteløg|ingefær)/.test(name)) return 'Aromater';
+  if (/(paprika|spidskommen|koriander|kanel|karry|gurkemeje|salt|peber|oregano|timian|muskatnød)/.test(name)) return 'Krydderiblanding';
+  if (/(tomat|bouillon|mælk|fløde|eddike|soja|fond|vand|øl|vin|kokosmælk)/.test(name)) return 'Våd base';
+  if (/(persille|koriander|citron|chips|cremefraiche|topping|salat|agurk|dressing)/.test(name)) return 'Til servering';
+
+  return 'Senere tilsætning';
+}
+
+function buildPrepGroups(ingredients: Ingredient[]): PrepGroup[] {
+  const groups = new Map<string, PrepGroup>();
+
+  ingredients.forEach((ingredient, index) => {
+    const rawGroup = normalizeGroupLabel(ingredient.group);
+    const label =
+      !DEFAULT_GENERIC_GROUPS.has(rawGroup)
+        ? titleCaseGroup(ingredient.group!.trim())
+        : fallbackGroupForIngredient(ingredient);
+
+    if (!groups.has(label)) {
+      groups.set(label, { label, items: [] });
     }
+
+    groups.get(label)!.items.push({ ingredient, index });
   });
 
-  return [weigh, measure, prepare, other].filter((a) => a.items.length > 0);
+  const ordered = Array.from(groups.values());
+
+  // Soft cap: max 5 groups, overflow merges into last bucket
+  if (ordered.length <= 5) {
+    return ordered.map(group => ({
+      ...group,
+      mode: group.items.length >= 5 ? 'expandable' : 'inline',
+    }));
+  }
+
+  const primary = ordered.slice(0, 4);
+  const overflowItems = ordered.slice(4).flatMap(group => group.items);
+
+  primary.push({
+    label: 'Senere tilsætning',
+    items: overflowItems,
+    mode: overflowItems.length >= 5 ? 'expandable' : 'inline',
+  });
+
+  return primary;
+}
+
+/* ── Grouped ingredient overlay helper ── */
+
+function groupIngredientsForOverlay(ingredients: Ingredient[]) {
+  const map = new Map<string, Ingredient[]>();
+
+  ingredients.forEach((ingredient) => {
+    const rawGroup = normalizeGroupLabel(ingredient.group);
+    const label =
+      !DEFAULT_GENERIC_GROUPS.has(rawGroup)
+        ? titleCaseGroup(ingredient.group!.trim())
+        : 'Ingredienser';
+
+    if (!map.has(label)) map.set(label, []);
+    map.get(label)!.push(ingredient);
+  });
+
+  return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
 }
 
 /* ── Main component ── */
@@ -104,9 +162,11 @@ export function CookView({
 
   /* ── Refs ── */
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const topZoneRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isUserScrolling = useRef(true);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipClampRef = useRef(false);
 
   /* ── Derived data ── */
   const steps = useMemo(() => {
@@ -121,23 +181,35 @@ export function CookView({
   const maxStepIndex = Math.max(steps.length - 1, 0);
   const safeActiveStep = Math.min(Math.max(activeStepIndex, 0), maxStepIndex);
 
-  const prepActions = useMemo(() => {
+  const prepGroups = useMemo(() => {
     if (!recipe || !includePrep) return [];
-    return categorizePrepIngredients(recipe.ingredients || []);
+    return buildPrepGroups(recipe.ingredients || []);
   }, [recipe, includePrep]);
+
+  const groupedIngredientsForOverlay = useMemo(
+    () => groupIngredientsForOverlay(recipe?.ingredients || []),
+    [recipe?.ingredients]
+  );
 
   const scale = recipe?.scale || 1;
 
   /* ── Scroll-based active step detection ── */
-  // Uses an "activation line" at ~28% from the top of the container.
+  // Uses a dynamic "activation line" that accounts for topzone height (topbar + timerdock).
   // The last step whose top has crossed above this line becomes active.
-  // This is more stable than center-distance and avoids jitter.
+  // Skip guard (hysteresis): normal scroll can only move ±1 step at a time.
   const updateActiveFromScroll = useCallback(() => {
     const container = scrollContainerRef.current;
+    const topZone = topZoneRef.current;
     if (!container || steps.length === 0) return;
 
     const containerRect = container.getBoundingClientRect();
-    const activationLine = containerRect.top + containerRect.height * 0.28;
+
+    // Effective visible area starts below the fixed top zone
+    const visibleTop = containerRect.top + 8;
+    const visibleBottom = containerRect.bottom - 8;
+
+    const effectiveHeight = Math.max(visibleBottom - visibleTop, 1);
+    const activationLine = visibleTop + effectiveHeight * 0.32;
 
     let nextActive = 0;
 
@@ -149,10 +221,15 @@ export function CookView({
       }
     });
 
-    if (nextActive !== activeStepIndex) {
-      setActiveStepIndex(nextActive);
-    }
-  }, [activeStepIndex, steps.length]);
+    // Skip guard: clamp to ±1 step during normal scroll (not programmatic jumps)
+    setActiveStepIndex((prev) => {
+      if (prev === nextActive) return prev;
+      if (!skipClampRef.current && Math.abs(nextActive - prev) > 1) {
+        return nextActive > prev ? prev + 1 : prev - 1;
+      }
+      return nextActive;
+    });
+  }, [steps.length]);
 
   const handleScroll = useCallback(() => {
     if (!isUserScrolling.current) return;
@@ -164,16 +241,20 @@ export function CookView({
     const el = stepRefs.current[index];
     if (!el || !scrollContainerRef.current) return;
 
+    // Bypass skip guard for programmatic jumps (e.g. clicking a step card)
+    skipClampRef.current = true;
     isUserScrolling.current = false;
+
     el.scrollIntoView({
       behavior: smooth ? 'smooth' : 'instant',
       block: 'center',
     });
 
-    // Re-enable user scroll detection after animation
+    // Re-enable user scroll detection + skip guard after animation
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => {
       isUserScrolling.current = true;
+      skipClampRef.current = false;
     }, smooth ? 600 : 100);
   }, []);
 
@@ -336,7 +417,7 @@ export function CookView({
   return (
     <div className="cm-cook-shell cm-cook-viewport flex flex-col max-w-md mx-auto relative">
       {/* ═══ FIXED TOP: Topbar + Timer Dock ═══ */}
-      <div className="cm-cook-top-zone z-30 shrink-0">
+      <div ref={topZoneRef} className="cm-cook-top-zone z-30 shrink-0">
         {/* Topbar */}
         <div className="cm-cook-topbar flex justify-between items-center p-3 sm:p-5 gap-2 pt-5 relative">
           {/* Progress bar */}
@@ -560,11 +641,11 @@ export function CookView({
                     </div>
                     {isActive && (
                       <div className="space-y-4 mt-3">
-                        {prepActions.map((action) => (
-                          <div key={action.label}>
-                            <p className="text-xs font-bold uppercase tracking-widest text-heath-mid/60 mb-2">{action.label}</p>
+                        {prepGroups.map((group) => (
+                          <div key={group.label}>
+                            <p className="text-xs font-bold uppercase tracking-widest text-heath-mid/60 mb-2">{group.label}</p>
                             <ul className="space-y-1">
-                              {action.items.map(({ ingredient: ing, index }) => {
+                              {group.items.map(({ ingredient: ing, index }) => {
                                 const checked = checkedIngredients.has(index);
                                 const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
                                 return (
@@ -736,17 +817,32 @@ export function CookView({
             </div>
 
             <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-4 sm:px-6">
-              <ul className="divide-y divide-white/8">
-                {(recipe.ingredients || []).map((ing, i) => {
-                  const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
-                  const fullStr = `${amountStr} ${ing.unit} ${ing.name}`.trim();
-                  return (
-                    <li key={i} className="py-4 text-lg font-serif first:pt-2 last:pb-2">
-                      <span className="text-[#F9F9F7]">{fullStr}</span>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="space-y-6">
+                {groupedIngredientsForOverlay.map((group) => (
+                  <section key={group.label} className="space-y-2">
+                    {/* Only show group header when there are multiple groups */}
+                    {groupedIngredientsForOverlay.length > 1 && (
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">
+                        {group.label}
+                      </h3>
+                    )}
+                    <ul className="divide-y divide-white/8">
+                      {group.items.map((ing, i) => {
+                        const amountStr = ing.amount
+                          ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount)
+                          : '';
+                        const fullStr = `${amountStr} ${ing.unit} ${ing.name}`.trim();
+
+                        return (
+                          <li key={`${group.label}-${i}`} className="py-3 text-lg font-serif text-[#F9F9F7]">
+                            {fullStr}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                ))}
+              </div>
             </div>
 
             <div className="shrink-0 p-5 sm:p-6 pt-3">
