@@ -268,6 +268,7 @@ export default function App() {
 
   const navigateTo = useCallback((view: ViewState) => {
     setActiveTimerPopup(null);
+    setNotice(null); // clear any lingering notice on every navigation
     rawNavigateTo(view);
   }, [rawNavigateTo]);
 

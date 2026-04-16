@@ -1,5 +1,6 @@
 import { Recipe } from '../types';
 import { PlayCircle, PlusCircle, Settings, Clock, BookOpen, Cloud, WifiOff, ChefHat } from 'lucide-react';
+import { BrandMark } from './BrandMark';
 
 interface HomeViewProps {
   activeRecipe: Recipe | null;
@@ -16,7 +17,7 @@ export function HomeView({ activeRecipe, recentRecipes, onNavigate, onOpenRecipe
     <div className="p-4 pb-24 max-w-md mx-auto min-h-screen">
       <div className="flex justify-between items-center mb-8 pt-4">
         <div className="flex items-center gap-2">
-          <img src="/branding/cookmoxs-master.svg" alt="CookMoxs" width={32} height={32} className="cm-brand-mark drop-shadow-sm" />
+          <BrandMark size={32} className="cm-brand-mark drop-shadow-sm" />
           <h1 className="text-3xl font-serif text-forest-dark cm-light-surface-ink tracking-tight italic text-engraved">CookMoxs</h1>
         </div>
         <button onClick={() => onNavigate('settings')} className="p-2 text-forest-mid cm-light-surface-icon hover:bg-white/40 dark:hover:bg-black/5 rounded-full transition-colors glass-brushed">

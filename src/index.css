@@ -648,6 +648,39 @@
     --cm-import-meter-track: rgba(255, 255, 255, 0.10);
     --cm-import-meter-border: rgba(255, 255, 255, 0.08);
     --cm-import-stage-active-ring: rgba(255, 255, 255, 0.06);
+
+    /* Explicit dark overrides — backdrop-filter can bleed light background through */
+    background: rgba(22, 27, 24, 0.98);
+    backdrop-filter: blur(16px) saturate(110%);
+  }
+
+  .dark .cm-import-loading__hero {
+    background: rgba(28, 34, 30, 0.97);
+  }
+
+  .dark .cm-import-loading__stage {
+    background: rgba(28, 34, 30, 0.94);
+  }
+
+  .dark .cm-import-loading__eyebrow,
+  .dark .cm-import-loading__meta {
+    color: rgba(194, 209, 196, 0.80);
+  }
+
+  .dark .cm-import-loading__title {
+    color: #F0EEE8;
+  }
+
+  .dark .cm-import-loading__description {
+    color: rgba(194, 209, 196, 0.82);
+  }
+
+  .dark .cm-import-loading__stage-title {
+    color: #F0EEE8;
+  }
+
+  .dark .cm-import-loading__stage-detail {
+    color: rgba(194, 209, 196, 0.80);
   }
 
   .cm-import-loading__hero {

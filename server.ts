@@ -704,8 +704,39 @@ function findRecipeInStructuredData(input: any): any {
 function extractEmbeddedRecipeDataFromScripts(html: string) {
   const $ = cheerio.load(html);
 
+  // Priority 1: Next.js __NEXT_DATA__ JSON script tag (pure JSON, not JS variable assignment)
+  // e.g. <script id="__NEXT_DATA__" type="application/json">{...}</script>
+  const nextDataEl = $('script#__NEXT_DATA__');
+  if (nextDataEl.length > 0) {
+    const raw = nextDataEl.html();
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const found = findRecipeInStructuredData(parsed);
+        if (found) return found;
+      } catch {
+        // malformed JSON, fall through
+      }
+    }
+  }
+
+  // Priority 2: Any JSON-type script that might contain recipe data
+  $('script[type="application/json"]').each((_, el) => {
+    const raw = $(el).html();
+    if (raw && raw.length > 100) {
+      try {
+        const parsed = JSON.parse(raw);
+        const found = findRecipeInStructuredData(parsed);
+        if (found) return found; // Note: this return is from the each callback, not the outer function
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  // Priority 3: Inline JS containing SPA data patterns or embedded recipe schema
   const scriptContents: string[] = [];
-  $('script').each((_, el) => {
+  $('script:not([type]), script[type="text/javascript"]').each((_, el) => {
     const content = $(el).html();
     if (content && content.length > 100) {
       scriptContents.push(content);
@@ -713,7 +744,6 @@ function extractEmbeddedRecipeDataFromScripts(html: string) {
   });
 
   for (const content of scriptContents) {
-    // Look for common SPA data patterns
     if (
       content.includes('__NEXT_DATA__') ||
       content.includes('__NUXT__') ||
@@ -723,7 +753,6 @@ function extractEmbeddedRecipeDataFromScripts(html: string) {
       content.includes('"@type":"Recipe"') ||
       content.includes("'@type':'Recipe'")
     ) {
-      // Try to extract JSON objects (at least 200 chars to avoid trivial matches)
       const jsonMatches = content.match(/\{[\s\S]{200,}\}/g) || [];
 
       for (const match of jsonMatches) {
