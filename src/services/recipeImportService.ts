@@ -2,6 +2,59 @@ import { Folder, Recipe } from '../types';
 import { DEFAULT_FOLDER_NAME, findDefaultFolder, getCanonicalDefaultFolderId } from './defaultFolderService';
 import { normalizeRecipeForCookMode } from './recipeStepNormalization';
 
+/* ── Summary sanitizer ── */
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function splitIntoSentences(value: string): string[] {
+  return value
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => normalizeWhitespace(s))
+    .filter(Boolean);
+}
+
+function isLowValueSummarySentence(sentence: string): boolean {
+  const lower = sentence.toLowerCase();
+  const bannedFragments = [
+    'velbekomme',
+    'god fornøjelse',
+    'nyd dit måltid',
+    'nyd denne',
+    'denne ret er',
+    'her er opskriften',
+    'god madlyst',
+    'bon appétit',
+  ];
+  return bannedFragments.some((fragment) => lower.includes(fragment));
+}
+
+function sanitizeImportedSummary(summary: unknown): string {
+  if (typeof summary !== 'string') return '';
+
+  const clean = normalizeWhitespace(summary);
+  if (!clean) return '';
+
+  const sentences = splitIntoSentences(clean);
+  const seen = new Set<string>();
+  const unique: string[] = [];
+
+  for (const sentence of sentences) {
+    const normalized = sentence.toLowerCase();
+    if (seen.has(normalized)) continue;
+    if (isLowValueSummarySentence(sentence)) continue;
+    seen.add(normalized);
+    unique.push(sentence);
+  }
+
+  const result = unique.slice(0, 2).join(' ').trim();
+  if (!result) return '';
+  if (result.length > 180) return result.slice(0, 177).trimEnd() + '...';
+
+  return result;
+}
+
 interface BuildRecipeOptions {
   parsedData: any;
   sourceType: 'url' | 'text' | 'file' | 'image';
@@ -31,7 +84,7 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
   return normalizeRecipeForCookMode({
     id: Date.now().toString(),
     title: title || 'Uden navn',
-    summary: parsedData.summary || '',
+    summary: sanitizeImportedSummary(parsedData.summary),
     recipeType: parsedData.recipeType || '',
     categories: parsedData.categories || [],
     folder: defaultFolder?.name || DEFAULT_FOLDER_NAME,
@@ -42,7 +95,10 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     servingsUnit: parsedData.servingsUnit || 'personer',
     ingredients: ingredients.map((ing: any, i: number) => ({
       id: `ing-${i}`,
-      amount: ing.amount || null,
+      amount: typeof ing.amount === 'number' ? ing.amount : null,
+      amountMin: typeof ing.amountMin === 'number' ? ing.amountMin : null,
+      amountMax: typeof ing.amountMax === 'number' ? ing.amountMax : null,
+      amountText: typeof ing.amountText === 'string' ? ing.amountText.trim() : '',
       unit: ing.unit || '',
       name: ing.name.trim(),
       group: ing.group || 'Andre',

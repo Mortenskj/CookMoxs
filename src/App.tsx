@@ -17,6 +17,7 @@ import {
 import { trackEvent } from './services/analyticsService';
 import { logSessionError } from './hooks/useSessionErrorLog';
 import { normalizeAuthError } from './services/authErrorMessageService';
+import { haptics } from './services/haptics';
 import { normalizeAiActionError, normalizeImportError, normalizeSyncError } from './services/errorMessageService';
 import { removeFolderShare, setFolderPermissionState, upsertFolderShare } from './services/folderPermissionService';
 import {
@@ -315,7 +316,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [activeAiAction, setActiveAiAction] = useState<AiActionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notices, setNotices] = useState<AppNotice[]>([]);
+  const [notice, setNotice] = useState<AppNotice | null>(null);
   const [timers, setTimers] = useState<Timer[]>([]);
   const timersRef = useRef<Timer[]>(timers);
   const [isSavedRecipeCacheReady, setIsSavedRecipeCacheReady] = useState(false);
@@ -341,19 +342,19 @@ export default function App() {
     }
   };
 
-  const pushNotice = useCallback((notice: Omit<AppNotice, 'id'>) => {
+  const pushNotice = useCallback((input: Omit<AppNotice, 'id'>) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const next: AppNotice = { id, dismissible: true, ...notice };
-    setNotices((prev) => [...prev, next]);
+    const next: AppNotice = { id, dismissible: true, ...input };
+    setNotice(next); // single-notice: new replaces old
     if (next.autoHideMs && next.autoHideMs > 0) {
       window.setTimeout(() => {
-        setNotices((prev) => prev.filter((item) => item.id !== id));
+        setNotice((prev) => (prev?.id === id ? null : prev));
       }, next.autoHideMs);
     }
   }, []);
 
-  const dismissNotice = useCallback((id: string) => {
-    setNotices((prev) => prev.filter((item) => item.id !== id));
+  const dismissNotice = useCallback(() => {
+    setNotice(null);
   }, []);
 
   const commitSavedRecipes = useCallback((nextRecipes: Recipe[]) => {
@@ -606,7 +607,7 @@ export default function App() {
             if (t.active && t.remaining > 0) {
               const newRemaining = t.remaining - 1;
               if (newRemaining === 0) {
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
+                haptics.timerDone();
                 return { ...t, remaining: 0, active: false };
               }
               return { ...t, remaining: newRemaining };
@@ -1983,35 +1984,32 @@ export default function App() {
         label={getAiActivityLabel(activeAiAction, loading)}
       />
 
-      {/* Global notice toasts — dismissible, auto-hide */}
-      {notices.length > 0 && (
-        <div className="fixed inset-x-0 bottom-24 z-[110] pointer-events-none flex flex-col items-center gap-3 px-4">
-          {notices.map((notice) => (
-            <div
-              key={notice.id}
-              className={`pointer-events-auto max-w-md w-full rounded-2xl border px-4 py-3 shadow-xl animate-fade-in ${
-                notice.type === 'error'
-                  ? 'bg-red-50/95 dark:bg-red-950/90 border-red-200/70 dark:border-red-800/50 text-red-900 dark:text-red-200'
-                  : notice.type === 'warning'
-                    ? 'bg-amber-50/95 dark:bg-amber-950/90 border-amber-200/70 dark:border-amber-800/50 text-amber-900 dark:text-amber-200'
-                    : notice.type === 'success'
-                      ? 'bg-green-50/95 dark:bg-green-950/90 border-green-200/70 dark:border-green-800/50 text-green-900 dark:text-green-200'
-                      : 'bg-blue-50/95 dark:bg-blue-950/90 border-blue-200/70 dark:border-blue-800/50 text-blue-900 dark:text-blue-200'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1 text-sm font-serif">{notice.message}</div>
-                {notice.dismissible && (
-                  <button
-                    onClick={() => dismissNotice(notice.id)}
-                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
+      {/* Global notice toast — single active notice, new replaces old */}
+      {notice && (
+        <div className="fixed inset-x-0 bottom-24 z-[110] pointer-events-none flex justify-center px-4">
+          <div
+            className={`pointer-events-auto max-w-md w-full rounded-2xl border px-4 py-3 shadow-xl animate-fade-in ${
+              notice.type === 'error'
+                ? 'bg-red-50/95 dark:bg-red-950/90 border-red-200/70 dark:border-red-800/50 text-red-900 dark:text-red-200'
+                : notice.type === 'warning'
+                  ? 'bg-amber-50/95 dark:bg-amber-950/90 border-amber-200/70 dark:border-amber-800/50 text-amber-900 dark:text-amber-200'
+                  : notice.type === 'success'
+                    ? 'bg-green-50/95 dark:bg-green-950/90 border-green-200/70 dark:border-green-800/50 text-green-900 dark:text-green-200'
+                    : 'bg-blue-50/95 dark:bg-blue-950/90 border-blue-200/70 dark:border-blue-800/50 text-blue-900 dark:text-blue-200'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1 text-sm font-serif">{notice.message}</div>
+              {notice.dismissible && (
+                <button
+                  onClick={dismissNotice}
+                  className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
-          ))}
+          </div>
         </div>
       )}
 

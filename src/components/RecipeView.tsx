@@ -957,6 +957,15 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               <span className="cm-nav-icon"><Heart size={16} className={recipe.isFavorite ? "fill-heath-mid text-heath-mid" : ""} /></span>
             </button>
           )}
+          {canMutateRecipe && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5 text-[#DC2626] hover:text-[#B91C1C]"
+              title={recipe.isSaved ? 'Slet opskrift' : 'Kassér kladde'}
+            >
+              <span className="cm-nav-icon"><Trash2 size={16} /></span>
+            </button>
+          )}
           <button
             onClick={() => {
               if (typeof navigator !== 'undefined' && navigator.share) {

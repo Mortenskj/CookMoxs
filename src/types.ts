@@ -41,6 +41,9 @@ export interface Ingredient {
   id: string;
   name: string;
   amount: number | null;
+  amountMin?: number | null;
+  amountMax?: number | null;
+  amountText?: string;
   unit: string;
   group?: string;
   locked?: boolean;

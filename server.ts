@@ -41,11 +41,14 @@ const RECIPE_SCHEMA = {
         properties: {
           name: { type: Type.STRING },
           amount: { type: Type.NUMBER },
+          amountMin: { type: Type.NUMBER },
+          amountMax: { type: Type.NUMBER },
+          amountText: { type: Type.STRING },
           unit: { type: Type.STRING },
           group: { type: Type.STRING },
           locked: { type: Type.BOOLEAN },
         },
-        required: ['name', 'amount', 'unit'],
+        required: ['name', 'unit'],
       },
     },
     steps: {
@@ -999,12 +1002,19 @@ async function startServer() {
         5. Use heat values on a 1-9 induction scale for stovetop steps.
         6. Extract timers into the timer property.
         7. Match the communication style to this instruction: ${styleInstruction}
-        8. Be conservative with heat. Do not default to aggressive heat just to make a step sound decisive.
+        8. Write steps in a text-first cook mode style. Include the most important ingredient amounts directly in the step text when it improves execution clarity. Each step should be understandable without a separate ingredient overlay.
+        9. Be conservative with heat. Do not default to aggressive heat just to make a step sound decisive.
         9. Reserve 9/9 for brief preheating or bringing liquid to a boil, not for sustained cooking.
         10. If a step says to bring something to a boil and then simmer, split it into separate steps or state the heat reduction explicitly so the sustained stovetop heat is lower than the initial boil.
         11. For onions, garlic and other aromatics, prefer moderate heat unless the text explicitly calls for hard browning.
         12. If a step needs two distinct heat phases, prefer splitting it into two steps so each step has one clear working heat.
         13. The structured heat field should reflect the sustained working heat, not a short initial peak, unless the whole step is truly only a brief high-heat action.
+        RELEVANT INGREDIENT RULES:
+        - Only include ingredients in relevantIngredients that are directly used in the current step.
+        - Do not include future ingredients or ingredients used in other steps.
+        - Do not guess.
+        - Setup steps like boiling water, preheating oven, resting, waiting, and similar should return an empty relevantIngredients array.
+        - It is better to return an empty relevantIngredients array than a wrong one.
         Recipe JSON:
         ${JSON.stringify(recipe)}
       `;
@@ -1090,10 +1100,13 @@ async function startServer() {
       const ingredientNames = (recipe.ingredients || []).map((i: any) => `${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join(', ');
       const prompt = `
         Du er en ekspertkok. Gennemgå og forbedre fremgangsmåden for opskriften "${recipe.title}".
-        - Gør trinene klare og præcise.
+        - Gør trinene klare og præcise — skriv i text-first stil så hvert trin kan forstås uden separat ingrediensvisning.
+        - Inkludér de vigtigste mængder direkte i trinteksten, fx "Tilsæt de 200 g hakket oksekød".
         - Tilføj varme (heat/heatLevel på induktionsskala 1-9) hvor det mangler.
         - Tilføj timere (timer med duration i sekunder) hvor det er relevant.
-        - Tilføj relevantIngredients til hvert trin.
+        - Tilføj relevantIngredients til hvert trin — KUN ingredienser der faktisk bruges i dette specifikke trin.
+        - Setup-trin som at koge vand, forvarme ovn, hvile, vente og lignende skal have tom relevantIngredients liste.
+        - Det er bedre at returnere en tom relevantIngredients end en forkert en.
         - Generér heatGuide, ovenGuide (hvis relevant), flavorBoosts, pitfalls, hints og kitchenTimeline.
         Varme-regler:
         - Brug den kanoniske 1-9 induktionsskala.
@@ -1310,10 +1323,12 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       - "1 dåse flåede tomater" → { name: "flåede tomater", amount: 1, unit: "dåse" }
       - "skiver kogt skinke" → { name: "kogt skinke", amount: 4, unit: "skiver" }
       Words like 'skiver', 'stk', 'fed', 'dåse', 'bundt', 'pose' are ALWAYS units, never part of the name.
+      AMOUNT RANGE RULES: If an ingredient amount is a range like "175-200 g", never collapse it to a midpoint. Store ranges as amountMin and amountMax. Use amountText to preserve the original phrasing when useful (e.g. "175-200"). Only use amount as a single number when the source clearly gives one exact amount.
+      SUMMARY RULES: summary must be 1-2 short sentences only. Maximum 180 characters. Do not repeat phrases or sentences. Do not include filler like "Velbekomme", "nyd", "god fornøjelse", "god madlyst", "denne ret er...". If no useful summary is available, return an empty string.
       FLAVOR & TIPS: Always generate 2-4 flavorBoosts (concrete tips to elevate flavor) and 2-3 pitfalls (common mistakes to avoid). These are required fields.
       CATEGORIES: Always generate 2-4 categories/tags in Danish that describe the recipe type and cuisine, e.g. 'Aftensmad', 'Italiensk', 'Hurtig', 'Comfort food', 'Vegetarisk', 'Bagværk', 'Frokost'. These help users find recipes in their library.
       Convert English/US metrics to Danish metrics.
-      Do not repeat ingredient amounts or heat levels in step text if they already exist in structured fields.
+      TEXT-FIRST STEP RULES: Step text must stand on its own in cook mode. When an ingredient is used in a step, include the ingredient name and usually the relevant quantity directly in the step text. Prefer natural phrasing like "Tilsæt de 2 hakkede løg og 3 fed hvidløg". Do not rely on a separate ingredient box to make the step understandable. Avoid repeating heat values in prose if they already exist in the structured heat field, unless needed for clarity. Each step should be understandable even if helper overlays are hidden.
       Extract heat info into the 'heat' property and ALWAYS convert it to a 1-9 induction scale.
       Extract specific timers into the 'timer' property.
       OVEN PREHEAT: Place oven-preheat steps IMMEDIATELY BEFORE the step that uses the oven. Never put oven preheat at the start of the recipe if there are long resting, proofing, or waiting steps before oven use.

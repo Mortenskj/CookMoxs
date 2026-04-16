@@ -21,6 +21,7 @@ import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
 import { formatStepHeatDisplay } from '../services/cookModeHeuristics';
 import { getWakeLockEnabled } from '../hooks/useWakeLockEnabled';
 import { TimerAnimationIcon, getTimerAnimationType } from './TimerAnimationIcon';
+import { haptics } from '../services/haptics';
 
 /* ── Prep grouping helpers (culinary, not unit-based) ── */
 
@@ -95,6 +96,36 @@ function buildPrepGroups(ingredients: Ingredient[]): PrepGroup[] {
   });
 
   return primary;
+}
+
+/* ── Relevant ingredient confidence guard ── */
+// Only show the inline ingredient box when there's meaningful confidence
+// that the listed ingredients actually belong to this specific step.
+// Prefer showing nothing over showing wrong ingredients.
+function shouldShowRelevantIngredients(step: any): boolean {
+  if (!step?.relevantIngredients?.length) return false;
+
+  const stepText = (step.text || '').toLowerCase();
+
+  // Setup-only signals: these steps rarely need an ingredient box
+  const setupSignals = [
+    'bring', 'kog op', 'forvarm', 'lad hvile', 'hvile',
+    'sæt til side', 'sæt ovnen', 'tænd ovnen', 'opvarm',
+    'bring vand', 'bring væske',
+  ];
+  const looksLikeSetupOnly = setupSignals.some((signal) => stepText.includes(signal));
+
+  // Strong match: ingredient name actually appears in step text
+  const strongMatches = (step.relevantIngredients as any[]).filter((ing) => {
+    const name = (ing.name || '').toLowerCase().trim();
+    return name.length > 2 && stepText.includes(name);
+  });
+
+  if (strongMatches.length > 0) return true;
+  if (looksLikeSetupOnly) return false;
+
+  // No strong match and not obviously a setup step — don't guess
+  return false;
 }
 
 /* ── Grouped ingredient overlay helper ── */
@@ -204,12 +235,14 @@ export function CookView({
 
     const containerRect = container.getBoundingClientRect();
 
-    // Effective visible area starts below the fixed top zone
-    const visibleTop = containerRect.top + 8;
+    // Account for topzone height (topbar + timerdock) to get the true reading zone
+    const topZoneHeight = topZone ? topZone.getBoundingClientRect().height : 0;
+    const visibleTop = containerRect.top + topZoneHeight;
     const visibleBottom = containerRect.bottom - 8;
 
-    const effectiveHeight = Math.max(visibleBottom - visibleTop, 1);
-    const activationLine = visibleTop + effectiveHeight * 0.32;
+    const readingZoneHeight = Math.max(visibleBottom - visibleTop, 1);
+    // Activation line sits at ~28% into the visible reading zone below the topzone
+    const activationLine = visibleTop + readingZoneHeight * 0.28;
 
     let nextActive = 0;
 
@@ -318,6 +351,17 @@ export function CookView({
     };
   }, []);
 
+  /* ── Haptics: fire on active step change (not on initial mount) ── */
+  const prevActiveStepRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (activeStepIndex !== prevActiveStepRef.current) {
+      if (prevActiveStepRef.current !== null) {
+        haptics.light();
+      }
+      prevActiveStepRef.current = activeStepIndex;
+    }
+  }, [activeStepIndex]);
+
   /* ── Prep checklist ── */
   const toggleChecked = (index: number) => {
     setCheckedIngredients((prev) => {
@@ -337,6 +381,7 @@ export function CookView({
 
   const startStepTimer = useCallback((step: any) => {
     if (!step?.timer || step.timer.duration <= 0) return;
+    haptics.light();
     setHudMessage(null);
     setTimers((prev) => [
       ...prev,
@@ -353,6 +398,7 @@ export function CookView({
   const startManualTimer = useCallback(() => {
     const mins = parseInt(manualMinutes, 10);
     if (!mins || mins <= 0 || mins > 999) return;
+    haptics.light();
     setTimers((prev) => [
       ...prev,
       {
@@ -755,8 +801,8 @@ export function CookView({
                       </div>
                     )}
 
-                    {/* Inline ingredients (toggle-based) */}
-                    {isActive && showInlineIngredients && mentionedIngredients.length > 0 && (
+                    {/* Inline ingredients (toggle-based, confidence-gated) */}
+                    {isActive && showInlineIngredients && mentionedIngredients.length > 0 && shouldShowRelevantIngredients(step) && (
                       <div className="cm-cook-surface-subtle rounded-xl p-3 mt-4">
                         <span className="text-[0.6rem] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1 mb-1.5">
                           <Beaker size={10} /> {levelMeta.ingredientLabel}

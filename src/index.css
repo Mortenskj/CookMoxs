@@ -2726,6 +2726,7 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
     cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 9.5rem; /* Prevent micro-cards on very short steps */
   }
 
   .cm-cook-flow-step--active {
@@ -2733,11 +2734,13 @@
     border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     cursor: default;
+    min-height: 12.5rem; /* Active card has more breathing room */
   }
 
   .cm-cook-flow-step--past {
     opacity: 0.5;
     background: rgba(26, 31, 28, 0.3);
+    min-height: 5rem; /* Past steps can collapse more — keep some mass */
   }
 
   .cm-cook-flow-step--past:hover {
@@ -2929,4 +2932,18 @@
   /* Strip decorations */
   .herbal-pattern { background-image: none !important; }
   .glass-brushed::before { display: none !important; }
+}
+
+/* ── Brand mark — context-aware logo colouring ── */
+.cm-brand-mark {
+  color: var(--season-text-primary);
+}
+
+.dark .cm-brand-mark {
+  color: var(--season-light-surface-ink, #F3EEE5);
+}
+
+.cm-cook-shell .cm-brand-mark,
+.cm-cook-topbar .cm-brand-mark {
+  color: #F3EEE5;
 }
