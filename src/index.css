@@ -621,6 +621,14 @@
   }
 
   .cm-import-loading {
+    --cm-import-hero-overlay: rgba(255, 255, 255, 0.2);
+    --cm-import-hero-overlay-end: rgba(255, 255, 255, 0.02);
+    --cm-import-hero-shadow: rgba(255, 255, 255, 0.2);
+    --cm-import-hero-shimmer: rgba(255, 255, 255, 0.22);
+    --cm-import-meter-track: rgba(255, 255, 255, 0.28);
+    --cm-import-meter-border: rgba(39, 42, 38, 0.08);
+    --cm-import-stage-active-ring: rgba(255, 255, 255, 0.14);
+
     width: min(100%, 25rem);
     display: grid;
     gap: 1rem;
@@ -632,39 +640,37 @@
     backdrop-filter: blur(6px) saturate(104%);
   }
 
+  .dark .cm-import-loading {
+    --cm-import-hero-overlay: rgba(255, 255, 255, 0.06);
+    --cm-import-hero-overlay-end: rgba(255, 255, 255, 0.01);
+    --cm-import-hero-shadow: rgba(255, 255, 255, 0.06);
+    --cm-import-hero-shimmer: rgba(255, 255, 255, 0.08);
+    --cm-import-meter-track: rgba(255, 255, 255, 0.10);
+    --cm-import-meter-border: rgba(255, 255, 255, 0.08);
+    --cm-import-stage-active-ring: rgba(255, 255, 255, 0.06);
+  }
+
   .cm-import-loading__hero {
     position: relative;
     overflow: hidden;
     border-radius: 1.5rem;
     padding: 1.25rem;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.02)),
+      linear-gradient(180deg, var(--cm-import-hero-overlay), var(--cm-import-hero-overlay-end)),
       var(--season-atmosphere-halo),
       color-mix(in srgb, var(--theme-panel-strong) 98%, transparent);
     border: 1px solid color-mix(in srgb, var(--theme-panel-border) 92%, transparent);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  .dark .cm-import-loading__hero {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)),
-      var(--season-atmosphere-halo),
-      color-mix(in srgb, var(--theme-panel-strong) 98%, transparent);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 var(--cm-import-hero-shadow);
   }
 
   .cm-import-loading__hero::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, var(--cm-import-hero-shimmer) 50%, transparent 100%);
     transform: translateX(-36%);
     animation: cm-loading-sweep 2.4s var(--cm-motion-ease-soft) infinite;
     pointer-events: none;
-  }
-
-  .dark .cm-import-loading__hero::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%);
   }
 
   .cm-import-loading__eyebrow {
@@ -699,13 +705,8 @@
     height: 0.5rem;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.28);
-    border: 1px solid rgba(39, 42, 38, 0.08);
-  }
-
-  .dark .cm-import-loading__meter {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: var(--cm-import-meter-track);
+    border: 1px solid var(--cm-import-meter-border);
   }
 
   .cm-import-loading__meter-bar {
@@ -752,7 +753,7 @@
     background: color-mix(in srgb, var(--theme-panel-strong) 98%, transparent);
     border-color: color-mix(in srgb, var(--season-loading-accent) 42%, var(--theme-panel-border));
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      inset 0 0 0 1px var(--cm-import-stage-active-ring),
       0 12px 24px color-mix(in srgb, var(--season-shadow-color) 62%, transparent);
   }
 
@@ -784,12 +785,6 @@
   .dark .cm-import-loading__stage[data-state="done"] .cm-import-loading__stage-index {
     background: color-mix(in srgb, var(--season-loading-accent) 30%, rgba(0, 0, 0, 0.3) 70%);
     color: #F6F2EA;
-  }
-
-  .dark .cm-import-loading__stage[data-state="active"] {
-    box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-      0 12px 24px color-mix(in srgb, var(--season-shadow-color) 62%, transparent);
   }
 
   .cm-import-loading__stage-title {

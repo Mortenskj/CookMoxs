@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TimerAnimationIcon, getTimerAnimationType } from './components/TimerAnimationIcon';
-import { CookingPot, BookOpen, Home, PlusCircle } from 'lucide-react';
+import { CookingPot, BookOpen, Home, PlusCircle, X } from 'lucide-react';
 import {
   adjustRecipe as aiAdjustRecipe,
   generateSteps as aiGenerateSteps,

@@ -698,6 +698,46 @@ function findRecipeInStructuredData(input: any): any {
   return null;
 }
 
+function extractEmbeddedRecipeDataFromScripts(html: string) {
+  const $ = cheerio.load(html);
+
+  const scriptContents: string[] = [];
+  $('script').each((_, el) => {
+    const content = $(el).html();
+    if (content && content.length > 100) {
+      scriptContents.push(content);
+    }
+  });
+
+  for (const content of scriptContents) {
+    // Look for common SPA data patterns
+    if (
+      content.includes('__NEXT_DATA__') ||
+      content.includes('__NUXT__') ||
+      content.includes('__INITIAL_STATE__') ||
+      content.includes('"recipeIngredient"') ||
+      content.includes('"recipeInstructions"') ||
+      content.includes('"@type":"Recipe"') ||
+      content.includes("'@type':'Recipe'")
+    ) {
+      // Try to extract JSON objects (at least 200 chars to avoid trivial matches)
+      const jsonMatches = content.match(/\{[\s\S]{200,}\}/g) || [];
+
+      for (const match of jsonMatches) {
+        try {
+          const parsed = JSON.parse(match);
+          const found = findRecipeInStructuredData(parsed);
+          if (found) return found;
+        } catch {
+          // ignore non-JSON blocks
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 async function fetchRecipeSource(url: string) {
   if (!url || typeof url !== 'string') {
     throw new HttpError(400, 'URL is required');
