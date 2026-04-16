@@ -115,6 +115,14 @@ type AiActionKey =
   | 'estimate_nutrition'
   | 'apply_prefix';
 
+type AppNotice = {
+  id: string;
+  type: 'error' | 'warning' | 'success' | 'info';
+  message: string;
+  dismissible?: boolean;
+  autoHideMs?: number;
+};
+
 const getPersistentAIDisabledReason = (err: unknown): string | null => {
   const normalized = normalizeAiActionError(err);
   if (normalized.category === 'invalid_model') {
@@ -307,6 +315,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [activeAiAction, setActiveAiAction] = useState<AiActionKey | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notices, setNotices] = useState<AppNotice[]>([]);
   const [timers, setTimers] = useState<Timer[]>([]);
   const timersRef = useRef<Timer[]>(timers);
   const [isSavedRecipeCacheReady, setIsSavedRecipeCacheReady] = useState(false);
@@ -331,6 +340,21 @@ export default function App() {
       default: return 'AI arbejder...';
     }
   };
+
+  const pushNotice = useCallback((notice: Omit<AppNotice, 'id'>) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const next: AppNotice = { id, dismissible: true, ...notice };
+    setNotices((prev) => [...prev, next]);
+    if (next.autoHideMs && next.autoHideMs > 0) {
+      window.setTimeout(() => {
+        setNotices((prev) => prev.filter((item) => item.id !== id));
+      }, next.autoHideMs);
+    }
+  }, []);
+
+  const dismissNotice = useCallback((id: string) => {
+    setNotices((prev) => prev.filter((item) => item.id !== id));
+  }, []);
 
   const commitSavedRecipes = useCallback((nextRecipes: Recipe[]) => {
     savedRecipesRef.current = nextRecipes;
@@ -750,7 +774,7 @@ export default function App() {
       } catch (error) {
         const syncMessage = normalizeSyncError(error, 'Mappen kunne ikke gemmes i cloud.');
         markCloudError(syncMessage);
-        setError(syncMessage);
+        pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
       }
     } else {
       const newFolders = [...folders, newFolder].sort((a, b) => a.name.localeCompare(b.name));
@@ -773,7 +797,7 @@ export default function App() {
       } catch (error) {
         const syncMessage = normalizeSyncError(error, 'Mappen kunne ikke opdateres i cloud.');
         markCloudError(syncMessage);
-        setError(syncMessage);
+        pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
       }
     } else {
       const newFolders = folders.map(f => f.id === folderId ? updatedFolder : f);
@@ -784,7 +808,7 @@ export default function App() {
 
   const handleDeleteFolder = async (folderId: string) => {
     if (user && !isOnline) {
-      setError('Du er offline. Mappesletning i cloud kræver internetforbindelse.');
+      pushNotice({ type: 'warning', message: 'Du er offline. Mappesletning i cloud kræver internetforbindelse.', autoHideMs: 6000 });
       return;
     }
 
@@ -850,7 +874,7 @@ export default function App() {
     } catch (error) {
       const syncMessage = normalizeSyncError(error, 'Mappedeling kunne ikke gemmes.');
       markCloudError(syncMessage);
-      setError(syncMessage);
+      pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
     }
   };
 
@@ -869,7 +893,7 @@ export default function App() {
     } catch (error) {
       const syncMessage = normalizeSyncError(error, 'Adgang kunne ikke fjernes.');
       markCloudError(syncMessage);
-      setError(syncMessage);
+      pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
     }
   };
 
@@ -888,7 +912,7 @@ export default function App() {
     } catch (error) {
       const syncMessage = normalizeSyncError(error, 'Permission-mode kunne ikke opdateres.');
       markCloudError(syncMessage);
-      setError(syncMessage);
+      pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
     }
   };
 
@@ -1322,7 +1346,7 @@ export default function App() {
     } catch (err: any) {
       const syncMessage = normalizeSyncError(err, 'Opskriften kunne ikke gemmes i cloud.');
       markCloudError(syncMessage);
-      setError(syncMessage);
+      pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
     }
   };
 
@@ -1341,7 +1365,7 @@ export default function App() {
     }
 
     if (user && !isOnline) {
-      setError('Du er offline. Sletning i cloud kræver internetforbindelse.');
+      pushNotice({ type: 'warning', message: 'Du er offline. Sletning i cloud kræver internetforbindelse.', autoHideMs: 6000 });
       return;
     }
 
@@ -1420,7 +1444,7 @@ export default function App() {
       const message = normalizeAuthError(error);
       setAuthErrorMessage(message);
       markCloudError(message);
-      setError(message);
+      pushNotice({ type: 'error', message, autoHideMs: 8000 });
     } finally {
       setAuthAction(null);
     }
@@ -1464,7 +1488,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Adjust Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('smart_adjust', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('smart_adjust', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1488,7 +1512,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Generate Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('generate_steps', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke generere fremgangsmåde')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('generate_steps', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke generere fremgangsmåde')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1513,7 +1537,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Fill Rest Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('fill_rest', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke udfylde resten')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('fill_rest', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke udfylde resten')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1538,7 +1562,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Polish Ingredients Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('polish_ingredients', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke forbedre ingredienser')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('polish_ingredients', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke forbedre ingredienser')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1563,7 +1587,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Polish Steps Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('polish_steps', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke forbedre fremgangsmåde')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('polish_steps', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke forbedre fremgangsmåde')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1588,7 +1612,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Suggest Tags Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('suggest_tags', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke foreslå tags')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('suggest_tags', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke foreslå tags')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1610,7 +1634,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Tips Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('generate_tips', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke generere tips')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('generate_tips', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke generere tips')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1635,8 +1659,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Nutrition Estimate Error:', err);
       rememberAIDisabledState(err);
-      const message = trackAiActionFailed('estimate_nutrition', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke estimere macro og kcal'));
-      setError(message);
+      pushNotice({ type: 'error', message: trackAiActionFailed('estimate_nutrition', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke estimere macro og kcal')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1693,7 +1716,7 @@ export default function App() {
     } catch (err: any) {
       console.error('AI Prefix Error:', err);
       rememberAIDisabledState(err);
-      setError(trackAiActionFailed('apply_prefix', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')));
+      pushNotice({ type: 'error', message: trackAiActionFailed('apply_prefix', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);
     }
@@ -1883,7 +1906,6 @@ export default function App() {
           }}
           isAdjusting={adjusting}
           activeAiAction={activeAiAction}
-          error={error}
           aiDisabledReason={aiDisabledReason}
           initialEditMode={viewingRecipe.title === ''}
         />
@@ -1960,6 +1982,38 @@ export default function App() {
         visible={loading || adjusting}
         label={getAiActivityLabel(activeAiAction, loading)}
       />
+
+      {/* Global notice toasts — dismissible, auto-hide */}
+      {notices.length > 0 && (
+        <div className="fixed inset-x-0 bottom-24 z-[110] pointer-events-none flex flex-col items-center gap-3 px-4">
+          {notices.map((notice) => (
+            <div
+              key={notice.id}
+              className={`pointer-events-auto max-w-md w-full rounded-2xl border px-4 py-3 shadow-xl animate-fade-in ${
+                notice.type === 'error'
+                  ? 'bg-red-50/95 dark:bg-red-950/90 border-red-200/70 dark:border-red-800/50 text-red-900 dark:text-red-200'
+                  : notice.type === 'warning'
+                    ? 'bg-amber-50/95 dark:bg-amber-950/90 border-amber-200/70 dark:border-amber-800/50 text-amber-900 dark:text-amber-200'
+                    : notice.type === 'success'
+                      ? 'bg-green-50/95 dark:bg-green-950/90 border-green-200/70 dark:border-green-800/50 text-green-900 dark:text-green-200'
+                      : 'bg-blue-50/95 dark:bg-blue-950/90 border-blue-200/70 dark:border-blue-800/50 text-blue-900 dark:text-blue-200'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1 text-sm font-serif">{notice.message}</div>
+                {notice.dismissible && (
+                  <button
+                    onClick={() => dismissNotice(notice.id)}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {lastAiSnapshot && !adjusting && (
         <UndoToast

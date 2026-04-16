@@ -790,6 +790,12 @@ async function fetchRecipeSource(url: string) {
       }
     }
 
+    // Fallback: look for recipe data embedded in <script> tags (SPA / SSR patterns like __NEXT_DATA__)
+    const embeddedRecipe = extractEmbeddedRecipeDataFromScripts(response.data);
+    if (embeddedRecipe) {
+      return { json: embeddedRecipe };
+    }
+
     $('script, style, nav, footer, iframe, noscript, svg, path, symbol, use, .ads, .sidebar, header, .header, .menu, .comments, .related, .newsletter, [role="navigation"], [role="banner"], [role="contentinfo"]').remove();
     const recipeSelectors = ['.recipe-container','.recipe-content','.wprm-recipe-container','.tasty-recipes','.mv-recipe-card','[itemtype="http://schema.org/Recipe"]','[itemprop="recipe"]','.recipe-card','article.recipe','main'];
     let targetElement = null;
@@ -1322,7 +1328,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
         if (!isStructuredData && contentLength < 80) {
           console.warn(`[import] Content too short for AI import (${contentLength} chars), likely JS-rendered SPA`);
           return res.status(422).json({
-            error: 'Siden indeholder ikke nok tekst til at importere en opskrift. Den er sandsynligvis JavaScript-renderet. Prøv at kopiere opskriftsteksten ind manuelt.',
+            error: 'Siden ser ud til at være dynamisk renderet og leverede ikke brugbar opskriftstekst. Vi prøvede grundimport og ekstra fallback uden held. Prøv at kopiere selve opskriftsteksten ind manuelt.',
             code: 'content_too_short',
           });
         }
