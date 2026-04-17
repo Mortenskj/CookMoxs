@@ -171,10 +171,14 @@ function normalizeHeat(step: Step) {
 function normalizeStep(step: Step, ingredients: Ingredient[], index: number): Step {
   const normalizedHeat = normalizeHeat(step);
 
-  // When we have a structured heat chip, drop redundant heat prose from text
-  // so step doesn't simultaneously say "til middel varme (trin 4)" + show chip.
-  const text = normalizedHeat.heatLevel
-    ? stripRedundantHeatProse(step.text || '')
+  // When there's any structured heat signal (induktions-niveau OR ovn-temp),
+  // drop redundant heat prose so step doesn't simultaneously say
+  // "til middel varme (trin 4)" or "ved 200°C (almindelig ovn)" + show chip.
+  // Core-temp sentences (kernetemperatur) are preserved — see stripRedundantHeatProse.
+  const ovenHeatPresent = hasOvenHeatSignal(normalizedHeat.heat);
+  const shouldStrip = Boolean(normalizedHeat.heatLevel) || ovenHeatPresent;
+  const text = shouldStrip
+    ? stripRedundantHeatProse(step.text || '', ovenHeatPresent)
     : step.text;
 
   return {
@@ -225,9 +229,11 @@ function ensureOvenPreheatStep(steps: Step[]) {
     return steps;
   }
 
+  // Temperature is shown by the heat chip — don't duplicate it in the prose
+  // (observer assertion: `duplicate_heat_signal`).
   const preheatStep: Step = {
     id: 'step-oven-preheat',
-    text: `Tænd ovnen og forvarm til ${ovenHeat}.`,
+    text: 'Tænd ovnen og lad den forvarme helt.',
     heat: ovenHeat,
     reminder: 'Lad ovnen blive helt varm, før retten sættes ind.',
     relevantIngredients: [],

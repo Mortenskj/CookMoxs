@@ -60,13 +60,23 @@ function collectStepAssertions(step: Step, index: number): RecipeObserverAsserti
   }
 
   if (normalizedText.includes('kernetemperatur') && looksLikeTemperature(step.heat)) {
-    assertions.push({
-      assertion: 'core_temp_not_working_heat',
-      stepIndex: index,
-      evidence: step.text.slice(0, 180),
-      heat: step.heat || null,
-      note: 'Kernetemperatur blev behandlet som step-varme.',
-    });
+    // Only a real bug when the heat number matches the core-temp number, OR
+    // when there's no oven context at all. Legitimate case: 200°C oven +
+    // 53°C core temp mentioned together → not a misassignment.
+    const heatNumMatch = String(step.heat || '').match(/\d{1,3}/);
+    const coreNumMatch = String(step.text || '').match(/kernetemp\w*[^0-9]{0,30}(\d{1,3})/i);
+    const heatEqualsCoreTemp = Boolean(heatNumMatch && coreNumMatch && heatNumMatch[0] === coreNumMatch[1]);
+    const hasOvenContext = /\bovn|forvarm|\bbag[\s.]|\bbages\b|\bsteg\b/i.test(step.text || '');
+
+    if (heatEqualsCoreTemp || !hasOvenContext) {
+      assertions.push({
+        assertion: 'core_temp_not_working_heat',
+        stepIndex: index,
+        evidence: step.text.slice(0, 180),
+        heat: step.heat || null,
+        note: 'Kernetemperatur blev behandlet som step-varme.',
+      });
+    }
   }
 
   if (looksLikeGrillContext(step.text) && heatLevel != null && step.heatSource !== 'grill') {

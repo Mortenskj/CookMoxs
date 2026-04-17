@@ -16,7 +16,7 @@ Arbejdsregel:
 - brug current repo state som source of truth
 - vaer kritisk mod docs, hvis kode og docs ikke matcher
 - implementer ikke blindt
-- arbejd kun med de aabne A/B-rester, der stadig blokerer Gate B -> C
+- arbejd kun med de sidste rester, der stadig blokerer Gate B -> C
 
 Token-disciplin:
 
@@ -29,7 +29,7 @@ Token-disciplin:
 Scope:
 
 - Fase C er ikke go endnu
-- arbejd kun med de resterende correctness-rester, som current repo state stadig viser
+- arbejd kun med live signoff og de correctness-rester, som current repo state stadig viser
 - roer ikke efficiency/foundation-sporet endnu
 
 Arbejdsstil:
@@ -42,9 +42,10 @@ Arbejdsstil:
 
 Aktuelle blockers foer Gate B -> C:
 
-- service worker asset fallback skal vaere korrekt lukket
-- grill/ovn/kernetemperatur-semantikken skal vaere lukket ende-til-ende
-- heat-prose og loading/branding skal have reel runtime-signoff der, hvor current behavior stadig ser forkert ud
+- service worker asset fallback skal vaere korrekt lukket eller verificeret lukket i praksis
+- Beef Wellington heat-fixet skal have live observer-signoff, ikke kun harness-pass
+- loading/branding skal have reel runtime-signoff der, hvor current behavior stadig ser forkert ud
+- SpisBedre og andre JS-SPA imports maa kun rapporteres som separat deferred import-follow-up, ikke broades ind i Fase C
 
 Naar du er faerdig, stop.
 
