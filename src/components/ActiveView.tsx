@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 interface ActiveViewProps {
   activeRecipe: Recipe | null;
   onNavigate: (view: any) => void;
-  onSave: (recipe: Recipe) => void;
+  onSave: (recipe: Recipe) => Promise<boolean> | void;
   onOpenRecipe: (recipe: Recipe) => void;
   onStopCooking: () => void;
 }
@@ -23,8 +23,13 @@ export function ActiveView({ activeRecipe, onNavigate, onSave, onOpenRecipe, onS
     setSaveState('saving');
 
     try {
-      await Promise.resolve(onSave(activeRecipe));
-      setSaveState('saved');
+      const result = await Promise.resolve(onSave(activeRecipe));
+      // onSave returns false if cloud save failed (true or undefined means success)
+      if (result === false) {
+        setSaveState('error');
+      } else {
+        setSaveState('saved');
+      }
     } catch {
       setSaveState('error');
     }

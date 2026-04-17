@@ -62,6 +62,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Non-navigation assets: serve from cache only — never fall back to the app shell HTML
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -71,6 +72,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/'))),
+      .catch(() => caches.match(request)),
   );
 });

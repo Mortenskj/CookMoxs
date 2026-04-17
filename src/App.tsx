@@ -503,7 +503,10 @@ export default function App() {
 
         setFolders(reconciled.folders);
         const myRecipes = reconciled.recipes.filter((recipe) => recipe.authorUID === user.uid);
-        const shared = savedRecipesRef.current.filter((recipe) => recipe.authorUID !== user.uid);
+        // If no shared folders remain, drop all shared recipes so stale data cannot persist
+        const shared = sharedFolderIds.length > 0
+          ? savedRecipesRef.current.filter((recipe) => recipe.authorUID !== user.uid)
+          : [];
         commitSavedRecipes(mergeRecipesById(myRecipes, shared));
 
         if (unsubSharedRecipes) {
@@ -703,8 +706,11 @@ export default function App() {
       const normalizedRecipes = normalizeRecipesForCookMode(backup.recipes);
       const normalizedActiveRecipe = backup.activeRecipe ? normalizeRecipeForCookMode(backup.activeRecipe) : null;
 
+      // Normalize folder ownership so restored folders always belong to the current user
+      const normalizedFolders = backup.folders.map(f => ({ ...f, ownerUID: user?.uid || 'local' }));
+
       saveLocalRecipes(normalizedRecipes);
-      saveLocalFolders(backup.folders);
+      saveLocalFolders(normalizedFolders);
       saveLocalActiveRecipe(normalizedActiveRecipe);
 
       localStorage.setItem(STORAGE_KEYS.theme, backup.preferences.theme);
@@ -715,7 +721,7 @@ export default function App() {
       }
 
       setSavedRecipes(normalizedRecipes);
-      setFolders(backup.folders);
+      setFolders(normalizedFolders);
       setActiveRecipe(normalizedActiveRecipe);
       setTheme(backup.preferences.theme);
       setIsDarkMode(backup.preferences.isDarkMode);
@@ -733,7 +739,7 @@ export default function App() {
         markCloudSyncing('Gendanner backup til cloud...');
         try {
           await Promise.all([
-            ...backup.folders.map(folder => saveFolderInCloud(folder)),
+            ...normalizedFolders.map(folder => saveFolderInCloud({ ...folder, ownerUID: user.uid })),
             ...normalizedRecipes.map(recipe => saveRecipeInCloud({ ...recipe, authorUID: user.uid })),
           ]);
           markCloudSaved('Backup gendannet og synkroniseret');
@@ -1239,7 +1245,7 @@ export default function App() {
     }
   };
 
-  const handleSaveRecipe = async (recipe: Recipe) => {
+  const handleSaveRecipe = async (recipe: Recipe): Promise<boolean> => {
     if (!user) {
       const updatedRecipe: Recipe = normalizeRecipeForCookMode({
         ...recipe,
@@ -1276,7 +1282,7 @@ export default function App() {
         recipeId: updatedRecipe.id,
         folderId: updatedRecipe.folderId || null,
       });
-      return;
+      return true;
     }
 
     try {
@@ -1345,10 +1351,12 @@ export default function App() {
         recipeId: updatedRecipe.id,
         folderId: updatedRecipe.folderId || null,
       });
+      return true;
     } catch (err: any) {
       const syncMessage = normalizeSyncError(err, 'Opskriften kunne ikke gemmes i cloud.');
       markCloudError(syncMessage);
       pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
+      return false;
     }
   };
 
@@ -1464,6 +1472,10 @@ export default function App() {
       setFolders([]);
       setActiveRecipe(null);
       setViewingRecipe(null);
+      // Clear localStorage so guest/offline flow cannot rehydrate the previous user's data
+      saveLocalRecipes([]);
+      saveLocalFolders([]);
+      saveLocalActiveRecipe(null);
       navigateTo('home');
     } catch (error) {
       console.error("Logout failed", error);
@@ -1669,17 +1681,25 @@ export default function App() {
 
   const handleUndoLastAiChange = () => {
     if (!lastAiSnapshot) return;
-    setViewingRecipe(lastAiSnapshot.previous);
+    const previous = lastAiSnapshot.previous;
+    setViewingRecipe(previous);
     // If the active recipe was also affected, restore it
-    if (activeRecipe?.id === lastAiSnapshot.previous.id) {
-      saveActiveRecipe(lastAiSnapshot.previous);
+    if (activeRecipe?.id === previous.id) {
+      saveActiveRecipe(previous);
     }
     // For auto-saved actions (tips, nutrition), also restore in savedRecipes
-    const savedIdx = savedRecipes.findIndex(r => r.id === lastAiSnapshot.previous.id);
+    const savedIdx = savedRecipes.findIndex(r => r.id === previous.id);
     if (savedIdx >= 0) {
       const restored = [...savedRecipes];
-      restored[savedIdx] = lastAiSnapshot.previous;
+      restored[savedIdx] = previous;
       saveToLocalStorage(restored);
+
+      // Authenticated: mirror the undo back to cloud so local state and cloud stay in sync
+      if (user) {
+        void saveRecipeInCloud(previous)
+          .then(() => markCloudSaved('Undo gendannet i cloud'))
+          .catch((err) => markCloudError(normalizeSyncError(err, 'Undo kunne ikke synkroniseres til cloud')));
+      }
     }
     setLastAiSnapshot(null);
   };
@@ -1710,7 +1730,8 @@ export default function App() {
       }
       setSavedRecipes(prev => [newRecipe, ...prev]);
       if (!user) {
-        saveLocalRecipes([newRecipe, ...savedRecipes]);
+        // Use ref to avoid stale closure when writing to local storage
+        saveLocalRecipes([newRecipe, ...savedRecipesRef.current]);
       }
 
       setViewingRecipe(newRecipe);

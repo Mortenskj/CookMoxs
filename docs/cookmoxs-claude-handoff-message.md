@@ -7,6 +7,10 @@ Autoritativ dokumentation:
 - `docs/cookmoxs-master-decision-doc.md` fastlåser faseorden og gates
 - `docs/cookmoxs-phase-a-execution-brief.md` er den aktive arbejdsordre
 
+Passiv reference:
+
+- `docs/cookmoxs-reference-facitliste.md` må bruges som løsningsreference, men må ikke genfortælles eller broadene scope
+
 Arbejdsregel:
 
 - brug current repo state som source of truth

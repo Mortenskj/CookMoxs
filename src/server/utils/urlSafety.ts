@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { lookup as dnsLookup } from 'dns/promises';
 
 export class UnsafeUrlError extends Error {
   readonly status: number;
@@ -69,6 +70,14 @@ export async function fetchWithSafeRedirects(url: string) {
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
     try {
+      // Resolve hostname to IPs and reject private/loopback ranges to prevent SSRF via public-looking hostnames
+      const resolved = await dnsLookup(currentUrl.hostname, { all: true }).catch(() => [] as { address: string }[]);
+      for (const { address } of resolved) {
+        if (isPrivateHostname(address)) {
+          throw new UnsafeUrlError(400, 'Private eller lokale adresser er ikke tilladt');
+        }
+      }
+
       const response = await axios.get<string>(currentUrl.toString(), {
         headers: {
           'User-Agent': 'Mozilla/5.0',
