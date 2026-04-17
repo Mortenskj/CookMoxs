@@ -35,9 +35,9 @@ function hasWord(name: string, words: string[]): boolean {
 // Core markers — flour/grains/leavening. NOT sufficient on their own to
 // declare a dough cluster (flour also shows up in frikadeller, saucer, panering).
 const DEJ_CORE = ['mel', 'hvedemel', 'rugmel', 'speltmel', 'fuldkornsmel', 'gær', 'tørgær', 'bagepulver', 'natron', 'havregryn', 'marcipan'];
-// Leavening / unambiguous dough markers — a single one of these is enough
-// to confirm a real dough/batter/bake component.
-const DEJ_LEAVENING = ['gær', 'tørgær', 'bagepulver', 'natron', 'marcipan'];
+// Leavening agents — a single one of these is enough to confirm a real
+// dough/batter cluster. Strictly leavening; no paste/filler ingredients.
+const DEJ_LEAVENING = ['gær', 'tørgær', 'bagepulver', 'natron'];
 // Allies — only count as DEJ when a DEJ_CORE marker is also present
 const DEJ_ALLIES = ['sukker', 'rørsukker', 'brun farin', 'farin', 'salt', 'smør', 'olie', 'vand', 'mælk', 'sødmælk', 'kærnemælk', 'æg', 'vanilje', 'vaniljesukker', 'kardemomme', 'kanel'];
 

@@ -6,6 +6,10 @@ Det her er ikke session replay. Det er en skjult observer-kæde, som samler:
 
 - klientdiagnostics som `window error`, `unhandledrejection`, `session_error` og `console.warn/error`
 - analytics/events med `sessionId`
+- runtime/build metadata pÃ¥ observer-events som `release`, `buildId` og `environment`
+- pipeline-events for kritiske flows som import, `smart_adjust` og save
+- standardiserede failure-events for lettere sammenligning pÃ¥ tvÃ¦rs af sessioner
+- produktassertions for semantisk forkert output som fx grill/ovn/temperatur-fejl
 - API request start/slut med `requestId`, status og varighed
 - server warnings/errors via console bridge
 - hele AI request/response-bodyen for `/api/ai/*`
@@ -52,11 +56,19 @@ Recent events:
 - `GET /api/__observer/recent`
 - `GET /api/__observer/recent?sessionId=<id>&limit=200`
 
+Debug bundle:
+
+- `GET /api/__observer/export`
+- `GET /api/__observer/export?sessionId=<id>&limit=300`
+
 Her vil AI-kald typisk dukke op som:
 
 - `ai_request_body`
 - `ai_response_body`
 - `ai_transformation_capture`
+- `observer_pipeline`
+- `observer_failure`
+- `product_assertion`
 
 Hvis `OBSERVER_EXPORT_TOKEN` er sat, skal requesten have header:
 
