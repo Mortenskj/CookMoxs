@@ -6,6 +6,42 @@ import {
   inferHeatMetadataFromText,
   normalizeForMatch,
 } from './cookModeHeuristics';
+import { inferIngredientStructureGroups } from './ingredientStructureInference';
+
+/**
+ * Deterministic prose cleanup for step text when a structured heat signal
+ * (heatLevel) is set. The cook-mode chip already shows `Induktion N/9`, so the
+ * prose should not also say "til middel varme (trin 4)" etc.
+ *
+ * Keep the regex set narrow and conservative — we only strip the stock Danish
+ * heat phrases that appear in imports/AI output, never touch anything else.
+ */
+function stripRedundantHeatProse(text: string): string {
+  if (!text) return text;
+  let out = text;
+
+  // Parenthetical level/step callouts: "(trin 4)", "(niveau 4)", "(4/9)", "(induktion 4/9)"
+  out = out.replace(/\s*\((?:induktion\s*)?(?:trin|niveau)?\s*\d{1,2}(?:\s*\/\s*9)?\)/gi, '');
+
+  // Inline level/step callouts: "trin 4", "niveau 4", "induktion 4/9"
+  out = out.replace(/\s*(?:,\s*)?\b(?:induktion\s*)?(?:trin|niveau)\s*\d{1,2}(?:\s*\/\s*9)?\b/gi, '');
+  out = out.replace(/\s*\binduktion\s*\d{1,2}\s*\/\s*9\b/gi, '');
+
+  // Heat adjectives: "på/ved/til/med [svag|lav|middel|høj|kraftig|god] varme"
+  out = out.replace(
+    /\s*\b(?:på|ved|til|med)\s+(?:svag|lav|lav-middel|middel|middel-høj|høj|kraftig|god)\s+varme\b/gi,
+    '',
+  );
+
+  // Cleanup stray punctuation/whitespace introduced by removals
+  out = out.replace(/\s+,/g, ',');
+  out = out.replace(/\s{2,}/g, ' ');
+  out = out.replace(/\s+([.,;:!?])/g, '$1');
+  out = out.replace(/([.,;:])\s*\./g, '$1');
+  out = out.trim();
+
+  return out;
+}
 
 function toCanonicalIngredientHint(stepIngredient: StepIngredient, ingredients: Ingredient[]): StepIngredient {
   const normalizedName = normalizeForMatch(stepIngredient.name);
@@ -102,9 +138,16 @@ function normalizeHeat(step: Step) {
 function normalizeStep(step: Step, ingredients: Ingredient[], index: number): Step {
   const normalizedHeat = normalizeHeat(step);
 
+  // When we have a structured heat chip, drop redundant heat prose from text
+  // so step doesn't simultaneously say "til middel varme (trin 4)" + show chip.
+  const text = normalizedHeat.heatLevel
+    ? stripRedundantHeatProse(step.text || '')
+    : step.text;
+
   return {
     ...step,
     id: step.id || `step-${index}`,
+    text,
     heat: normalizedHeat.heat,
     heatLevel: normalizedHeat.heatLevel,
     heatSource: normalizedHeat.heatSource,
@@ -161,13 +204,17 @@ function ensureOvenPreheatStep(steps: Step[]) {
 }
 
 export function normalizeRecipeForCookMode(recipe: Recipe): Recipe {
-  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const rawIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  // Deterministic structural grouping (Dej/Fyld/Dressing/Servering) so
+  // baseline imports don't need the AI-polish rescue button just to get groups.
+  const ingredients = inferIngredientStructureGroups(rawIngredients);
   const normalizedSteps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
   const steps = ensureOvenPreheatStep(normalizedSteps);
   const guides = buildHeatAndOvenGuides(steps);
 
   return {
     ...recipe,
+    ingredients,
     steps,
     heatGuide: guides.heatGuide,
     ovenGuide: guides.ovenGuide,
