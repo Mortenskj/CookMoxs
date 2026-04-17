@@ -2,9 +2,10 @@
 
 ## Rolle
 
-Dette dokument er en klar, men inaktiv execution brief.
+Dette dokument er den aktuelle correctness-brief for de resterende Fase B-punkter.
 
-Det må først aktiveres, når Gate A -> B i `docs/cookmoxs-master-decision-doc.md` er passeret.
+Det er ikke en invitation til at genaabne hele Fase B.
+Det skal bruges smalt mod de aabne B-rester, som stadig blokerer Gate B -> C.
 
 ## In scope
 
@@ -19,84 +20,86 @@ Det må først aktiveres, når Gate A -> B i `docs/cookmoxs-master-decision-doc.
 
 ## Repo-state validation
 
-Punkterne ovenfor er stadig relevante i current repo state:
+Current repo state er blandet:
 
-- ingredient grouping bruger stadig eksisterende `group`-labels direkte i UI
-- heat-data findes struktureret i modellen, men prompt- og prose-flow kan stadig skabe duplikation
-- `BrandMark` findes, men loading/AI-activity er stadig ikke bundet tydeligt op på en branded, rolig standard
-- `formatIngredientAmount` findes, men RecipeView og CookView renderer stadig primært via `ingredient.amount`
-- direct parser bevarer stadig ikke ranges som first-class felter
-- URL import rammer stadig både `/api/parse-direct` og `/api/fetch-url` i fallback-flow
-- kun `/api/ai` er rate-limitet
-- `recipe-scrapers` er ikke endnu i import-pipelinen
+- grouping, range parsing, range rendering, dobbelt URL-fetch og fetch/import rate limiting ser ud til at vaere landet i kode
+- heat-prose og brand/loading er delvist landet, men mangler stadig reel runtime-signoff der, hvor output stadig ser forkert ud
+- heat-semantikken er ikke stabil nok ende-til-ende, fordi prompt-laget stadig baerer global induktionsbias
+- `recipe-scrapers` er fortsat ikke en aktiv del af den nuvaerende pipeline og er stadig et bevidst deferred punkt
+
+Operativ konsekvens:
+
+- behandl kun de resterende B-rester som aktivt scope
+- lad allerede-landede B-fixes vaere i fred, medmindre current code viser en reel regression
 
 ## Out of scope
 
-1. Alt fra Fase A
-2. Listener churn og duplicate queue watchers
-3. Analytics defer og lazy loading
-4. Timer isolation og storage churn
-5. Ingredient lexicon og øvrige foundation-lag
-6. Brede designændringer uden direkte relation til loading/home-brand presence
+1. Listener churn og duplicate queue watchers
+2. Analytics defer og lazy loading
+3. Timer isolation og storage churn
+4. Ingredient lexicon og oevrige foundation-lag
+5. Brede designaendringer uden direkte relation til loading/home-brand presence
+6. Bred observability-udbygning
 
 ## Definition of done
 
-Fase B er kun færdig når alle disse er sande:
+De resterende Fase B-rester er kun lukkede naar alle disse er sande:
 
 1. Single-mass recipes bliver ikke automatisk vist som falske type-grupper.
-2. Heat-data dubleres ikke mekanisk i step-prose, når struktureret heat allerede findes.
-3. Brand/logo er styrket i loading/home uden at skabe motion-støj eller cook-mode-distraktion.
-4. Ranges bevares i direct import som `amountMin` / `amountMax` / `amountText`, når kilden giver det.
+2. Heat-data dubleres ikke mekanisk i step-prose, naar struktureret heat allerede findes.
+3. Brand/logo er styrket i loading/home uden at skabe motion-stoej eller cook-mode-distraktion.
+4. Ranges bevares i direct import som `amountMin` / `amountMax` / `amountText`, naar kilden giver det.
 5. Range-only ingredienser renderes korrekt i recipe- og cook-views.
 6. URL import dobbelthenter ikke samme kilde i fallback-flowet.
 7. Fetch/import-ruter er rate-limitet separat fra AI-ruter.
-8. Deterministic import er forbedret med et tydeligt pre-AI lag, uden regression i eksisterende flows.
+8. `recipe-scrapers` er enten eksplicit deferred med teknisk begrundelse eller implementeret som et smalt deterministic lag uden regression.
 
 ## Regression checks
 
 ### Grouping
 
-- importer eller opret single-mass recipe som fars, dej, dressing eller rørt fyld
-- verificer at ingredienser enten vises som én logisk blok eller som flad liste
+- importer eller opret single-mass recipe som fars, dej, dressing eller roert fyld
+- verificer at ingredienser enten vises som en logisk blok eller som flad liste
 - verificer at labels som `Groentsager`, `Krydderier`, `Smagsgivere`, `Andre` ikke bliver default-struktur i de cases
 
-### Heat prose
+### Heat prose og semantics
 
-- kør import eller AI-polish på recipe med tydelige heat steps
-- verificer at UI ikke både viser struktureret heat og tung gentagelse i prose
-- verificer at cook mode stadig viser exact induction values korrekt
+- koer import eller AI-polish paa recipe med tydelige heat steps
+- verificer at UI ikke baade viser struktureret heat og tung gentagelse i prose
+- verificer at grill, ovn, induktion og kernetemperatur ikke blandes sammen
 
 ### Brand/loading
 
 - verificer loading/home i normal mode og reduced-motion kontekst
 - verificer at branding er tydeligere, men stadig rolig og ikke dekorativ
+- verificer at loading-laget er faktisk synligt og laeseligt i praksis
 
 ### Range parse + render
 
 - importer ranges som `175-200 g`, `1-2 stk`, `ca. 1/2-1 dl`
 - verificer at parser bevarer range-felter
-- verificer at RecipeView og CookView viser mængderne korrekt
-- verificer at scaling ikke kollapser range til enkeltværdi
+- verificer at RecipeView og CookView viser maengderne korrekt
+- verificer at scaling ikke kollapser range til enkeltvaerdi
 
 ### URL import
 
-- brug URL der først forsøger direct parse og derefter fallback
+- brug URL der foerst forsoeger direct parse og derefter fallback
 - verificer at kilden ikke fetches to gange server-side
 
 ### Rate limiting
 
 - spam `/api/fetch-url` og `/api/parse-direct`
-- verificer at begrænsning rammer de ruter uden at påvirke normale flows urimeligt
+- verificer at begraensning rammer de ruter uden at paavirke normale flows urimeligt
 
 ### Deterministic import
 
 - test kendte structured recipe-sider
-- verificer at deterministic import tager over før AI-fallback
-- verificer at eksisterende AI-fallback stadig virker når deterministic parse ikke kan
+- verificer at deterministic import tager over foer AI-fallback
+- verificer at eksisterende AI-fallback stadig virker naar deterministic parse ikke kan
 
 ## Leveranceformat
 
-Implementøren skal stoppe efter Fase B og rapportere:
+Implementoeren skal stoppe efter de aabne B-rester og rapportere:
 
 - `verified`
 - `changed`
@@ -106,6 +109,10 @@ Implementøren skal stoppe efter Fase B og rapportere:
 
 ## Stop/Go gate
 
-Beslutningen er `stop`, hvis bare ét af de otte punkter ikke er verificeret lukket.
+Beslutningen er `stop`, hvis current repo state stadig viser:
 
-Beslutningen er først `go`, når hele Fase B er lukket og rapporteret.
+- aaben heat-semantik-fejl
+- manglende runtime-signoff paa heat-prose eller loading/branding
+- eller andet B-punkt, som stadig fejler i praksis
+
+Beslutningen er foerst `go`, naar de resterende B-rester er lukket eller eksplicit deferred med teknisk begrundelse.

@@ -1,47 +1,54 @@
 # Claude Handoff Message
 
-Du arbejder på CookMoxs.
+Du arbejder paa CookMoxs.
 
 Autoritativ dokumentation:
 
-- `docs/cookmoxs-master-decision-doc.md` fastlåser faseorden og gates
-- `docs/cookmoxs-phase-c-execution-brief.md` er den aktive arbejdsordre
+- `docs/cookmoxs-master-decision-doc.md` fastlaaser faseorden og gates
+- `docs/cookmoxs-phase-b-execution-brief.md` er den aktuelle correctness-brief for aabne B-rester
 
 Passiv reference:
 
-- `docs/cookmoxs-reference-facitliste.md` må bruges som løsningsreference, men må ikke genfortælles eller broadene scope
+- `docs/cookmoxs-reference-facitliste.md` maa bruges som loesningsreference, men maa ikke genfortaelles eller broadene scope
 
 Arbejdsregel:
 
 - brug current repo state som source of truth
-- vær kritisk mod docs, hvis kode og docs ikke matcher
+- vaer kritisk mod docs, hvis kode og docs ikke matcher
 - implementer ikke blindt
-- arbejd kun med Fase C
+- arbejd kun med de aabne A/B-rester, der stadig blokerer Gate B -> C
 
 Token-disciplin:
 
 - gengiv ikke eksisterende kode i tekst
-- opsummér ikke hele repoet
+- opsummer ikke hele repoet
 - beskriv kun delta
-- ændr kun det der faktisk giver mening i current code
-- undgå sidequests og opportunistiske refactors
+- aendr kun det der faktisk giver mening i current code
+- undgaa sidequests og opportunistiske refactors
 
 Scope:
 
-- kun Fase C fra `docs/cookmoxs-phase-c-execution-brief.md`
-- intet fra Fase A eller B
+- Fase C er ikke go endnu
+- arbejd kun med de resterende correctness-rester, som current repo state stadig viser
+- roer ikke efficiency/foundation-sporet endnu
 
 Arbejdsstil:
 
-- vær diff-orienteret
-- hold ændringer små og afgrænsede
-- hvis et Phase C-punkt viser sig allerede at være løst, sig det eksplicit og lad være med at røre det
-- hvis et punkt kræver større omskrivning end nødvendigt, vælg den mindst invasive løsning der faktisk lukker problemet
-- hvis et Phase C-punkt kræver større omskrivning end rimeligt, så stop og rapportér det som `deferred` i stedet for at broadene scope
+- vaer diff-orienteret
+- hold aendringer smaa og afgraensede
+- hvis et paastaaet problem allerede er loest i current code, sig det eksplicit og lad vaere med at roere det
+- hvis et punkt kraever stoerre omskrivning end noedvendigt, vaelg den mindst invasive loesning der faktisk lukker problemet
+- hvis et punkt kraever stoerre omskrivning end rimeligt, saa stop og rapporter det som `deferred` i stedet for at broadene scope
 
-Når du er færdig, stop.
+Aktuelle blockers foer Gate B -> C:
 
-Rapportér kun:
+- service worker asset fallback skal vaere korrekt lukket
+- grill/ovn/kernetemperatur-semantikken skal vaere lukket ende-til-ende
+- heat-prose og loading/branding skal have reel runtime-signoff der, hvor current behavior stadig ser forkert ud
+
+Naar du er faerdig, stop.
+
+Rapporter kun:
 
 - `verified`
 - `changed`
