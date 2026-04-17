@@ -64,17 +64,26 @@ function parseLeadingAmount(value: string): LeadingAmount {
     .trim();
 
   // Range: e.g. "175-200", "1-2", "1/2 - 1", "ca. 1-2"
-  const rangeMatch = normalized.match(/^(?:ca\.?\s*)?(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*[-–]\s*(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(.*)$/i);
+  // Capture an optional leading approximation marker ("ca.", "ca") so amountText
+  // preserves the original phrasing instead of silently dropping it.
+  const rangeMatch = normalized.match(/^(ca\.?\s*)?(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)(\s*[-–]\s*)(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(.*)$/i);
   if (rangeMatch) {
-    const min = parseCompoundNumber(rangeMatch[1]);
-    const max = parseCompoundNumber(rangeMatch[2]);
+    const approxPrefix = rangeMatch[1] || '';
+    const minRaw = rangeMatch[2];
+    const separator = rangeMatch[3];
+    const maxRaw = rangeMatch[4];
+    const remainder = rangeMatch[5] || '';
+
+    const min = parseCompoundNumber(minRaw);
+    const max = parseCompoundNumber(maxRaw);
     if (min !== null && max !== null) {
+      const originalRange = `${approxPrefix}${minRaw}${separator}${maxRaw}`.replace(/\s+/g, ' ').trim();
       return {
         amount: null,
         amountMin: min,
         amountMax: max,
-        amountText: `${rangeMatch[1].trim()}-${rangeMatch[2].trim()}`.replace(/\s+/g, ''),
-        remainder: (rangeMatch[3] || '').trim(),
+        amountText: originalRange,
+        remainder: remainder.trim(),
       };
     }
   }
