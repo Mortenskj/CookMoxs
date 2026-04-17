@@ -8,13 +8,34 @@ import {
 } from './cookModeHeuristics';
 /**
  * Deterministic prose cleanup for step text when a structured heat signal
- * (heatLevel) is set. The cook-mode chip already shows `Induktion N/9`, so the
- * prose should not also say "til middel varme (trin 4)" etc.
+ * is set. The cook-mode chip already shows `Induktion N/9` or oven temp, so
+ * the prose should not also say "til middel varme (trin 4)" or "ved 200°C".
  *
- * Keep the regex set narrow and conservative — we only strip the stock Danish
- * heat phrases that appear in imports/AI output, never touch anything else.
+ * Driven by observer assertions `duplicate_heat_signal` (over multiple AI
+ * endpoints on Beef Wellington) — AI generators keep re-embedding the
+ * temperature in prose despite it being in structured heat.
+ *
+ * Safety: oven-temp stripping skips sentences mentioning kernetemperatur /
+ * centertemperatur / indvendig temperatur, so core-temp numbers stay visible.
  */
-function stripRedundantHeatProse(text: string): string {
+const CORE_TEMP_KEYWORDS = /kernetemp|centertemp|indvendig\s+(?:kerne\s*)?temp/i;
+
+function stripOvenTempFromSentence(sentence: string): string {
+  if (CORE_TEMP_KEYWORDS.test(sentence)) return sentence;
+  let out = sentence;
+
+  // "ved/på/til 200°C (almindelig ovn)" — strip temp + adjacent oven-mode paren
+  out = out.replace(
+    /\s*\b(?:på|paa|ved|til)\s+\d{2,3}\s*(?:°\s*c|grader(?:\s+celsius)?)\s*(?:\(\s*(?:almindelig\s+ovn|varmluft|over[\s/-]?undervarme|grill)\s*\))?/gi,
+    '',
+  );
+  // Standalone oven-mode paren (when temp already removed elsewhere)
+  out = out.replace(/\s*\(\s*(?:almindelig\s+ovn|varmluft|over[\s/-]?undervarme)\s*\)/gi, '');
+
+  return out;
+}
+
+function stripRedundantHeatProse(text: string, hasOvenHeat: boolean): string {
   if (!text) return text;
   let out = text;
 
@@ -31,6 +52,15 @@ function stripRedundantHeatProse(text: string): string {
     '',
   );
 
+  // Oven temperatures — only when step actually has an oven heat signal, and
+  // only on sentences that don't mention kernetemperatur.
+  if (hasOvenHeat) {
+    out = out
+      .split(/(?<=[.!?])\s+/)
+      .map((sentence) => stripOvenTempFromSentence(sentence))
+      .join(' ');
+  }
+
   // Cleanup stray punctuation/whitespace introduced by removals
   out = out.replace(/\s+,/g, ',');
   out = out.replace(/\s{2,}/g, ' ');
@@ -39,6 +69,11 @@ function stripRedundantHeatProse(text: string): string {
   out = out.trim();
 
   return out;
+}
+
+function hasOvenHeatSignal(heat?: string): boolean {
+  if (!heat) return false;
+  return /\d{2,3}\s*(?:°|grader)/i.test(heat);
 }
 
 function toCanonicalIngredientHint(stepIngredient: StepIngredient, ingredients: Ingredient[]): StepIngredient {

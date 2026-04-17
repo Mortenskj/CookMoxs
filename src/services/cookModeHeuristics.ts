@@ -47,6 +47,11 @@ const INGREDIENT_STOPWORDS = new Set([
 
 const OVEN_HEAT_PATTERN = /(\d{2,3})\s*(?:grader|°)\s*(varmluft|over\/undervarme|over-?\s*undervarme)?/i;
 
+// Strip kernetemperatur/centertemperatur/indvendig temperatur phrases before
+// running oven-temp extraction so a 53°C core-temp can never be promoted to
+// an oven heat. Driven by observer assertion `core_temp_not_working_heat`.
+const CORE_TEMP_PHRASE = /\b(?:kernetemperatur(?:en)?|centertemperatur(?:en)?|indvendig(?:\s+kerne)?\s*temperatur|kernetemp\.?)\s*(?:er|på|paa|ca\.?|præcis|praecis|ligger\s+på|ligger\s+paa|når|naar|rammer)?\s*\d{1,3}\s*(?:°\s*c|grader|c\b)/gi;
+
 export function normalizeForMatch(value: string): string {
   return value
     .toLowerCase()
@@ -159,7 +164,9 @@ function formatOvenHeat(temperature: string, mode?: string) {
 
 export function extractOvenHeat(value?: string): string | undefined {
   if (!value) return undefined;
-  const match = value.match(OVEN_HEAT_PATTERN);
+  // Blank out core-temp phrases so their numbers can't win the oven match.
+  const sanitized = value.replace(CORE_TEMP_PHRASE, ' ');
+  const match = sanitized.match(OVEN_HEAT_PATTERN);
   if (!match) return undefined;
   return formatOvenHeat(match[1], match[2]);
 }
