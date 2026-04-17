@@ -19,6 +19,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { LEVEL_META, type UserLevel } from '../config/cookingLevels';
 import { COOK_FONT_META, type CookFontSize } from '../config/cookDisplay';
 import { formatStepHeatDisplay } from '../services/cookModeHeuristics';
+import { formatIngredientAmount } from '../services/ingredientAmountFormatter';
 import { getWakeLockEnabled } from '../hooks/useWakeLockEnabled';
 import { TimerAnimationIcon, getTimerAnimationType } from './TimerAnimationIcon';
 import { haptics } from '../services/haptics';
@@ -693,7 +694,7 @@ export function CookView({
                             <ul className="space-y-1">
                               {group.items.map(({ ingredient: ing, index }) => {
                                 const checked = checkedIngredients.has(index);
-                                const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
+                                const amountStr = formatIngredientAmount(ing, scale);
                                 return (
                                   <li key={index}>
                                     <button
@@ -809,7 +810,7 @@ export function CookView({
                         </span>
                         <div className="flex flex-col gap-0.5">
                           {mentionedIngredients.map((ing, i) => {
-                            const amountStr = ing.amount ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount) : '';
+                            const amountStr = formatIngredientAmount(ing, scale);
                             return (
                               <span key={i} className="text-white/70 text-sm">
                                 <strong className="text-white/90">{amountStr} {ing.unit}</strong> {ing.name}
@@ -874,10 +875,8 @@ export function CookView({
                     )}
                     <ul className="divide-y divide-white/8">
                       {group.items.map((ing, i) => {
-                        const amountStr = ing.amount
-                          ? (typeof ing.amount === 'number' ? ing.amount * scale : ing.amount)
-                          : '';
-                        const fullStr = `${amountStr} ${ing.unit} ${ing.name}`.trim();
+                        const amountStr = formatIngredientAmount(ing, scale);
+                        const fullStr = `${amountStr} ${ing.unit || ''} ${ing.name}`.trim().replace(/\s+/g, ' ');
 
                         return (
                           <li key={`${group.label}-${i}`} className="py-3 text-lg font-serif text-[#F9F9F7]">

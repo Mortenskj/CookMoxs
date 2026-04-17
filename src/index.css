@@ -2980,3 +2980,33 @@
 .cm-cook-topbar .cm-brand-mark {
   color: #F3EEE5;
 }
+
+/* Calm branded pulse for loading/AI surfaces — reduced-motion disables it entirely */
+@keyframes cm-brand-pulse {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+
+.cm-brand-mark--pulse {
+  animation: cm-brand-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-brand-mark--pulse {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.cm-import-loading__brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  color: var(--season-text-primary);
+}
+
+.dark .cm-import-loading__brand {
+  color: var(--season-light-surface-ink, #F3EEE5);
+}

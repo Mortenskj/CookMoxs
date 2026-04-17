@@ -28,7 +28,32 @@ function parseFraction(value: string): number | null {
   return null;
 }
 
-function parseLeadingAmount(value: string): { amount: number | null; remainder: string } {
+function parseCompoundNumber(raw: string): number | null {
+  const parts = raw.trim().split(/\s+/);
+  let total = 0;
+  for (const part of parts) {
+    const fraction = parseFraction(part);
+    if (fraction !== null) {
+      total += fraction;
+      continue;
+    }
+    const parsed = Number(part.replace(',', '.'));
+    if (Number.isFinite(parsed)) {
+      total += parsed;
+    }
+  }
+  return total > 0 ? total : null;
+}
+
+interface LeadingAmount {
+  amount: number | null;
+  amountMin?: number | null;
+  amountMax?: number | null;
+  amountText?: string;
+  remainder: string;
+}
+
+function parseLeadingAmount(value: string): LeadingAmount {
   const normalized = value
     .replace(/½/g, ' 1/2 ')
     .replace(/¼/g, ' 1/4 ')
@@ -38,32 +63,31 @@ function parseLeadingAmount(value: string): { amount: number | null; remainder: 
     .replace(/\s+/g, ' ')
     .trim();
 
-  const match = normalized.match(/^(\d+(?:[.,]\d+)?(?: \d+\/\d+)?|\d+\/\d+)(?:\s*-\s*\d+(?:[.,]\d+)?)?\s*(.*)$/);
+  // Range: e.g. "175-200", "1-2", "1/2 - 1", "ca. 1-2"
+  const rangeMatch = normalized.match(/^(?:ca\.?\s*)?(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*[-–]\s*(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(.*)$/i);
+  if (rangeMatch) {
+    const min = parseCompoundNumber(rangeMatch[1]);
+    const max = parseCompoundNumber(rangeMatch[2]);
+    if (min !== null && max !== null) {
+      return {
+        amount: null,
+        amountMin: min,
+        amountMax: max,
+        amountText: `${rangeMatch[1].trim()}-${rangeMatch[2].trim()}`.replace(/\s+/g, ''),
+        remainder: (rangeMatch[3] || '').trim(),
+      };
+    }
+  }
+
+  const match = normalized.match(/^(\d+(?:[.,]\d+)?(?: \d+\/\d+)?|\d+\/\d+)\s*(.*)$/);
   if (!match) {
     return { amount: null, remainder: normalized };
   }
 
-  const rawAmount = match[1];
-  const remainder = match[2] || '';
-  const parts = rawAmount.split(' ');
-
-  let amount = 0;
-  for (const part of parts) {
-    const fraction = parseFraction(part);
-    if (fraction !== null) {
-      amount += fraction;
-      continue;
-    }
-
-    const parsed = Number(part.replace(',', '.'));
-    if (Number.isFinite(parsed)) {
-      amount += parsed;
-    }
-  }
-
+  const amount = parseCompoundNumber(match[1]);
   return {
-    amount: amount > 0 ? amount : null,
-    remainder: remainder.trim(),
+    amount,
+    remainder: (match[2] || '').trim(),
   };
 }
 
@@ -78,12 +102,18 @@ function parseIngredient(input: unknown, index: number) {
     const item = input as Record<string, unknown>;
     const name = normalizeText(item.name || item.text || item.recipeIngredient || '');
     const amount = typeof item.amount === 'number' ? item.amount : null;
+    const amountMin = typeof item.amountMin === 'number' ? item.amountMin : null;
+    const amountMax = typeof item.amountMax === 'number' ? item.amountMax : null;
+    const amountText = typeof item.amountText === 'string' ? item.amountText : undefined;
     const unit = normalizeText(item.unit || '');
 
     return {
       id: `ing-${index}`,
       name: name || 'Ukendt ingrediens',
       amount,
+      amountMin,
+      amountMax,
+      amountText,
       unit,
       group: 'Andre',
       locked: false,
@@ -91,7 +121,8 @@ function parseIngredient(input: unknown, index: number) {
   }
 
   const raw = normalizeText(input);
-  const { amount, remainder } = parseLeadingAmount(raw);
+  const leading = parseLeadingAmount(raw);
+  const { amount, amountMin, amountMax, amountText, remainder } = leading;
   const sortedUnits = [...allowedUnits].sort((a, b) => b.length - a.length);
   const unitMatch = remainder.match(new RegExp(`^(${sortedUnits.join('|')})(?=\\s|$)\\.?\\s*(.*)$`, 'i'));
   const unit = unitMatch ? unitMatch[1] : '';
@@ -101,6 +132,9 @@ function parseIngredient(input: unknown, index: number) {
     id: `ing-${index}`,
     name: name || raw || 'Ukendt ingrediens',
     amount,
+    amountMin: amountMin ?? null,
+    amountMax: amountMax ?? null,
+    amountText,
     unit,
     group: 'Andre',
     locked: false,

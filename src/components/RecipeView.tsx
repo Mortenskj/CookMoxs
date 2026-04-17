@@ -16,6 +16,8 @@ import {
   convertIngredientBetweenGramsAndDeciliters,
 } from '../services/ingredientUnitConversionService';
 import { findFolderForRecipe, getFolderOwnershipDisplay, getRecipeOwnershipDisplay } from '../services/ownershipLabelService';
+import { formatIngredientAmount } from '../services/ingredientAmountFormatter';
+import { buildIngredientSections } from '../services/ingredientGrouping';
 
 interface RecipeViewProps {
   recipe: Recipe;
@@ -271,12 +273,12 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
     setShowFolderPicker(true);
   };
 
-  const groupedIngredients = recipeIngredients.reduce((acc, ing) => {
-    const group = ing.group || 'Andre';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(ing);
-    return acc;
-  }, {} as Record<string, typeof recipeIngredients>);
+  // Use shared grouping helper: single-generic-group recipes collapse to one
+  // "Ingredienser" block instead of a false type-group subdivision.
+  const ingredientSections = buildIngredientSections(recipeIngredients);
+  const groupedIngredients: Record<string, typeof recipeIngredients> = Object.fromEntries(
+    ingredientSections.map((section) => [section.label, section.items]),
+  );
 
   if (isEditing) {
     return (
@@ -1287,8 +1289,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         )}
 
         {Object.entries(groupedIngredients).map(([group, ingredients]) => {
-          const measured = ingredients.filter((ing) => ing.amount);
-          const unmeasured = ingredients.filter((ing) => !ing.amount);
+          const hasMeasured = (ing: typeof ingredients[number]) =>
+            typeof ing.amount === 'number' ||
+            (typeof ing.amountMin === 'number' && typeof ing.amountMax === 'number');
+          const measured = ingredients.filter(hasMeasured);
+          const unmeasured = ingredients.filter((ing) => !hasMeasured(ing));
           return (
             <div key={group} className="space-y-2">
               <h3 className="text-xs font-bold text-forest-mid cm-light-surface-ink-muted uppercase tracking-[0.2em] opacity-60 dark:opacity-100 flex items-center gap-3">
@@ -1300,7 +1305,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
                   {measured.map((ing, i) => (
                     <li key={ing.id || i} className="cm-recipe-ingredient-row">
                       <span className="cm-recipe-ingredient-amount font-semibold text-heath-mid text-sm">
-                        {Number((ing.amount! * scale).toFixed(2))}{ing.unit ? ` ${ing.unit}` : ''}
+                        {formatIngredientAmount(ing, scale)}{ing.unit ? ` ${ing.unit}` : ''}
                       </span>
                       <span className="cm-recipe-ingredient-name text-forest-dark cm-light-surface-ink text-sm">{ing.name}</span>
                     </li>

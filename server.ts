@@ -910,6 +910,16 @@ async function startServer() {
   });
   app.use('/api/ai', aiLimiter);
 
+  // Separate limiter for server-side URL fetching / direct parse to prevent abuse
+  const fetchLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'For mange import-kald lige nu. Prøv igen om et øjeblik.' },
+  });
+  app.use(['/api/parse-direct', '/api/fetch-url'], fetchLimiter);
+
   app.post('/api/events', (req, res) => {
     const analyticsBody = parseAnalyticsRequestBody(req.body);
     const name = typeof analyticsBody?.name === 'string' ? analyticsBody.name.trim() : '';
@@ -1132,6 +1142,7 @@ async function startServer() {
         - Gør trinene klare og præcise — skriv i text-first stil så hvert trin kan forstås uden separat ingrediensvisning.
         - Inkludér de vigtigste mængder direkte i trinteksten, fx "Tilsæt de 200 g hakket oksekød".
         - Tilføj varme (heat/heatLevel på induktionsskala 1-9) hvor det mangler.
+        - Når struktureret heat allerede er sat på trinet, må du IKKE gentage tal/niveau mekanisk i prose-teksten. Skriv i stedet trinet naturligt — UI viser heat-chippen separat. Undgå formuleringer som "på induktion 6/9" eller "varme niveau 6" i selve step-teksten, når heat-feltet allerede findes.
         - Tilføj timere (timer med duration i sekunder) hvor det er relevant.
         - Tilføj relevantIngredients til hvert trin — KUN ingredienser der faktisk bruges i dette specifikke trin.
         - Setup-trin som at koge vand, forvarme ovn, hvile, vente og lignende skal have tom relevantIngredients liste.
@@ -1473,23 +1484,35 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       return res.status(400).json({ error: 'URL is required' });
     }
 
+    let extracted: Awaited<ReturnType<typeof fetchRecipeSource>> | null = null;
     try {
-      const extracted = await fetchRecipeSource(url);
-      if (!extracted.json) {
-        return res.status(422).json({ error: 'Siden har ikke struktureret opskriftdata, der kan grundimporteres direkte.' });
+      extracted = await fetchRecipeSource(url);
+    } catch (error: any) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ error: error.message });
       }
+      console.error('Direct Parse Fetch Error:', error);
+      return res.status(500).json({ error: 'Direkte grundimport fejlede.' });
+    }
 
+    // B6: Always return the fetched source so the client can reuse it in an
+    // AI-fallback flow without calling /api/fetch-url a second time.
+    if (!extracted.json) {
+      return res.status(422).json({
+        error: 'Siden har ikke struktureret opskriftdata, der kan grundimporteres direkte.',
+        source: extracted,
+      });
+    }
+
+    try {
       const recipe = parseStructuredRecipeToRecipe(extracted.json, { sourceUrl: url });
       return res.json({ recipe });
     } catch (error: any) {
       if (error instanceof DirectParseError) {
-        return res.status(422).json({ error: error.message });
-      }
-      if (error instanceof HttpError) {
-        return res.status(error.status).json({ error: error.message });
+        return res.status(422).json({ error: error.message, source: extracted });
       }
       console.error('Direct Parse Error:', error);
-      return res.status(500).json({ error: 'Direkte grundimport fejlede.' });
+      return res.status(500).json({ error: 'Direkte grundimport fejlede.', source: extracted });
     }
   });
 

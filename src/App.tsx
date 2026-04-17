@@ -948,6 +948,15 @@ export default function App() {
     });
   };
 
+  // Custom error so the fallback flow can reuse server-fetched source instead of re-fetching
+  class DirectImportFailed extends Error {
+    source: { json?: unknown; html?: string } | null;
+    constructor(message: string, source: { json?: unknown; html?: string } | null) {
+      super(message);
+      this.source = source;
+    }
+  }
+
   const requestDirectImport = async (url: string): Promise<Recipe> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -960,7 +969,10 @@ export default function App() {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(data?.error || 'Direkte grundimport fejlede.');
+        throw new DirectImportFailed(
+          data?.error || 'Direkte grundimport fejlede.',
+          data?.source || null,
+        );
       }
       return data.recipe as Recipe;
     } finally {
@@ -999,6 +1011,9 @@ export default function App() {
     try {
       let newRecipe: Recipe | null = null;
       let usedDirectImport = false;
+      // B6: If direct parse fails but the server already fetched the page, reuse
+      // that source here instead of calling /api/fetch-url a second time.
+      let carriedSource: { json?: unknown; html?: string } | null = null;
 
       if (type === 'url') {
         try {
@@ -1006,6 +1021,10 @@ export default function App() {
           newRecipe = hydrateDirectImportRecipe(directRecipe, content as string);
           usedDirectImport = true;
         } catch (directError) {
+          if (directError instanceof DirectImportFailed) {
+            carriedSource = directError.source;
+          }
+
           if (importPreference === 'basic_only') {
             throw directError;
           }
@@ -1046,25 +1065,29 @@ export default function App() {
           let isJson = false;
 
           if (type === 'url') {
-            const fetchController = new AbortController();
-            const fetchTimeoutId = setTimeout(() => fetchController.abort(), 15000);
-            let response: Response;
-            try {
-              response = await fetch(`/api/fetch-url?url=${encodeURIComponent(content as string)}`, {
-                signal: fetchController.signal,
-              });
-            } finally {
-              clearTimeout(fetchTimeoutId);
-            }
-            const data = await response.json().catch(() => null);
-            if (!response.ok) {
-              throw new Error(data?.error || 'Failed to fetch URL content');
+            let data: { json?: unknown; html?: string } | null = carriedSource;
+
+            if (!data) {
+              const fetchController = new AbortController();
+              const fetchTimeoutId = setTimeout(() => fetchController.abort(), 15000);
+              let response: Response;
+              try {
+                response = await fetch(`/api/fetch-url?url=${encodeURIComponent(content as string)}`, {
+                  signal: fetchController.signal,
+                });
+              } finally {
+                clearTimeout(fetchTimeoutId);
+              }
+              data = await response.json().catch(() => null);
+              if (!response.ok) {
+                throw new Error((data as any)?.error || 'Failed to fetch URL content');
+              }
             }
 
-            if (data.json) {
+            if (data?.json) {
               textToParse = JSON.stringify(data.json);
               isJson = true;
-            } else {
+            } else if (data?.html) {
               textToParse = data.html;
             }
           }
@@ -1460,22 +1483,43 @@ export default function App() {
     }
   };
 
+  // Central cleanup for any user-bound local state. Must run before the user-change
+  // effect re-fires so the guest/offline loaders cannot rehydrate from stale cache.
+  const clearUserBoundLocalState = async () => {
+    sessionStorage.removeItem('google_access_token');
+
+    // Synchronous localStorage wipe
+    saveLocalRecipes([]);
+    saveLocalFolders([]);
+    saveLocalActiveRecipe(null);
+
+    // Async service-worker recipe cache wipe — awaited so the guest loader (src/App.tsx
+    // line 534 / 555) sees an empty cache when the auth effect re-runs with user=null.
+    try {
+      await Promise.all([
+        cacheSavedRecipesForCookMode([]),
+        cacheActiveRecipeForCookMode(null),
+      ]);
+    } catch (err) {
+      console.warn('Recipe cache cleanup failed:', err);
+    }
+  };
+
   const handleLogout = async () => {
     if (authAction) return;
 
     try {
       setAuthAction('logout');
-      sessionStorage.removeItem('google_access_token');
-      await signOut(auth);
-      setAuthErrorMessage(null);
+      // Reset React state first so no stale user data is visible during the async cleanup
       setSavedRecipes([]);
       setFolders([]);
       setActiveRecipe(null);
       setViewingRecipe(null);
-      // Clear localStorage so guest/offline flow cannot rehydrate the previous user's data
-      saveLocalRecipes([]);
-      saveLocalFolders([]);
-      saveLocalActiveRecipe(null);
+      // Wipe local storage + SW recipe cache BEFORE signOut, so the auth-change effect
+      // (which re-fires when user becomes null) cannot pick up the previous user's data.
+      await clearUserBoundLocalState();
+      await signOut(auth);
+      setAuthErrorMessage(null);
       navigateTo('home');
     } catch (error) {
       console.error("Logout failed", error);

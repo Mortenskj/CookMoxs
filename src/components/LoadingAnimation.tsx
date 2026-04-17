@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BrandMark } from './BrandMark';
 
 const LOADING_STAGES = [
   {
@@ -54,6 +55,9 @@ export function LoadingAnimation() {
   return (
     <div className="cm-import-loading cm-feedback-enter" role="status" aria-live="polite">
       <div className="cm-import-loading__hero">
+        <div className="cm-import-loading__brand" aria-hidden="true">
+          <BrandMark size={40} className="cm-brand-mark cm-brand-mark--pulse" />
+        </div>
         <p className="cm-import-loading__eyebrow">CookMoxs import</p>
         <h2 className="cm-import-loading__title">Klargør opskrift</h2>
         <p className="cm-import-loading__description">
