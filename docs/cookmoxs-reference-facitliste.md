@@ -289,6 +289,13 @@ Per issue gives kun:
 
 ## Fase C: Efficiency & foundation
 
+### Fase C note
+
+- Aktivt Fase C-batch bør holdes til C1-C7 nedenfor.
+- Observability er allerede løftet nok til, at det ikke bør være et hovedspor i denne fase.
+- Ingredient lexicon er kun relevant, hvis et konkret C-fix kræver et meget lille subset.
+- Search/OCR/authz er fortsat deferred og bør ikke broades ind.
+
 ### C1. Listener churn
 
 - Hvor:
@@ -410,15 +417,17 @@ Per issue gives kun:
 - Broad ikke samtidig:
   fuld ontology eller stor ekstern dataintegration.
 
-### C9. Analytics / observability / senere search / OCR / authz
+### C9. Observer follow-up og senere foundation-lag
 
 - Hvor:
-  - senere foundation-lag, ikke aktivt scoped endnu
+  - observer follow-up kun hvis et konkret C-fix kræver det
+  - senere foundation-lag er ellers ikke aktivt scoped
 - Problem:
   Relevante spor kan let broadene scope for tidligt.
 - Hvad jeg ville ændre:
-  Behandle dem som separat, smalt scoped arbejde senere og kun med tydelig produktbegrundelse.
+  Holde observer-opfølgning til smal tuning, fx assertion-støj eller capture-stabilitet, hvis det direkte understøtter et C-fix.
+  Holde search/OCR/authz som separat arbejde senere og kun med tydelig produktbegrundelse.
 - Berørte filer:
-  - ikke fastlagt endnu
+  - ikke fastlagt endnu, medmindre et konkret C-fix kræver smal observer-tuning
 - Broad ikke samtidig:
   platformprojekt uden gate-beslutning.

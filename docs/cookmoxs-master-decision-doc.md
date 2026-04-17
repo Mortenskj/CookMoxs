@@ -67,14 +67,15 @@ Scope:
 - lazy loading
 - timer rerender isolation
 - storage churn
-- ingredient lexicon subset
-- analytics/observability
-- senere search/OCR/authz
+- framer-motion overhead
+- ingredient lexicon subset kun hvis et konkret Fase C-fix kræver et minimalt subset
+- search/OCR/authz fortsat deferred
 
 Repo-state note:
 
-- Punkterne er stadig relevante, men de er ikke første implementeringsbatch.
-- De fleste er gevinst- og strukturarbejde, ikke trust-blockers.
+- De primære åbne Fase C-punkter er stadig listener churn, queue watchers, analytics defer, lazy loading, timer isolation, storage churn og motion-overhead.
+- Observer/observability er ikke længere et hovedspor i Fase C. Den del er allerede løftet nok til, at resterende arbejde kun bør være smal tuning.
+- Ingredient lexicon, search, OCR og authz er ikke en del af det aktive batch.
 
 ## Prioriteringslogik
 
@@ -135,4 +136,4 @@ Til implementering gælder denne regel:
 
 Den aktuelle arbejdsordre er:
 
-- `docs/cookmoxs-phase-a-execution-brief.md`
+- `docs/cookmoxs-phase-c-execution-brief.md`
