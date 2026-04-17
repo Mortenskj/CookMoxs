@@ -22,6 +22,19 @@ import {
   searchNutritionProducts,
 } from './src/services/nutrition/nutritionLookupService.ts';
 import { getNutritionProviderStatus } from './src/services/nutrition/nutritionProviderRegistry.ts';
+import {
+  createRequestId,
+  getObserverEvents,
+  getObserverRuntimeInfo,
+  getObserverSessions,
+  getRequestSessionId,
+  installObserverConsoleBridge,
+  isObserverEnabled,
+  isObserverRequestAuthorized,
+  persistObserverCapture,
+  recordObserverEvent,
+  runWithObserverContext,
+} from './src/server/services/observerService.ts';
 import mammoth from 'mammoth';
 
 const RECIPE_SCHEMA = {
@@ -890,6 +903,7 @@ function sanitizeAnalyticsValue(value: unknown): string | number | boolean | nul
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
+  installObserverConsoleBridge();
 
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -900,6 +914,89 @@ async function startServer() {
   }));
   app.use(express.json({ limit: '25mb' }));
   app.use('/api/events', express.text({ type: 'text/plain' }));
+  app.use((req, res, next) => {
+    const requestId = createRequestId();
+    const sessionId = getRequestSessionId(req.headers);
+    const startedAt = Date.now();
+    res.setHeader('x-request-id', requestId);
+
+    runWithObserverContext({
+      requestId,
+      sessionId,
+      method: req.method,
+      path: req.path,
+    }, () => {
+      if (isObserverEnabled() && req.path.startsWith('/api/') && !req.path.startsWith('/api/__observer')) {
+        recordObserverEvent({
+          level: 'info',
+          source: 'api',
+          kind: 'request_started',
+          path: req.path,
+          method: req.method,
+          sessionId,
+          requestId,
+          data: {
+            query: Object.keys(req.query || {}).slice(0, 20),
+          },
+        });
+
+        res.on('finish', () => {
+          recordObserverEvent({
+            level: res.statusCode >= 400 ? 'warn' : 'info',
+            source: 'api',
+            kind: 'request_finished',
+            path: req.path,
+            method: req.method,
+            sessionId,
+            requestId,
+            status: res.statusCode,
+            durationMs: Date.now() - startedAt,
+          });
+        });
+      }
+
+      next();
+    });
+  });
+  app.use('/api/ai', (req, res, next) => {
+    if (!isObserverEnabled()) {
+      next();
+      return;
+    }
+
+    const action = req.path.replace(/^\//, '') || 'unknown';
+    const originalJson = res.json.bind(res);
+    recordObserverEvent({
+      level: 'info',
+      source: 'api',
+      kind: 'ai_request_body',
+      path: req.path,
+      method: req.method,
+      data: {
+        action,
+        body: req.body,
+      },
+    });
+
+    (res as typeof res & { json: typeof res.json }).json = ((body: unknown) => {
+      recordObserverEvent({
+        level: res.statusCode >= 400 ? 'warn' : 'info',
+        source: 'api',
+        kind: 'ai_response_body',
+        path: req.path,
+        method: req.method,
+        status: res.statusCode,
+        data: {
+          action,
+          body,
+        },
+      });
+
+      return originalJson(body);
+    }) as typeof res.json;
+
+    next();
+  });
 
   const aiLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -919,6 +1016,73 @@ async function startServer() {
     message: { error: 'For mange import-kald lige nu. Prøv igen om et øjeblik.' },
   });
   app.use(['/api/parse-direct', '/api/fetch-url'], fetchLimiter);
+
+  app.get('/api/__observer/status', (req, res) => {
+    if (!isObserverRequestAuthorized(req.headers, req.headers.host as string | undefined)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    return res.json({
+      ...getObserverRuntimeInfo(),
+      sessions: getObserverSessions(30),
+    });
+  });
+
+  app.get('/api/__observer/recent', (req, res) => {
+    if (!isObserverRequestAuthorized(req.headers, req.headers.host as string | undefined)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const limit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 200;
+    const sessionId = typeof req.query.sessionId === 'string' ? req.query.sessionId.slice(0, 120) : null;
+
+    return res.json({
+      ...getObserverRuntimeInfo(),
+      sessionId,
+      events: getObserverEvents(limit, sessionId),
+    });
+  });
+
+  app.post('/api/__observer/client-capture', async (req, res) => {
+    const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.slice(0, 120) : null;
+    const recipeId = typeof req.body?.recipeId === 'string' ? req.body.recipeId.slice(0, 120) : null;
+    const action = typeof req.body?.action === 'string' ? req.body.action.slice(0, 80) : 'unknown';
+    const phase = req.body?.phase === 'after' ? 'after' : 'before';
+    const target = typeof req.body?.target === 'string' ? req.body.target.slice(0, 80) : 'unknown';
+    const text = typeof req.body?.text === 'string' ? req.body.text.slice(0, 20000) : '';
+    const itemCount = typeof req.body?.itemCount === 'number' ? req.body.itemCount : null;
+    const imageDataUrl = typeof req.body?.imageDataUrl === 'string' ? req.body.imageDataUrl : null;
+
+    let capturePath: string | null = null;
+    if (imageDataUrl) {
+      capturePath = await persistObserverCapture({
+        sessionId,
+        recipeId,
+        action,
+        phase,
+        target,
+        imageDataUrl,
+      }).catch(() => null);
+    }
+
+    recordObserverEvent({
+      level: 'info',
+      source: 'client',
+      kind: 'ai_transformation_capture',
+      sessionId,
+      data: {
+        recipeId,
+        action,
+        phase,
+        target,
+        itemCount,
+        text,
+        capturePath,
+      },
+    });
+
+    return res.status(202).json({ ok: true, capturePath });
+  });
 
   app.post('/api/events', (req, res) => {
     const analyticsBody = parseAnalyticsRequestBody(req.body);
@@ -950,6 +1114,19 @@ async function startServer() {
       path: pathValue,
       payload,
     }));
+    recordObserverEvent({
+      level: name === 'recipe_import_failed' || name === 'ai_adjust_failed' || name === 'client_diagnostic' || name === 'session_error'
+        ? 'warn'
+        : 'info',
+      source: name === 'client_diagnostic' || name === 'session_error' ? 'client' : 'analytics',
+      kind: name,
+      path: pathValue,
+      sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : null,
+      data: {
+        occurredAt,
+        ...payload,
+      },
+    });
 
     return res.status(202).json({ ok: true });
   });

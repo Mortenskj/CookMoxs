@@ -16,6 +16,7 @@ import {
 } from './services/aiService';
 import { trackEvent } from './services/analyticsService';
 import { logSessionError } from './hooks/useSessionErrorLog';
+import { recordAiTransformationCapture } from './services/observerAiCapture';
 import { normalizeAuthError } from './services/authErrorMessageService';
 import { haptics } from './services/haptics';
 import { normalizeAiActionError, normalizeImportError, normalizeSyncError } from './services/errorMessageService';
@@ -91,6 +92,32 @@ import type { OfflineQueueItem } from './services/offlineQueueService';
 
 const parseAIError = (err: any, defaultMsg: string) => {
   return normalizeAiActionError(err).message || defaultMsg;
+};
+
+const queueAiCapture = (params: {
+  action: string;
+  phase: 'before' | 'after';
+  recipeBefore?: Recipe | null;
+  recipeAfter?: Recipe | null;
+  recipeId: string;
+  delayMs?: number;
+}) => {
+  const run = () => {
+    void recordAiTransformationCapture({
+      action: params.action,
+      phase: params.phase,
+      recipeBefore: params.recipeBefore,
+      recipeAfter: params.recipeAfter,
+      recipeId: params.recipeId,
+    });
+  };
+
+  if (typeof window !== 'undefined' && (params.delayMs || 0) > 0) {
+    window.setTimeout(run, params.delayMs);
+    return;
+  }
+
+  run();
 };
 
 const mergeRecipesById = (...recipeGroups: Recipe[][]): Recipe[] => {
@@ -1533,15 +1560,18 @@ export default function App() {
     setActiveAiAction('smart_adjust');
     setError(null);
     setLastAiSnapshot({ previous: recipe, action: 'smart_adjust' });
+    queueAiCapture({ action: 'smart_adjust', phase: 'before', recipeBefore: recipe, recipeId: recipe.id });
     trackAiActionStarted('smart_adjust', recipe.id);
     try {
       const updated = await aiAdjustRecipe(recipe, instruction);
       setAiUnavailableMessage(null);
-      setViewingRecipe(normalizeRecipeForCookMode({
+      const normalizedUpdated = normalizeRecipeForCookMode({
         ...updated,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      }));
+      });
+      setViewingRecipe(normalizedUpdated);
+      queueAiCapture({ action: 'smart_adjust', phase: 'after', recipeAfter: normalizedUpdated, recipeId: recipe.id, delayMs: 350 });
       trackAiActionUsed('smart_adjust', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Adjust Error:', err);
@@ -1557,15 +1587,18 @@ export default function App() {
     setActiveAiAction('generate_steps');
     setError(null);
     setLastAiSnapshot({ previous: recipe, action: 'generate_steps' });
+    queueAiCapture({ action: 'generate_steps', phase: 'before', recipeBefore: recipe, recipeId: recipe.id });
     trackAiActionStarted('generate_steps', recipe.id);
     try {
       const updated = await aiGenerateSteps(recipe, userLevel);
       setAiUnavailableMessage(null);
-      setViewingRecipe(normalizeRecipeForCookMode({
+      const normalizedUpdated = normalizeRecipeForCookMode({
         ...updated,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      }));
+      });
+      setViewingRecipe(normalizedUpdated);
+      queueAiCapture({ action: 'generate_steps', phase: 'after', recipeAfter: normalizedUpdated, recipeId: recipe.id, delayMs: 350 });
       trackAiActionUsed('generate_steps', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Generate Error:', err);
@@ -1581,16 +1614,19 @@ export default function App() {
     setActiveAiAction('fill_rest');
     setError(null);
     setLastAiSnapshot({ previous: recipe, action: 'fill_rest' });
+    queueAiCapture({ action: 'fill_rest', phase: 'before', recipeBefore: recipe, recipeId: recipe.id });
     trackAiActionStarted('fill_rest', recipe.id);
     try {
       const updated = await aiFillRest(recipe, userLevel);
       setAiUnavailableMessage(null);
-      setViewingRecipe(normalizeRecipeForCookMode({
+      const normalizedUpdated = normalizeRecipeForCookMode({
         ...updated,
         title: recipe.title,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      }));
+      });
+      setViewingRecipe(normalizedUpdated);
+      queueAiCapture({ action: 'fill_rest', phase: 'after', recipeAfter: normalizedUpdated, recipeId: recipe.id, delayMs: 350 });
       trackAiActionUsed('fill_rest', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Fill Rest Error:', err);
@@ -1606,16 +1642,19 @@ export default function App() {
     setActiveAiAction('polish_ingredients');
     setError(null);
     setLastAiSnapshot({ previous: recipe, action: 'polish_ingredients' });
+    queueAiCapture({ action: 'polish_ingredients', phase: 'before', recipeBefore: recipe, recipeId: recipe.id });
     trackAiActionStarted('polish_ingredients', recipe.id);
     try {
       const updated = await aiPolishIngredients(recipe, userLevel);
       setAiUnavailableMessage(null);
-      setViewingRecipe(normalizeRecipeForCookMode({
+      const normalizedUpdated = normalizeRecipeForCookMode({
         ...updated,
         title: recipe.title,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      }));
+      });
+      setViewingRecipe(normalizedUpdated);
+      queueAiCapture({ action: 'polish_ingredients', phase: 'after', recipeAfter: normalizedUpdated, recipeId: recipe.id, delayMs: 350 });
       trackAiActionUsed('polish_ingredients', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Polish Ingredients Error:', err);
@@ -1631,16 +1670,19 @@ export default function App() {
     setActiveAiAction('polish_steps');
     setError(null);
     setLastAiSnapshot({ previous: recipe, action: 'polish_steps' });
+    queueAiCapture({ action: 'polish_steps', phase: 'before', recipeBefore: recipe, recipeId: recipe.id });
     trackAiActionStarted('polish_steps', recipe.id);
     try {
       const updated = await aiPolishSteps(recipe, userLevel);
       setAiUnavailableMessage(null);
-      setViewingRecipe(normalizeRecipeForCookMode({
+      const normalizedUpdated = normalizeRecipeForCookMode({
         ...updated,
         title: recipe.title,
         id: recipe.id,
         lastUsed: new Date().toISOString(),
-      }));
+      });
+      setViewingRecipe(normalizedUpdated);
+      queueAiCapture({ action: 'polish_steps', phase: 'after', recipeAfter: normalizedUpdated, recipeId: recipe.id, delayMs: 350 });
       trackAiActionUsed('polish_steps', recipe.id, startedAt);
     } catch (err: any) {
       console.error('AI Polish Steps Error:', err);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { reportSessionErrorToObserver } from '../services/observerClient';
 
 export interface SessionError {
   timestamp: string;
@@ -20,6 +21,7 @@ export function logSessionError(error: { message?: string; code?: string }, acti
   // Keep max 50 entries
   if (SESSION_ERRORS.length > 50) SESSION_ERRORS.shift();
   LISTENERS.forEach(fn => fn());
+  reportSessionErrorToObserver(error, action);
 }
 
 export function getSessionErrors(): SessionError[] {

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { initObserverClient } from './services/observerClient';
 import './index.css';
 
 declare global {
@@ -10,6 +11,8 @@ declare global {
   }
 }
 
+
+initObserverClient();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

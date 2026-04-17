@@ -3,6 +3,8 @@ build/
 dist/
 coverage/
 .claude/
+.dev-observe/
+.npm-cache/
 .DS_Store
 .tmp.driveupload/
 *.log

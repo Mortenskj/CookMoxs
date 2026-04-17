@@ -1,4 +1,5 @@
-﻿import React from 'react';
+import React from 'react';
+import { reportClientDiagnostic } from '../services/observerClient';
 
 type ErrorBoundaryProps = {
   children?: React.ReactNode;
@@ -24,6 +25,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('App error boundary caught an error:', error, info);
+    reportClientDiagnostic({
+      level: 'error',
+      kind: 'react_error_boundary',
+      message: error?.message || 'Ukendt fejl',
+      details: {
+        stack: error?.stack || null,
+        componentStack: info.componentStack || null,
+      },
+    });
 
     if (typeof window !== 'undefined') {
       try {
@@ -73,4 +83,3 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     return (this as any).props.children;
   }
 }
-

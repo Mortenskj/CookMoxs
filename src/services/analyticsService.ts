@@ -1,3 +1,5 @@
+import { getObserverSessionId } from './observerClient';
+
 export type AnalyticsEventName =
   | 'recipe_import_started'
   | 'recipe_import_succeeded'
@@ -14,7 +16,9 @@ export type AnalyticsEventName =
   | 'folder_shared'
   | 'folder_deleted_undone'
   | 'module_enabled'
-  | 'module_disabled';
+  | 'module_disabled'
+  | 'client_diagnostic'
+  | 'session_error';
 
 type AnalyticsValue = string | number | boolean | null;
 
@@ -35,12 +39,18 @@ function buildEvent(name: AnalyticsEventName, payload?: AnalyticsPayload): Analy
   const path = typeof window !== 'undefined'
     ? `${window.location.pathname}${window.location.search}${window.location.hash}`
     : undefined;
+  const sessionId = typeof window !== 'undefined' ? getObserverSessionId() : undefined;
 
   return {
     name,
     occurredAt: new Date().toISOString(),
     path,
-    payload,
+    payload: sessionId
+      ? {
+          sessionId,
+          ...payload,
+        }
+      : payload,
   };
 }
 

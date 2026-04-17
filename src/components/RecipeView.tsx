@@ -1250,7 +1250,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Ingredients */}
-      <section className="print-ingredients mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
+      <section data-observer-section="ingredients" className="print-ingredients mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic flex items-center gap-3 text-engraved">
@@ -1382,7 +1382,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       )}
 
       {/* Steps */}
-      <section className="print-steps mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
+      <section data-observer-section="steps" className="print-steps mb-10 glass-brushed p-6 sm:p-8 rounded-[2.5rem] space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-serif text-forest-dark cm-light-surface-ink italic flex items-center gap-3 text-engraved">
