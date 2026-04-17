@@ -640,6 +640,40 @@
     backdrop-filter: blur(6px) saturate(104%);
   }
 
+  /* Compact variant — central import card plays supporting role while the
+     right-side AI/Loader badge owns the branded indicator. */
+  .cm-import-loading--compact {
+    width: min(100%, 22rem);
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .cm-import-loading--compact .cm-import-loading__hero {
+    padding: 0.875rem 1rem;
+    border-radius: 1.25rem;
+  }
+  .cm-import-loading--compact .cm-import-loading__hero::after {
+    display: none; /* drop shimmer so the right-badge pulse remains the focal point */
+  }
+  .cm-import-loading--compact .cm-import-loading__eyebrow {
+    margin: 0 0 0.5rem;
+  }
+  .cm-import-loading--compact .cm-import-loading__meter {
+    margin-top: 0;
+  }
+  .cm-import-loading--compact .cm-import-loading__meta {
+    margin-top: 0.5rem;
+  }
+  .cm-import-loading--compact .cm-import-loading__stage {
+    padding: 0.625rem 0.75rem;
+    border-radius: 1rem;
+  }
+  .cm-import-loading--compact .cm-import-loading__stage-title {
+    font-size: 0.86rem;
+  }
+  .cm-import-loading--compact .cm-import-loading__stage-detail {
+    font-size: 0.76rem;
+  }
+
   .dark .cm-import-loading {
     --cm-import-hero-overlay: rgba(255, 255, 255, 0.06);
     --cm-import-hero-overlay-end: rgba(255, 255, 255, 0.01);
@@ -2997,6 +3031,28 @@
   .cm-brand-mark--pulse {
     animation: none;
     opacity: 1;
+  }
+}
+
+/* ── Global AI loader badge — right-side compact, calm fade ── */
+@keyframes cm-ai-loader-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cm-ai-loader {
+  animation: cm-ai-loader-in 320ms ease-out both;
+}
+
+.cm-ai-loader__badge {
+  opacity: 0.96;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-ai-loader {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 

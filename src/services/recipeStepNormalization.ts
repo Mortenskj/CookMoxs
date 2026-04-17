@@ -35,7 +35,7 @@ function stripOvenTempFromSentence(sentence: string): string {
   return out;
 }
 
-function stripRedundantHeatProse(text: string, hasOvenHeat: boolean): string {
+export function stripRedundantHeatProse(text: string, hasOvenHeat: boolean): string {
   if (!text) return text;
   let out = text;
 
@@ -71,7 +71,7 @@ function stripRedundantHeatProse(text: string, hasOvenHeat: boolean): string {
   return out;
 }
 
-function hasOvenHeatSignal(heat?: string): boolean {
+export function hasOvenHeatSignal(heat?: string): boolean {
   if (!heat) return false;
   return /\d{2,3}\s*(?:°|grader)/i.test(heat);
 }

@@ -37,7 +37,29 @@ import {
   runWithObserverContext,
 } from './src/server/services/observerService.ts';
 import { collectRecipeObserverAssertions } from './src/services/observer/recipeAssertions.ts';
+import { stripRedundantHeatProse, hasOvenHeatSignal } from './src/services/recipeStepNormalization.ts';
 import mammoth from 'mammoth';
+
+// Server-side heat-prose scrub on AI responses. The model occasionally
+// produces steps with both structured heat (e.g. "200°C") and the same temp
+// re-stated in prose ("Tænd ovnen på 200°C (almindelig ovn)"). Strip before
+// asserting + returning so observer signal stays clean and clients don't
+// have to rely solely on the client-side normalize to remove duplication.
+function scrubRecipeHeatProse(recipe: { steps?: unknown } | null | undefined) {
+  if (!recipe || typeof recipe !== 'object') return;
+  const steps = (recipe as { steps?: unknown }).steps;
+  if (!Array.isArray(steps)) return;
+  for (const step of steps) {
+    if (!step || typeof step !== 'object') continue;
+    const s = step as { text?: unknown; heat?: unknown; heatLevel?: unknown };
+    if (typeof s.text !== 'string') continue;
+    const heat = typeof s.heat === 'string' ? s.heat : undefined;
+    const ovenHeatPresent = hasOvenHeatSignal(heat);
+    const structuredHeat = Boolean(ovenHeatPresent || (typeof s.heatLevel === 'number' && s.heatLevel >= 1 && s.heatLevel <= 9));
+    if (!structuredHeat) continue;
+    s.text = stripRedundantHeatProse(s.text, ovenHeatPresent);
+  }
+}
 
 const RECIPE_SCHEMA = {
   type: Type.OBJECT,
@@ -1067,6 +1089,8 @@ async function startServer() {
         ? ((body as { recipe?: unknown; parsedData?: unknown }).recipe || (body as { parsedData?: unknown }).parsedData)
         : null;
       if (responseRecipe && typeof responseRecipe === 'object') {
+        // Scrub first so assertions run on the same text the client receives.
+        scrubRecipeHeatProse(responseRecipe as { steps?: unknown });
         recordRecipeAssertions(action, responseRecipe);
       }
 
@@ -1275,6 +1299,7 @@ async function startServer() {
       const prompt = `
         You are an expert chef and culinary mathematician. Adjust the following recipe based on this user request: "${instruction}".
         Rules for adjustment:
+        0. FIDELITY: Only make the adjustment the user asked for. Do not reinterpret the dish, do not change the cooking method (stovetop vs oven), do not add new ingredients unless the user's request specifically requires it, do not add serving suggestions, and do not modify the title.
         1. Gastronomic logic: Round awkward amounts and preserve cooking balance.
         2. Update timing if total volume changes significantly.
         3. Convert US/English units to Danish kitchen units when needed.
@@ -1309,7 +1334,7 @@ async function startServer() {
         Rules:
         1. Improve existing steps instead of rewriting good ones unnecessarily.
         2. Return only repaired steps plus optional aiRationale, heatGuide and ovenGuide.
-        3. Preserve the dish, ingredient list and overall method.
+        3. Preserve the dish, ingredient list and overall method. FIDELITY TO THE ORIGINAL METHOD IS MANDATORY: do not change a stovetop recipe to an oven recipe (or vice versa), do not introduce a new cooking vessel, do not add ingredients that are not already in the recipe, and do not add serving/garnish suggestions. You may clarify, split, reorder or tighten steps — but the method must match what the user already has.
         4. Add a dedicated oven-preheat step IMMEDIATELY BEFORE the first step that actually uses the oven — NOT at the beginning of the recipe. If there are resting, proofing, or waiting steps before oven use, the preheat step must come after those steps so the oven is not running unnecessarily for hours.
         5. Use heat values on a 1-9 induction scale for stovetop steps.
         6. Extract timers into the timer property.
@@ -1321,6 +1346,7 @@ async function startServer() {
         11. For onions, garlic and other aromatics, prefer moderate heat unless the text explicitly calls for hard browning.
         12. If a step needs two distinct heat phases, prefer splitting it into two steps so each step has one clear working heat.
         13. The structured heat field should reflect the sustained working heat, not a short initial peak, unless the whole step is truly only a brief high-heat action.
+        14. When you set structured heat (heat field with a temperature or heatLevel with a number), do NOT restate the same number in the step text. The UI shows the temperature/level as a chip. Write the step text about WHAT the cook does, not the numeric heat. Bad: "Tænd ovnen på 200°C (almindelig ovn). ...". Good: "Tænd ovnen og lad den forvarme helt." Bad: "Brun kødet ved middel varme (trin 5)." Good: "Brun kødet på panden." Kernetemperatur numbers are exempt and MUST stay in text.
         RELEVANT INGREDIENT RULES:
         - Only include ingredients in relevantIngredients that are directly used in the current step.
         - Do not include future ingredients or ingredients used in other steps.
@@ -1628,6 +1654,13 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     const styleInstruction = getLevelStyleInstruction(level, 'import');
     const sharedRules = `
       Return the recipe in Danish.
+      FIDELITY TO SOURCE (HIGHEST PRIORITY): Stay close to the source recipe. You may RESTRUCTURE and PRECISION-EDIT (fix grammar, clarify steps, standardize units, group ingredients, extract heat/timers), but you MUST NOT:
+      - invent a cooking method that is not in the source (e.g. do NOT turn a stovetop recipe into an oven recipe, or vice versa)
+      - add ingredients that are not in the source (no "optional" vaniljestang, kanelstang, frugt, garnish etc. unless explicitly listed)
+      - add serving suggestions, accompaniments or garnishes that are not in the source
+      - modify the title by prepending marketing words like "Klassisk", "Traditionel", "Cremet", "Nem" or by adding method descriptors like "i ovn", "på pande" unless the source title uses them
+      - "improve" or reinterpret the recipe — the user wants their recipe structured, not rewritten
+      If a detail is not in the source, omit it rather than guessing. When in doubt, stay literal.
       INGREDIENT GROUPS: Always group ingredients by their role/component in the dish — e.g. 'Til panering', 'Til fyld', 'Til saucen', 'Til dejen', 'Til salaten', 'Til servering'. NEVER group by ingredient type (do NOT use 'Mejeri', 'Kød', 'Tørvarer' etc.). If a recipe has no distinct components, use a single group like 'Ingredienser'.
       INGREDIENT NAMES: ALWAYS restructure ingredients so the 'name' field contains ONLY the core ingredient. Move quantity words into 'unit' and 'amount'. Examples:
       - "4 skiver gouda" → { name: "gouda", amount: 4, unit: "skiver" }
@@ -1638,8 +1671,8 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       Words like 'skiver', 'stk', 'fed', 'dåse', 'bundt', 'pose' are ALWAYS units, never part of the name.
       AMOUNT RANGE RULES: If an ingredient amount is a range like "175-200 g", never collapse it to a midpoint. Store ranges as amountMin and amountMax. Use amountText to preserve the original phrasing when useful (e.g. "175-200"). Only use amount as a single number when the source clearly gives one exact amount.
       SUMMARY RULES: summary must be 1-2 short sentences only. Maximum 180 characters. Do not repeat phrases or sentences. Do not include filler like "Velbekomme", "nyd", "god fornøjelse", "god madlyst", "denne ret er...". If no useful summary is available, return an empty string.
-      FLAVOR & TIPS: Always generate 2-4 flavorBoosts (concrete tips to elevate flavor) and 2-3 pitfalls (common mistakes to avoid). These are required fields.
-      CATEGORIES: Always generate 2-4 categories/tags in Danish that describe the recipe type and cuisine, e.g. 'Aftensmad', 'Italiensk', 'Hurtig', 'Comfort food', 'Vegetarisk', 'Bagværk', 'Frokost'. These help users find recipes in their library.
+      FLAVOR & TIPS: flavorBoosts and pitfalls are OPTIONAL. Only include them when they follow directly from the source text or from standard, uncontroversial technique for the dish. Do NOT invent creative flavor twists, alternative ingredients, or "improvements" that reinterpret the recipe. If nothing obvious applies, return empty arrays. Quality over quantity — one correct pitfall beats three speculative ones.
+      CATEGORIES: Generate 2-4 neutral categories/tags in Danish that objectively classify the recipe (meal type, cuisine, main component), e.g. 'Aftensmad', 'Italiensk', 'Bagværk', 'Dessert', 'Vegetarisk'. Only use descriptors like 'Hurtig', 'Comfort food', 'Festmad' when clearly supported by the source.
       Convert English/US metrics to Danish metrics.
       TEXT-FIRST STEP RULES: Step text must stand on its own in cook mode. When an ingredient is used in a step, include the ingredient name and usually the relevant quantity directly in the step text. Prefer natural phrasing like "Tilsæt de 2 hakkede løg og 3 fed hvidløg". Do not rely on a separate ingredient box to make the step understandable. Avoid repeating heat values in prose if they already exist in the structured heat field, unless needed for clarity. Each step should be understandable even if helper overlays are hidden.
       Extract heat info into the 'heat' property and ALWAYS convert it to a 1-9 induction scale.
