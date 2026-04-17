@@ -1141,6 +1141,7 @@ async function startServer() {
     const text = typeof req.body?.text === 'string' ? req.body.text.slice(0, 20000) : '';
     const itemCount = typeof req.body?.itemCount === 'number' ? req.body.itemCount : null;
     const imageDataUrl = typeof req.body?.imageDataUrl === 'string' ? req.body.imageDataUrl : null;
+    const captureError = typeof req.body?.captureError === 'string' ? req.body.captureError.slice(0, 400) : null;
 
     let capturePath: string | null = null;
     if (imageDataUrl) {
@@ -1167,6 +1168,7 @@ async function startServer() {
         itemCount,
         text,
         capturePath,
+        captureError,
       },
     });
 
