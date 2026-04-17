@@ -32,8 +32,12 @@ function hasWord(name: string, words: string[]): boolean {
   return false;
 }
 
-// Core markers — if present, recipe clearly has this component
+// Core markers — flour/grains/leavening. NOT sufficient on their own to
+// declare a dough cluster (flour also shows up in frikadeller, saucer, panering).
 const DEJ_CORE = ['mel', 'hvedemel', 'rugmel', 'speltmel', 'fuldkornsmel', 'gær', 'tørgær', 'bagepulver', 'natron', 'havregryn', 'marcipan'];
+// Leavening / unambiguous dough markers — a single one of these is enough
+// to confirm a real dough/batter/bake component.
+const DEJ_LEAVENING = ['gær', 'tørgær', 'bagepulver', 'natron', 'marcipan'];
 // Allies — only count as DEJ when a DEJ_CORE marker is also present
 const DEJ_ALLIES = ['sukker', 'rørsukker', 'brun farin', 'farin', 'salt', 'smør', 'olie', 'vand', 'mælk', 'sødmælk', 'kærnemælk', 'æg', 'vanilje', 'vaniljesukker', 'kardemomme', 'kanel'];
 
@@ -100,12 +104,20 @@ export function inferIngredientStructureGroups(ingredients: Ingredient[]): Ingre
   // Respect existing structure — don't overwrite AI-polish or section-header groups.
   if (!allGroupsAreGeneric(ingredients)) return ingredients;
 
-  // Cluster detection
-  const hasDejCore = ingredients.some((ing) => hasWord(normalize(ing.name), DEJ_CORE));
+  // Cluster detection.
+  // Dej cluster requires either a leavening agent (gær/bagepulver/natron/marcipan)
+  // OR at least 2 distinct DEJ_CORE markers. Plain "mel" alone does NOT count —
+  // otherwise frikadeller (kød + løg + mel + æg) would get wrongly split into Dej/Fyld.
+  const dejCoreHits = ingredients.filter((ing) => hasWord(normalize(ing.name), DEJ_CORE)).length;
+  const hasLeavening = ingredients.some((ing) => hasWord(normalize(ing.name), DEJ_LEAVENING));
+  const hasDejCore = hasLeavening || dejCoreHits >= 2;
   const hasFyldCore = ingredients.some((ing) => hasWord(normalize(ing.name), FYLD_CORE));
 
-  // If no core markers at all, don't guess — leave ingredients as-is
-  if (!hasDejCore && !hasFyldCore) return ingredients;
+  // Only emit groups when we have a REAL split signal (dough + filling, or
+  // a clear sauce/garnish cluster on top of a main). Single-mass recipes
+  // (frikadeller, hakkebøf, karbonader) have only FYLD_CORE and no leavening,
+  // so nothing gets regrouped.
+  if (!hasDejCore) return ingredients;
 
   const classified = ingredients.map((ing) => {
     const group = classifySingle(ing, hasDejCore, hasFyldCore);

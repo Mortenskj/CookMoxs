@@ -61,7 +61,7 @@ export function getObserverSessionId() {
 }
 
 function postObserverEvent(event: {
-  name: 'client_diagnostic' | 'session_error';
+  name: string;
   payload: Record<string, unknown>;
 }) {
   const body = JSON.stringify({
@@ -141,6 +141,18 @@ export function reportSessionErrorToObserver(error: { message?: string; code?: s
       code: error.code || null,
       message: trimText(error.message || 'Unknown error'),
     },
+  });
+}
+
+export function reportObserverStructuredEvent(
+  name: 'observer_pipeline' | 'observer_failure' | 'product_assertion',
+  payload: Record<string, unknown>,
+) {
+  if (typeof window === 'undefined') return;
+
+  postObserverEvent({
+    name,
+    payload,
   });
 }
 

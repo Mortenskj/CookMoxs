@@ -1,7 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { mkdir, appendFile, writeFile } from 'node:fs/promises';
+import { mkdir, appendFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { getRuntimeBuildInfo, type RuntimeBuildInfo } from '../../config/runtimeBuildInfo';
 
 export type ObserverLevel = 'info' | 'warn' | 'error';
 export type ObserverSource = 'server' | 'client' | 'api' | 'analytics';
@@ -9,6 +10,7 @@ export type ObserverSource = 'server' | 'client' | 'api' | 'analytics';
 export type ObserverEvent = {
   id: string;
   ts: string;
+  runtime: RuntimeBuildInfo;
   level: ObserverLevel;
   source: ObserverSource;
   kind: string;
@@ -132,9 +134,11 @@ export function isObserverEnabled() {
 }
 
 export function getObserverRuntimeInfo() {
+  const build = getRuntimeBuildInfo();
   return {
     enabled: observerEnabled,
     runtimeId,
+    build,
     observerFile: observerPersistToDisk ? observerFile : null,
     captureDir: observerPersistToDisk ? captureDir : null,
     exportTokenConfigured: Boolean(observerExportToken),
@@ -164,13 +168,14 @@ export function createRequestId() {
   return crypto.randomUUID();
 }
 
-export function recordObserverEvent(input: Omit<ObserverEvent, 'id' | 'ts'>) {
+export function recordObserverEvent(input: Omit<ObserverEvent, 'id' | 'ts' | 'runtime'>) {
   if (!observerEnabled) return null;
 
   const context = getObserverContext();
   const event: ObserverEvent = {
     id: crypto.randomUUID(),
     ts: new Date().toISOString(),
+    runtime: getRuntimeBuildInfo(),
     level: input.level,
     source: input.source,
     kind: input.kind,
@@ -245,6 +250,40 @@ export function getObserverSessions(limit = 50) {
   return Array.from(sessionIds.entries())
     .map(([sessionId, lastSeenAt]) => ({ sessionId, lastSeenAt }))
     .slice(-Math.max(1, Math.min(limit, 200)));
+}
+
+async function getObserverCaptureFiles(sessionId?: string | null) {
+  if (!observerPersistToDisk || !sessionId) {
+    return [];
+  }
+
+  const safeSessionId = sessionId.replace(/[^a-z0-9-]+/gi, '_').slice(0, 80);
+  const sessionCaptureDir = path.join(captureDir, safeSessionId);
+
+  try {
+    const entries = await readdir(sessionCaptureDir, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isFile())
+      .slice(0, 100)
+      .map((entry) => path.join(sessionCaptureDir, entry.name));
+  } catch {
+    return [];
+  }
+}
+
+export async function buildObserverDebugBundle(sessionId?: string | null, limit = 300) {
+  const safeSessionId = sessionId?.slice(0, 120) || null;
+  const events = getObserverEvents(limit, safeSessionId);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    ...getObserverRuntimeInfo(),
+    sessionId: safeSessionId,
+    eventCount: events.length,
+    sessions: safeSessionId ? undefined : getObserverSessions(30),
+    captures: await getObserverCaptureFiles(safeSessionId),
+    events,
+  };
 }
 
 export async function persistObserverCapture(params: {

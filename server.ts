@@ -23,6 +23,7 @@ import {
 } from './src/services/nutrition/nutritionLookupService.ts';
 import { getNutritionProviderStatus } from './src/services/nutrition/nutritionProviderRegistry.ts';
 import {
+  buildObserverDebugBundle,
   createRequestId,
   getObserverEvents,
   getObserverRuntimeInfo,
@@ -35,6 +36,7 @@ import {
   recordObserverEvent,
   runWithObserverContext,
 } from './src/server/services/observerService.ts';
+import { collectRecipeObserverAssertions } from './src/services/observer/recipeAssertions.ts';
 import mammoth from 'mammoth';
 
 const RECIPE_SCHEMA = {
@@ -795,6 +797,9 @@ async function fetchRecipeSource(url: string) {
   }
 
   try {
+    recordObserverPipelineStage('url_import', 'fetch_started', {
+      urlHost: new URL(url).host,
+    });
     const { response } = await fetchWithSafeRedirects(url);
 
     const $ = cheerio.load(response.data);
@@ -812,6 +817,9 @@ async function fetchRecipeSource(url: string) {
     });
 
     if (recipeJson) {
+      recordObserverPipelineStage('url_import', 'structured_data_found', {
+        parser: 'json_ld',
+      });
       return { json: recipeJson };
     }
 
@@ -822,6 +830,11 @@ async function fetchRecipeSource(url: string) {
       const instructions: string[] = [];
       recipeElement.find('[itemprop="recipeInstructions"]').each((_, el) => { instructions.push($(el).text().trim()); });
       if (ingredients.length > 0 || instructions.length > 0) {
+        recordObserverPipelineStage('url_import', 'structured_data_found', {
+          parser: 'microdata',
+          ingredientCount: ingredients.length,
+          instructionCount: instructions.length,
+        });
         return { json: {
           '@type': 'Recipe',
           name: $('h1').first().text().trim() || $('title').text().trim(),
@@ -838,6 +851,9 @@ async function fetchRecipeSource(url: string) {
     // Fallback: look for recipe data embedded in <script> tags (SPA / SSR patterns like __NEXT_DATA__)
     const embeddedRecipe = extractEmbeddedRecipeDataFromScripts(response.data);
     if (embeddedRecipe) {
+      recordObserverPipelineStage('url_import', 'structured_data_found', {
+        parser: 'embedded_script',
+      });
       return { json: embeddedRecipe };
     }
 
@@ -854,13 +870,20 @@ async function fetchRecipeSource(url: string) {
     const contentElement = targetElement || $('body');
     contentElement.find('br').replaceWith('\n');
     contentElement.find('p, div, h1, h2, h3, h4, h5, h6, li').each((_, el) => { $(el).append('\n'); });
+    recordObserverPipelineStage('url_import', 'html_fallback_ready', {
+      parser: targetElement ? 'recipe_selector' : 'body_fallback',
+    });
     return { html: normalizeExtractedText(contentElement.text()) };
   } catch (error) {
     if (error instanceof UnsafeUrlError) {
+      recordObserverFailure('url_import', 'fetch_failed', 'unsafe_url', {
+        errorCode: String(error.status),
+      });
       throw new HttpError(error.status, error.message);
     }
 
     console.error('Error fetching URL:', error);
+    recordObserverFailure('url_import', 'fetch_failed', 'transport_error');
     throw new HttpError(502, 'Kilden kunne ikke bruges som opskrift');
   }
 }
@@ -898,6 +921,54 @@ function sanitizeAnalyticsValue(value: unknown): string | number | boolean | nul
   }
 
   return JSON.stringify(value).slice(0, 200);
+}
+
+function recordObserverPipelineStage(feature: string, stage: string, data?: Record<string, unknown>) {
+  recordObserverEvent({
+    level: 'info',
+    source: 'api',
+    kind: 'observer_pipeline',
+    data: {
+      feature,
+      stage,
+      ...data,
+    },
+  });
+}
+
+function recordObserverFailure(feature: string, stage: string, errorCategory: string, data?: Record<string, unknown>) {
+  recordObserverEvent({
+    level: 'warn',
+    source: 'api',
+    kind: 'observer_failure',
+    data: {
+      feature,
+      stage,
+      errorCategory,
+      ...data,
+    },
+  });
+}
+
+function recordRecipeAssertions(feature: string, recipe: any) {
+  const assertions = collectRecipeObserverAssertions(recipe);
+  assertions.forEach((assertion) => {
+    recordObserverEvent({
+      level: 'warn',
+      source: 'api',
+      kind: 'product_assertion',
+      data: {
+        feature,
+        assertion: assertion.assertion,
+        recipeId: typeof recipe?.id === 'string' ? recipe.id : null,
+        recipeTitle: typeof recipe?.title === 'string' ? recipe.title.slice(0, 120) : null,
+        stepIndex: assertion.stepIndex ?? null,
+        evidence: assertion.evidence ?? null,
+        heat: assertion.heat ?? null,
+        note: assertion.note,
+      },
+    });
+  });
 }
 
 async function startServer() {
@@ -992,6 +1063,13 @@ async function startServer() {
         },
       });
 
+      const responseRecipe = body && typeof body === 'object'
+        ? ((body as { recipe?: unknown; parsedData?: unknown }).recipe || (body as { parsedData?: unknown }).parsedData)
+        : null;
+      if (responseRecipe && typeof responseRecipe === 'object') {
+        recordRecipeAssertions(action, responseRecipe);
+      }
+
       return originalJson(body);
     }) as typeof res.json;
 
@@ -1041,6 +1119,17 @@ async function startServer() {
       sessionId,
       events: getObserverEvents(limit, sessionId),
     });
+  });
+
+  app.get('/api/__observer/export', async (req, res) => {
+    if (!isObserverRequestAuthorized(req.headers, req.headers.host as string | undefined)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const limit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 300;
+    const sessionId = typeof req.query.sessionId === 'string' ? req.query.sessionId.slice(0, 120) : null;
+
+    return res.json(await buildObserverDebugBundle(sessionId, limit));
   });
 
   app.post('/api/__observer/client-capture', async (req, res) => {
@@ -1114,11 +1203,16 @@ async function startServer() {
       path: pathValue,
       payload,
     }));
+    const isWarningEvent = name === 'recipe_import_failed'
+      || name === 'ai_adjust_failed'
+      || name === 'client_diagnostic'
+      || name === 'session_error'
+      || name === 'observer_failure'
+      || name === 'product_assertion';
+    const observerClientEventNames = new Set(['client_diagnostic', 'session_error', 'observer_pipeline', 'observer_failure', 'product_assertion']);
     recordObserverEvent({
-      level: name === 'recipe_import_failed' || name === 'ai_adjust_failed' || name === 'client_diagnostic' || name === 'session_error'
-        ? 'warn'
-        : 'info',
-      source: name === 'client_diagnostic' || name === 'session_error' ? 'client' : 'analytics',
+      level: isWarningEvent ? 'warn' : 'info',
+      source: observerClientEventNames.has(name) ? 'client' : 'analytics',
       kind: name,
       path: pathValue,
       sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : null,
@@ -1663,18 +1757,26 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
 
     let extracted: Awaited<ReturnType<typeof fetchRecipeSource>> | null = null;
     try {
+      recordObserverPipelineStage('url_import', 'direct_parse_started');
       extracted = await fetchRecipeSource(url);
     } catch (error: any) {
       if (error instanceof HttpError) {
+        recordObserverFailure('url_import', 'direct_parse_fetch_failed', 'http_error', {
+          errorCode: String(error.status),
+        });
         return res.status(error.status).json({ error: error.message });
       }
       console.error('Direct Parse Fetch Error:', error);
+      recordObserverFailure('url_import', 'direct_parse_fetch_failed', 'fetch_error');
       return res.status(500).json({ error: 'Direkte grundimport fejlede.' });
     }
 
     // B6: Always return the fetched source so the client can reuse it in an
     // AI-fallback flow without calling /api/fetch-url a second time.
     if (!extracted.json) {
+      recordObserverPipelineStage('url_import', 'direct_parse_failed', {
+        reason: 'missing_structured_data',
+      });
       return res.status(422).json({
         error: 'Siden har ikke struktureret opskriftdata, der kan grundimporteres direkte.',
         source: extracted,
@@ -1683,12 +1785,19 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
 
     try {
       const recipe = parseStructuredRecipeToRecipe(extracted.json, { sourceUrl: url });
+      recordObserverPipelineStage('url_import', 'direct_parse_succeeded', {
+        recipeTitle: recipe.title,
+      });
       return res.json({ recipe });
     } catch (error: any) {
       if (error instanceof DirectParseError) {
+        recordObserverPipelineStage('url_import', 'direct_parse_failed', {
+          reason: 'structured_parse_error',
+        });
         return res.status(422).json({ error: error.message, source: extracted });
       }
       console.error('Direct Parse Error:', error);
+      recordObserverFailure('url_import', 'direct_parse_failed', 'parse_error');
       return res.status(500).json({ error: 'Direkte grundimport fejlede.', source: extracted });
     }
   });
@@ -1697,12 +1806,17 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     const { url } = req.query;
 
     try {
+      recordObserverPipelineStage('url_import', 'fetch_url_started');
       return res.json(await fetchRecipeSource(String(url)));
     } catch (error: any) {
       if (error instanceof HttpError) {
+        recordObserverFailure('url_import', 'fetch_url_failed', 'http_error', {
+          errorCode: String(error.status),
+        });
         return res.status(error.status).json({ error: error.message });
       }
       console.error('Fetch URL Error:', error);
+      recordObserverFailure('url_import', 'fetch_url_failed', 'fetch_error');
       return res.status(500).json({ error: 'Kunne ikke hente kildesiden' });
     }
   });

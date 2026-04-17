@@ -6,8 +6,6 @@ import {
   inferHeatMetadataFromText,
   normalizeForMatch,
 } from './cookModeHeuristics';
-import { inferIngredientStructureGroups } from './ingredientStructureInference';
-
 /**
  * Deterministic prose cleanup for step text when a structured heat signal
  * (heatLevel) is set. The cook-mode chip already shows `Induktion N/9`, so the
@@ -204,17 +202,13 @@ function ensureOvenPreheatStep(steps: Step[]) {
 }
 
 export function normalizeRecipeForCookMode(recipe: Recipe): Recipe {
-  const rawIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
-  // Deterministic structural grouping (Dej/Fyld/Dressing/Servering) so
-  // baseline imports don't need the AI-polish rescue button just to get groups.
-  const ingredients = inferIngredientStructureGroups(rawIngredients);
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const normalizedSteps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
   const steps = ensureOvenPreheatStep(normalizedSteps);
   const guides = buildHeatAndOvenGuides(steps);
 
   return {
     ...recipe,
-    ingredients,
     steps,
     heatGuide: guides.heatGuide,
     ovenGuide: guides.ovenGuide,

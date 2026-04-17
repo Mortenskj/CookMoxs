@@ -17,6 +17,14 @@ import {
 import { trackEvent } from './services/analyticsService';
 import { logSessionError } from './hooks/useSessionErrorLog';
 import { recordAiTransformationCapture } from './services/observerAiCapture';
+import {
+  buildRecipeObserverSignature,
+  buildTextObserverSignature,
+  recordObserverFailure,
+  recordObserverPipelineStage,
+  recordObserverProductAssertion,
+} from './services/observer/observerTelemetry';
+import { collectRecipeObserverAssertions } from './services/observer/recipeAssertions';
 import { normalizeAuthError } from './services/authErrorMessageService';
 import { haptics } from './services/haptics';
 import { normalizeAiActionError, normalizeImportError, normalizeSyncError } from './services/errorMessageService';
@@ -394,6 +402,25 @@ export default function App() {
     userState: user ? 'authenticated' : 'guest',
     view: currentView,
   }), [currentView, user]);
+
+  const getObserverUserState = useCallback(() => (
+    user ? 'authenticated' as const : 'guest' as const
+  ), [user]);
+
+  const reportRecipeAssertions = useCallback((feature: string, recipe: Recipe) => {
+    collectRecipeObserverAssertions(recipe).forEach((assertion) => {
+      recordObserverProductAssertion({
+        feature,
+        assertion: assertion.assertion,
+        recipeId: recipe.id,
+        recipeTitle: recipe.title,
+        stepIndex: assertion.stepIndex ?? null,
+        evidence: assertion.evidence ?? null,
+        heat: assertion.heat ?? null,
+        note: assertion.note,
+      });
+    });
+  }, []);
 
   const trackAiActionStarted = useCallback((action: AiActionKey, recipeId: string) => {
     trackEvent('ai_adjust_started', {
@@ -1022,6 +1049,9 @@ export default function App() {
     const showLoading = options?.showLoading ?? true;
     const navigateOnSuccess = options?.navigateOnSuccess ?? true;
     const surfaceErrors = options?.surfaceErrors ?? true;
+    const observerFeature = `${type}_import` as const;
+    const observerUserState = getObserverUserState();
+    const startedAt = Date.now();
 
     if (showLoading) {
       setLoading(true);
@@ -1034,6 +1064,15 @@ export default function App() {
       ...getAnalyticsContext(),
       sourceType: type,
     });
+    recordObserverPipelineStage({
+      feature: observerFeature,
+      stage: 'started',
+      userState: observerUserState,
+      sourceType: type,
+      inputSignature: typeof content === 'string'
+        ? buildTextObserverSignature(content)
+        : buildTextObserverSignature(content.mimeType),
+    });
 
     try {
       let newRecipe: Recipe | null = null;
@@ -1044,13 +1083,36 @@ export default function App() {
 
       if (type === 'url') {
         try {
+          recordObserverPipelineStage({
+            feature: observerFeature,
+            stage: 'direct_parse_started',
+            userState: observerUserState,
+            sourceType: type,
+            inputSignature: buildTextObserverSignature(content as string),
+          });
           const directRecipe = await requestDirectImport(content as string);
           newRecipe = hydrateDirectImportRecipe(directRecipe, content as string);
           usedDirectImport = true;
+          recordObserverPipelineStage({
+            feature: observerFeature,
+            stage: 'direct_parse_succeeded',
+            userState: observerUserState,
+            sourceType: type,
+            outputSignature: buildRecipeObserverSignature(newRecipe),
+          });
         } catch (directError) {
           if (directError instanceof DirectImportFailed) {
             carriedSource = directError.source;
           }
+
+          recordObserverPipelineStage({
+            feature: observerFeature,
+            stage: 'direct_parse_failed',
+            userState: observerUserState,
+            sourceType: type,
+            fallbackUsed: importPreference === 'basic_only' ? 'none' : 'ai_import',
+            note: directError instanceof Error ? directError.message : 'Direkte grundimport fejlede',
+          });
 
           if (importPreference === 'basic_only') {
             throw directError;
@@ -1095,6 +1157,12 @@ export default function App() {
             let data: { json?: unknown; html?: string } | null = carriedSource;
 
             if (!data) {
+              recordObserverPipelineStage({
+                feature: observerFeature,
+                stage: 'fetch_source_started',
+                userState: observerUserState,
+                sourceType: type,
+              });
               const fetchController = new AbortController();
               const fetchTimeoutId = setTimeout(() => fetchController.abort(), 15000);
               let response: Response;
@@ -1109,6 +1177,19 @@ export default function App() {
               if (!response.ok) {
                 throw new Error((data as any)?.error || 'Failed to fetch URL content');
               }
+              recordObserverPipelineStage({
+                feature: observerFeature,
+                stage: 'fetch_source_succeeded',
+                userState: observerUserState,
+                sourceType: type,
+              });
+            } else {
+              recordObserverPipelineStage({
+                feature: observerFeature,
+                stage: 'fetch_source_reused',
+                userState: observerUserState,
+                sourceType: type,
+              });
             }
 
             if (data?.json) {
@@ -1119,6 +1200,13 @@ export default function App() {
             }
           }
 
+          recordObserverPipelineStage({
+            feature: observerFeature,
+            stage: 'ai_import_started',
+            userState: observerUserState,
+            sourceType: type,
+            inputSignature: buildTextObserverSignature(textToParse),
+          });
           parsedData = await aiImportRecipe({
             sourceType: type,
             textContent: textToParse,
@@ -1127,6 +1215,13 @@ export default function App() {
           });
         } else if (type === 'file' || type === 'image') {
           const fileContent = content as { data: string, mimeType: string };
+          recordObserverPipelineStage({
+            feature: observerFeature,
+            stage: 'ai_import_started',
+            userState: observerUserState,
+            sourceType: type,
+            inputSignature: buildTextObserverSignature(fileContent.mimeType),
+          });
           parsedData = await aiImportRecipe({
             sourceType: type,
             fileData: fileContent,
@@ -1143,6 +1238,14 @@ export default function App() {
           userId: user?.uid,
         });
         newRecipe = normalizeRecipeForCookMode(newRecipe);
+        recordObserverPipelineStage({
+          feature: observerFeature,
+          stage: 'ai_import_succeeded',
+          userState: observerUserState,
+          sourceType: type,
+          outputSignature: buildRecipeObserverSignature(newRecipe),
+        });
+        reportRecipeAssertions(observerFeature, newRecipe);
         setAiUnavailableMessage(null);
       }
 
@@ -1185,10 +1288,25 @@ export default function App() {
       }
 
       if (user) {
+        recordObserverPipelineStage({
+          feature: observerFeature,
+          stage: 'persist_started',
+          userState: observerUserState,
+          sourceType: type,
+          recipeId: newRecipe.id,
+        });
         markCloudSyncing('Gemmer importeret opskrift i cloud...');
         await saveRecipeInCloud(newRecipe);
         markCloudSaved('Importeret opskrift gemt i cloud');
       } else {
+        recordObserverPipelineStage({
+          feature: observerFeature,
+          stage: 'persist_started',
+          userState: observerUserState,
+          sourceType: type,
+          recipeId: newRecipe.id,
+          fallbackUsed: 'local_storage',
+        });
         setSavedRecipes(prev => {
           const newSaved = [newRecipe, ...prev];
           saveLocalRecipes(newSaved);
@@ -1203,6 +1321,16 @@ export default function App() {
         });
       }
 
+      recordObserverPipelineStage({
+        feature: observerFeature,
+        stage: 'persist_completed',
+        userState: observerUserState,
+        durationMs: Date.now() - startedAt,
+        recipeId: newRecipe.id,
+        sourceType: type,
+        outputSignature: buildRecipeObserverSignature(newRecipe),
+      });
+
       if (navigateOnSuccess) {
         setViewingRecipe(newRecipe);
         navigateTo('recipe');
@@ -1212,6 +1340,15 @@ export default function App() {
         ...getAnalyticsContext(),
         sourceType: type,
         recipeId: newRecipe.id,
+      });
+      recordObserverPipelineStage({
+        feature: observerFeature,
+        stage: 'completed',
+        userState: observerUserState,
+        durationMs: Date.now() - startedAt,
+        recipeId: newRecipe.id,
+        sourceType: type,
+        outputSignature: buildRecipeObserverSignature(newRecipe),
       });
       return newRecipe;
     } catch (err: any) {
@@ -1228,13 +1365,25 @@ export default function App() {
         errorCategory: category,
         errorMessage: message,
       });
+      recordObserverFailure({
+        feature: observerFeature,
+        stage: 'failed',
+        userState: observerUserState,
+        errorCategory: category,
+        errorCode: err?.code || null,
+        durationMs: Date.now() - startedAt,
+        sourceType: type,
+        inputSignature: typeof content === 'string'
+          ? buildTextObserverSignature(content)
+          : buildTextObserverSignature(content.mimeType),
+      });
       throw err;
     } finally {
       if (showLoading) {
         setLoading(false);
       }
     }
-  }, [aiDisabledReason, autoAiImportEnhancement, confirm, folders, getAnalyticsContext, importPreference, navigateTo, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
+  }, [aiDisabledReason, autoAiImportEnhancement, confirm, folders, getAnalyticsContext, getObserverUserState, importPreference, navigateTo, reportRecipeAssertions, requestDirectImport, savedRecipes, trackEvent, user, userLevel]);
 
   const handleImport = async (content: string | { data: string, mimeType: string }, type: 'url' | 'text' | 'file' | 'image') => {
     await executeImportFlow(content, type);
@@ -1296,6 +1445,18 @@ export default function App() {
   };
 
   const handleSaveRecipe = async (recipe: Recipe): Promise<boolean> => {
+    const observerUserState = getObserverUserState();
+    const startedAt = Date.now();
+    const inputSignature = buildRecipeObserverSignature(recipe);
+
+    recordObserverPipelineStage({
+      feature: 'save_recipe',
+      stage: 'started',
+      userState: observerUserState,
+      recipeId: recipe.id,
+      inputSignature,
+    });
+
     if (!user) {
       const updatedRecipe: Recipe = normalizeRecipeForCookMode({
         ...recipe,
@@ -1327,10 +1488,22 @@ export default function App() {
         saveActiveRecipe(updatedRecipe);
       }
 
+      reportRecipeAssertions('save_recipe', updatedRecipe);
+
       trackEvent('recipe_saved', {
         ...getAnalyticsContext(),
         recipeId: updatedRecipe.id,
         folderId: updatedRecipe.folderId || null,
+      });
+      recordObserverPipelineStage({
+        feature: 'save_recipe',
+        stage: 'completed',
+        userState: observerUserState,
+        durationMs: Date.now() - startedAt,
+        recipeId: updatedRecipe.id,
+        fallbackUsed: 'local_storage',
+        inputSignature,
+        outputSignature: buildRecipeObserverSignature(updatedRecipe),
       });
       return true;
     }
@@ -1358,11 +1531,23 @@ export default function App() {
             editorUids: [],
             viewerUids: []
           };
+          recordObserverPipelineStage({
+            feature: 'save_recipe',
+            stage: 'folder_create_started',
+            userState: observerUserState,
+            recipeId: recipe.id,
+          });
           markCloudSyncing('Opretter manglende mappe i cloud...');
           await saveFolderInCloud(newFolder);
           markCloudSaved('Mappe oprettet i cloud');
           finalFolderId = newFolder.id;
           setFolders(prev => [...prev, newFolder].sort((a, b) => a.name.localeCompare(b.name)));
+          recordObserverPipelineStage({
+            feature: 'save_recipe',
+            stage: 'folder_create_completed',
+            userState: observerUserState,
+            recipeId: recipe.id,
+          });
         }
       }
 
@@ -1375,6 +1560,13 @@ export default function App() {
         createdAt: recipe.createdAt || new Date().toISOString()
       });
       
+      recordObserverPipelineStage({
+        feature: 'save_recipe',
+        stage: 'cloud_save_started',
+        userState: observerUserState,
+        recipeId: updatedRecipe.id,
+        inputSignature,
+      });
       markCloudSyncing('Gemmer opskrift i cloud...');
       await saveRecipeInCloud(updatedRecipe);
       markCloudSaved('Opskrift gemt i cloud');
@@ -1396,16 +1588,37 @@ export default function App() {
         saveActiveRecipe(updatedRecipe);
       }
 
+      reportRecipeAssertions('save_recipe', updatedRecipe);
+
       trackEvent('recipe_saved', {
         ...getAnalyticsContext(),
         recipeId: updatedRecipe.id,
         folderId: updatedRecipe.folderId || null,
+      });
+      recordObserverPipelineStage({
+        feature: 'save_recipe',
+        stage: 'completed',
+        userState: observerUserState,
+        durationMs: Date.now() - startedAt,
+        recipeId: updatedRecipe.id,
+        inputSignature,
+        outputSignature: buildRecipeObserverSignature(updatedRecipe),
       });
       return true;
     } catch (err: any) {
       const syncMessage = normalizeSyncError(err, 'Opskriften kunne ikke gemmes i cloud.');
       markCloudError(syncMessage);
       pushNotice({ type: 'error', message: syncMessage, autoHideMs: 8000 });
+      recordObserverFailure({
+        feature: 'save_recipe',
+        stage: 'cloud_save_failed',
+        userState: observerUserState,
+        errorCategory: 'cloud_sync_error',
+        errorCode: err?.code || null,
+        durationMs: Date.now() - startedAt,
+        recipeId: recipe.id,
+        inputSignature,
+      });
       return false;
     }
   };
@@ -1557,13 +1770,31 @@ export default function App() {
 
   const handleSmartAdjust = async (recipe: Recipe, instruction: string) => {
     const startedAt = Date.now();
+    const observerUserState = getObserverUserState();
+    const inputSignature = buildRecipeObserverSignature(recipe);
     setActiveAiAction('smart_adjust');
     setError(null);
     setLastAiSnapshot({ previous: recipe, action: 'smart_adjust' });
     queueAiCapture({ action: 'smart_adjust', phase: 'before', recipeBefore: recipe, recipeId: recipe.id });
     trackAiActionStarted('smart_adjust', recipe.id);
+    recordObserverPipelineStage({
+      feature: 'smart_adjust',
+      stage: 'started',
+      userState: observerUserState,
+      recipeId: recipe.id,
+      inputSignature,
+      note: instruction.slice(0, 160),
+    });
     try {
       const updated = await aiAdjustRecipe(recipe, instruction);
+      recordObserverPipelineStage({
+        feature: 'smart_adjust',
+        stage: 'ai_response_received',
+        userState: observerUserState,
+        recipeId: recipe.id,
+        durationMs: Date.now() - startedAt,
+        outputSignature: buildRecipeObserverSignature(updated),
+      });
       setAiUnavailableMessage(null);
       const normalizedUpdated = normalizeRecipeForCookMode({
         ...updated,
@@ -1571,11 +1802,31 @@ export default function App() {
         lastUsed: new Date().toISOString(),
       });
       setViewingRecipe(normalizedUpdated);
+      reportRecipeAssertions('smart_adjust', normalizedUpdated);
       queueAiCapture({ action: 'smart_adjust', phase: 'after', recipeAfter: normalizedUpdated, recipeId: recipe.id, delayMs: 350 });
       trackAiActionUsed('smart_adjust', recipe.id, startedAt);
+      recordObserverPipelineStage({
+        feature: 'smart_adjust',
+        stage: 'completed',
+        userState: observerUserState,
+        recipeId: recipe.id,
+        durationMs: Date.now() - startedAt,
+        inputSignature,
+        outputSignature: buildRecipeObserverSignature(normalizedUpdated),
+      });
     } catch (err: any) {
       console.error('AI Adjust Error:', err);
       rememberAIDisabledState(err);
+      recordObserverFailure({
+        feature: 'smart_adjust',
+        stage: 'failed',
+        userState: observerUserState,
+        errorCategory: err?.code || 'ai_adjust_error',
+        errorCode: err?.code || null,
+        durationMs: Date.now() - startedAt,
+        recipeId: recipe.id,
+        inputSignature,
+      });
       pushNotice({ type: 'error', message: trackAiActionFailed('smart_adjust', recipe.id, startedAt, err, parseAIError(err, 'Kunne ikke tilpasse opskriften')), autoHideMs: 8000 });
     } finally {
       setActiveAiAction(null);

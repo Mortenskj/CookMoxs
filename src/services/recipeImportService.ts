@@ -1,5 +1,6 @@
 import { Folder, Recipe } from '../types';
 import { DEFAULT_FOLDER_NAME, findDefaultFolder, getCanonicalDefaultFolderId } from './defaultFolderService';
+import { inferIngredientStructureGroups } from './ingredientStructureInference';
 import { normalizeRecipeForCookMode } from './recipeStepNormalization';
 
 /* ── Summary sanitizer ── */
@@ -81,6 +82,23 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     throw new EmptyRecipeError('AI returnerede en tom opskrift. Prøv at kopiere teksten ind manuelt eller brug et andet link.');
   }
 
+  // Deterministic structural grouping happens ONCE at import time.
+  // Safe: only activates when all groups are generic (no existing structure),
+  // requires >=2 structural matches, otherwise leaves ingredients untouched.
+  // Not run on load/save/edit paths — user edits and saved recipes are never regrouped.
+  const mappedIngredients = ingredients.map((ing: any, i: number) => ({
+    id: `ing-${i}`,
+    amount: typeof ing.amount === 'number' ? ing.amount : null,
+    amountMin: typeof ing.amountMin === 'number' ? ing.amountMin : null,
+    amountMax: typeof ing.amountMax === 'number' ? ing.amountMax : null,
+    amountText: typeof ing.amountText === 'string' ? ing.amountText.trim() : '',
+    unit: ing.unit || '',
+    name: ing.name.trim(),
+    group: ing.group || 'Andre',
+    locked: ing.locked || false,
+  }));
+  const inferredIngredients = inferIngredientStructureGroups(mappedIngredients);
+
   return normalizeRecipeForCookMode({
     id: Date.now().toString(),
     title: title || 'Uden navn',
@@ -93,17 +111,7 @@ export function buildRecipeFromImport({ parsedData, sourceType, originalContent,
     notes: '',
     servings: parsedData.servings || 4,
     servingsUnit: parsedData.servingsUnit || 'personer',
-    ingredients: ingredients.map((ing: any, i: number) => ({
-      id: `ing-${i}`,
-      amount: typeof ing.amount === 'number' ? ing.amount : null,
-      amountMin: typeof ing.amountMin === 'number' ? ing.amountMin : null,
-      amountMax: typeof ing.amountMax === 'number' ? ing.amountMax : null,
-      amountText: typeof ing.amountText === 'string' ? ing.amountText.trim() : '',
-      unit: ing.unit || '',
-      name: ing.name.trim(),
-      group: ing.group || 'Andre',
-      locked: ing.locked || false,
-    })),
+    ingredients: inferredIngredients,
     steps: steps.map((step: any, i: number) => ({
       id: `step-${i}`,
       text: step.text || '',
