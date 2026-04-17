@@ -62,6 +62,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Non-navigation (assets: JS, CSS, images, fonts...). Never fall back to '/'
+  // here — that would serve index.html HTML as e.g. a missing .js file and
+  // poison the module/content-type contract. Return cached if available,
+  // otherwise a proper 504 so the browser handles it as a failed asset.
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -71,6 +75,12 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/'))),
+      .catch(() => caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return new Response('', {
+          status: 504,
+          statusText: 'Asset unavailable offline',
+        });
+      })),
   );
 });
