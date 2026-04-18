@@ -7,18 +7,21 @@ Dette dokument er det samlede beslutningsgrundlag.
 Det er ikke en direkte arbejdsordre.
 Hver fase skal skaeres ud i sin egen execution brief, og kun en fase maa vaere aktiv ad gangen.
 
-Kilde for prioritering er current repo state, ikke aeldre docs alene.
+Current repo state er source of truth.
 
-## Hvorfor 3 faser
+## Hvorfor 4 faser nu
 
-Den tidligere 6-fase model var for bred til eksekvering.
-Den beskrev rigtigt, men inviterede stadig til backlog-taenkning.
+Den tidligere 3-fase model var rigtig nok, men den gamle Fase C blandede to ting, som ikke boer loeses i samme batch:
 
-Den her 3-fase model er bedre, fordi den foelger de reelle koblinger i koden:
+- UI/app-shell arbejde, hvor performance og oplevet ro skal forbedre samme flows
+- ren teknisk effektivitet, som ikke giver mening at blande ind i et visuelt eller produktnaert redesign
 
-- Fase A samler trust- og correctness-fejl, som paavirker privacy, auth, sync og cloud-truth i samme flows.
-- Fase B samler produktkorrekthed og import-truth, som i praksis haenger taet sammen i `server.ts`, import-flowet og ingredient rendering.
-- Fase C samler efficiency og laengere foundation-lag, som er vaerdifuldt, men ikke boer forstyrre correctness-arbejdet.
+Derfor er den rigtige model nu:
+
+1. Fase A: Trust & correctness
+2. Fase B: Product correctness & import truth
+3. Fase C: UI upgrade & shell efficiency
+4. Fase D: Technical efficiency & residual foundation
 
 ## Fase A: Trust & correctness
 
@@ -33,118 +36,116 @@ Scope:
 - undo/cloud symmetri
 - stale guest save state
 
-Repo-state note:
+Status:
 
-- Fase A maa ikke behandles som fuldt lukket, hvis current repo state stadig viser aabne correctness-rester.
-- Service worker asset fallback er stadig et konkret gate-punkt, indtil det er verificeret lukket i kode og praksis.
+- Fase A behandles som lukket nok til, at den ikke er aktiv arbejdsordre nu.
+- Genaabn kun A, hvis current repo state viser en reel regression.
 
 ## Fase B: Product correctness & import truth
 
 Scope:
 
-- grouping-regression for single-mass recipes
-- heat-duplication i prose
-- brand/logo loading + home presence
-- range parsing
-- range rendering
-- dobbelt URL-fetch
-- fetch/import rate limiting
-- `recipe-scrapers` som deterministic import-lag
+- grouping-regression
+- heat/prose correctness
+- range parse/render
+- import-fidelity
+- loading/import truth
+- rate limiting og fetch-honesty
+- smalle deterministic import-forbedringer
 
-Repo-state note:
+Status:
 
-- Flere Fase B-punkter er delvist eller helt landet i kode.
-- Gate B -> C er alligevel ikke bestaaet endnu.
-- Current repo state viser stadig aabne produktkorrekthedsrester omkring heat-semantik og praktisk runtime-signoff.
-- Fase B skal derfor behandles som aktiv gate-oprydning, ikke som afsluttet fase.
+- Fase B er i praksis lukket nok til, at den ikke laengere er aktiv hovedbrief.
+- Der kan stadig vaere smalle efterloeb som import-latens eller anti-degradation paa AI-justeringer, men de skal ikke forveksles med de oprindelige correctness-gates.
 
-## Fase C: Efficiency & foundation
+## Fase C: UI upgrade & shell efficiency
 
 Scope:
 
-- listener churn
-- duplicate queue watchers
-- analytics defer
-- lazy loading
-- timer rerender isolation
-- storage churn
-- framer-motion overhead
-- ingredient lexicon subset kun hvis et konkret Fase C-fix kraever et minimalt subset
-- search/OCR/authz fortsat deferred
+- app-shell og top-level view-flow
+- loading/hjaelper/AI-surface i rigtig UI
+- view-level lazy loading
+- analytics defer i bootstrap
+- duplicate queue watchers hvor det paavirker importoplevelsen
+- timer rerender isolation i cook/app-shell
+- motion-overhead, hvis det kan loeses smalt sammen med UI-oprydning
+- storage churn kun hvis det naturligt hoerer med til save/edit/app-shell-flow
 
-Repo-state note:
+Status:
 
-- De primaere aabne Fase C-punkter er stadig listener churn, queue watchers, analytics defer, lazy loading, timer isolation, storage churn og motion-overhead.
-- Observer/observability er ikke laengere et hovedspor i Fase C. Den del er allerede loeftet nok til, at resterende arbejde kun boer vaere smal tuning.
-- Ingredient lexicon, search, OCR og authz er ikke en del af det aktive batch.
-- Fase C er stadig pending. Den maa ikke aktiveres, foer de sidste A/B-gates faktisk er verificeret lukket.
+- Fase C er nu den rigtige naeste arbejdsretning.
+- Det er her UI-opgraderingen boer kobles med de shell-naere performanceforbedringer.
+
+## Fase D: Technical efficiency & residual foundation
+
+Scope:
+
+- shared listener churn
+- residual storage/state churn, som ikke naturligt blev lukket i Fase C
+- eventuelle resterende observer/state/subscription-oprydninger, der ikke giver mening at blande ind i UI-batchen
+- ingredient lexicon subset kun hvis et konkret teknisk fix kraever et minimalt udsnit
+
+Status:
+
+- Fase D er pending.
+- Den maa ikke broadene til nye platformspor.
 
 ## Prioriteringslogik
 
-CookMoxs boer styres efter denne raekkefolge:
+CookMoxs boer stadig styres efter denne raekkefolge:
 
 1. Luk det, der kan skade tillid, privacy eller goere UI/cloud uenig.
 2. Luk derefter det, der goer appen kulinarisk forkert eller importmaessigt utrovaerdig.
-3. Tag foerst derefter efficiency og stoerre foundation-lag.
-
-Det betyder konkret:
-
-- grouping og heat-prose er vigtige, men de ligger under logout leak, shared revoke, SSRF og cloud-truth
-- lazy loading og analytics defer er nyttige, men de maa ikke blandes ind i correctness-gates
-- ingredient lexicon er interessant, men det er senere end korrekt parsing og rendering
+3. Tag saa UI-opgradering og shell-naer performance i samme batch, hvor det giver reel brugeroplevelsesvaerdi.
+4. Tag derefter de rene tekniske effektivitetspunkter, som ikke behoever at ride med i UI-arbejdet.
 
 ## Stop/Go gates
 
 ### Gate A -> B
 
-Fase B maa ikke starte foer foelgende er verificeret:
-
-- logout kan ikke laengere surface tidligere brugers data
-- shared revoke rydder stale recipes
-- asset-cache-miss returnerer ikke `index.html`
-- server fetch kan ikke resolve eller redirecte til private/interne maal
-- restore skaber ikke ownership-mismatch
-- save-status afspejler faktisk cloud-resultat
-- undo er symmetrisk mellem lokal state og cloud
-- guest save skriver ikke stale state tilbage
+Fase B maa ikke starte foer de oprindelige trust/correctness-punkter er lukkede eller verificeret lukkede.
 
 ### Gate B -> C
 
-Fase C maa ikke starte foer foelgende er verificeret:
+Fase C maa ikke starte foer de store correctness-gates er passeret i praksis:
 
-- single-mass recipes bliver ikke kunstigt type-opdelt
-- heat-data dubleres ikke mekanisk i prose
-- loading/home-branding er forbedret uden motion-stoej
-- ranges bevares ende-til-ende fra parse til render
-- URL-import dobbelthenter ikke samme kilde
-- fetch/import-ruter er rate-limitet
-- deterministic import er forbedret uden regression i eksisterende flows
+- import-output er shape-clean
+- summary/import-truth er under kontrol
+- fallback-honesty er korrekt
+- de tidligere heat/grouping/range-problemer er ikke laengere aktive blockers
 
 Current status:
 
-- Gate B -> C er ikke passeret endnu.
-- Den operative antagelse skal vaere `stop`, indtil service worker fallback og de aabne produktkorrekthedsrester er verificeret lukket.
+- Gate B -> C behandles nu som passeret nok til at gaa videre.
+- Eventuelle rester omkring import-latens eller for aggressive AI-justeringer skal haandteres som smalle efterloeb, ikke som en fuld genaabning af Fase B.
+
+### Gate C -> D
+
+Fase D maa ikke starte foer Fase C har lukket eller eksplicit deferred:
+
+- app-shell/UI-retningen
+- lazy loading paa fornuftige view-graenser
+- shell-naer motion/performance-oprydning
+- timer isolation
+- queue watcher-oprydning i de flows, der blev roert
 
 ## Hvad dette dokument ikke er
 
-- ikke en stor backlog
-- ikke en implementeringsplan i detaljer
+- ikke en backlog
+- ikke et detaljeret implementeringsark
 - ikke et sted hvor Claude skal genfortaelle repoet
 
 ## Autoritative dokumenter
 
 Til implementering gaelder denne regel:
 
-- dette dokument fastlaaser faseorden og stop/go-logik
+- dette dokument fastlaaser faseorden og gates
 - execution brief for den aktive fase fastlaaser scope og checks
-- Claude skal ikke have yderligere baggrundsdokumenter aktivt, medmindre der opstaar et konkret hul
+- reference-facit maa kun bruges som loesningsreference, ikke som selvstaendig arbejdsordre
 
 ## Naeste aktive dokument
 
-Der er ikke Fase C-go endnu.
-
 Den aktuelle arbejdsretning er:
 
-- luk de sidste aabne A/B-gate-rester i current repo state
-- brug `docs/cookmoxs-phase-b-execution-brief.md` som correctness-brief for de resterende B-rester
-- aktiver foerst `docs/cookmoxs-phase-c-execution-brief.md`, naar Gate B -> C er verificeret passeret
+- `docs/cookmoxs-phase-c-execution-brief.md` er naeste aktive brief
+- `docs/cookmoxs-phase-d-execution-brief.md` er pending og maa foerst aktiveres efter C

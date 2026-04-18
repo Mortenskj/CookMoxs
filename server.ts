@@ -41,6 +41,80 @@ import { stripRedundantHeatProse, hasOvenHeatSignal } from './src/services/recip
 import { normalizeIngredientAmountShape } from './src/services/ingredientAmountNormalizer.ts';
 
 /**
+ * Deterministic step-shape normalizer applied to AI responses before they
+ * leave the server. Two narrow concerns, both generic (no dish branches):
+ *
+ * 1. Oven vs. induction heat semantics: `heatLevel` (1-9) is an induction
+ *    scale and does not apply to oven steps. If `heatSource` indicates oven
+ *    (or `heat` already carries a temperature), strip `heatLevel` and drop
+ *    qualitative heat labels ("lav"/"middel"/"høj") that the model sometimes
+ *    attaches to oven steps — those are meaningless without a temperature.
+ *    Observer evidence: import emits `heat:"lav", heatLevel:2, heatSource:"ovn"`.
+ *
+ * 2. `relevantIngredients[].amount` shape: the RECIPE_SCHEMA declares NUMBER
+ *    but the Gemini SDK occasionally marshals it as a string ("0", ""). Coerce
+ *    to a finite positive number, otherwise drop. Empty units are dropped too.
+ */
+const OVEN_HEAT_SOURCE_RE = /\b(ovn|oven|bake|baked|grill)\b/i;
+const OVEN_TEMP_RE = /\d{2,3}\s*(?:°\s*c|grader)/i;
+const QUALITATIVE_HEAT_RE = /^(svag|lav|lav-middel|middel|middel-h[øo]j|h[øo]j|kraftig|god)\b/i;
+
+function normalizeServerStepShape(step: any): any {
+  if (!step || typeof step !== 'object') return step;
+  const out: any = { ...step };
+
+  // --- Heat semantics ---
+  const ovenBySource = typeof out.heatSource === 'string' && OVEN_HEAT_SOURCE_RE.test(out.heatSource);
+  const ovenByText = typeof out.heat === 'string' && OVEN_TEMP_RE.test(out.heat);
+  const isOvenContext = ovenBySource || ovenByText;
+
+  if (isOvenContext) {
+    // Induction-scale heatLevel is invalid on oven steps — drop it.
+    if ('heatLevel' in out) delete out.heatLevel;
+    // Drop qualitative heat labels on oven steps when no temperature present.
+    if (typeof out.heat === 'string' && !OVEN_TEMP_RE.test(out.heat) && QUALITATIVE_HEAT_RE.test(out.heat.trim())) {
+      delete out.heat;
+    }
+  } else if ('heatLevel' in out) {
+    // Stovetop: enforce heatLevel is a valid 1-9 integer, else drop.
+    const n = Number(out.heatLevel);
+    if (!Number.isFinite(n) || n < 1 || n > 9) {
+      delete out.heatLevel;
+    } else {
+      out.heatLevel = Math.round(n);
+    }
+  }
+
+  // --- relevantIngredients shape ---
+  if (Array.isArray(out.relevantIngredients)) {
+    out.relevantIngredients = out.relevantIngredients.map((ri: any) => {
+      if (!ri || typeof ri !== 'object') return ri;
+      const ric: any = { ...ri };
+      if (typeof ric.amount === 'string') {
+        const t = ric.amount.trim().replace(',', '.');
+        if (!t) {
+          delete ric.amount;
+        } else {
+          const n = Number(t);
+          if (Number.isFinite(n) && n > 0) ric.amount = n;
+          else delete ric.amount;
+        }
+      } else if (ric.amount === 0 || ric.amount === null) {
+        delete ric.amount;
+      }
+      if (typeof ric.unit === 'string' && !ric.unit.trim()) delete ric.unit;
+      return ric;
+    });
+  }
+
+  return out;
+}
+
+function normalizeServerStepsArray(steps: any): any {
+  return Array.isArray(steps) ? steps.map(normalizeServerStepShape) : steps;
+}
+
+/**
  * Deterministic drift guard for ingredient-touching AI passes.
  * Normalizes names by stripping non-letters and lowercasing, then checks how
  * many input ingredient names survive in the output (either as substring of
@@ -1395,6 +1469,9 @@ async function startServer() {
         ${JSON.stringify(recipe)}
       `;
       const parsedData = await generateAIContent(ADJUST_MODEL, prompt, RECIPE_SCHEMA, 2);
+      // Shape cleanup: enforce oven/induction heat separation + relevantIngredients numeric shape.
+      if (Array.isArray(parsedData.steps)) parsedData.steps = normalizeServerStepsArray(parsedData.steps);
+      if (Array.isArray(parsedData.ingredients)) parsedData.ingredients = parsedData.ingredients.map((ing: any) => normalizeIngredientAmountShape(ing));
       return res.json({ recipe: { ...recipe, ...parsedData, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
       console.error('AI Adjust Error:', error);
@@ -1412,6 +1489,7 @@ async function startServer() {
         You are an expert chef. Repair the recipe steps so the recipe works cleanly in cook mode.
         Rules:
         0. PRESERVE OVER REWRITE: If an incoming step already has clear text, an appropriate heat field, and a sensible timer, COPY IT THROUGH UNCHANGED. Only rewrite a step when it has a concrete weakness (missing heat, ambiguous action, buried ingredient). Do not change wording just to sound more "AI-polished". Do not reduce the number of steps unless an existing step is genuinely redundant — a significantly shorter list (<75% of input) is a signal that you are rewriting too much. Do not merge distinct actions.
+        0.5 OVEN vs. INDUCTION HEAT SEMANTICS (MANDATORY): heatLevel (1-9) is an induction scale and applies ONLY to stovetop steps. For oven steps (heatSource "Ovn" or step text about baking/roasting in the oven), set heat to the temperature as a string like "180°C" and DO NOT set heatLevel. Never output heat:"lav"/"middel"/"høj" paired with heatSource:"Ovn" — those qualitative labels have no meaning for oven work. For stovetop steps, use heatLevel 1-9; heat may be empty or carry a qualitative descriptor only when no temperature applies.
         1. Improve existing steps instead of rewriting good ones unnecessarily.
         2. Return only repaired steps plus optional aiRationale, heatGuide and ovenGuide.
         3. Preserve the dish, ingredient list and overall method. FIDELITY TO THE ORIGINAL METHOD IS MANDATORY: do not change a stovetop recipe to an oven recipe (or vice versa), do not introduce a new cooking vessel, do not add ingredients that are not already in the recipe, and do not add serving/garnish suggestions. You may clarify, split, reorder or tighten steps — but the method must match what the user already has.
@@ -1451,6 +1529,10 @@ async function startServer() {
           aiSteps = inputSteps;
         }
       }
+      // Shape cleanup: strip invalid heatLevel on oven steps, coerce
+      // relevantIngredients.amount into numeric form. Keeps server output
+      // truthful even when the AI mis-matches induction vs oven semantics.
+      aiSteps = normalizeServerStepsArray(aiSteps);
       return res.json({
         recipe: {
           ...recipe,
@@ -1490,6 +1572,8 @@ async function startServer() {
         ${JSON.stringify(recipe)}
       `;
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, RECIPE_SCHEMA, 2);
+      if (Array.isArray(parsedData.steps)) parsedData.steps = normalizeServerStepsArray(parsedData.steps);
+      if (Array.isArray(parsedData.ingredients)) parsedData.ingredients = parsedData.ingredients.map((ing: any) => normalizeIngredientAmountShape(ing));
       return res.json({ recipe: { ...recipe, ...parsedData, title: recipe.title, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
       console.error('AI Fill Rest Error:', error);
@@ -1826,6 +1910,9 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     if (Array.isArray(parsed.ingredients)) {
       out.ingredients = parsed.ingredients.map((ing: any) => normalizeIngredientAmountShape(ing));
     }
+    if (Array.isArray(parsed.steps)) {
+      out.steps = normalizeServerStepsArray(parsed.steps);
+    }
     if (typeof parsed.summary === 'string') {
       out.summary = enforceSummaryRule(parsed.summary);
     }
@@ -1863,7 +1950,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       SUMMARY RULES: summary must be 1-2 short sentences only. Maximum 180 characters. Do not repeat phrases or sentences. Do not include filler like "Velbekomme", "nyd", "god fornøjelse", "god madlyst", "denne ret er...". If no useful summary is available, return an empty string.
       Convert English/US metrics to Danish metrics.
       TEXT-FIRST STEP RULES: Step text must stand on its own in cook mode. When an ingredient is used in a step, include the ingredient name and usually the relevant quantity directly in the step text. Prefer natural phrasing like "Tilsæt de 2 hakkede løg og 3 fed hvidløg". Do not rely on a separate ingredient box to make the step understandable. Avoid repeating heat values in prose if they already exist in the structured heat field, unless needed for clarity. Each step should be understandable even if helper overlays are hidden.
-      Extract heat info into the 'heat' property and ALWAYS convert it to a 1-9 induction scale.
+      Extract heat info into the 'heat' property. heatLevel (1-9) is an INDUCTION scale and applies ONLY to stovetop steps — never to oven steps. For oven steps (heatSource "Ovn" or text describing baking/roasting in the oven), heat must be the temperature as a string like "180°C" and heatLevel MUST be omitted. For stovetop steps, convert heat to a 1-9 induction scale via heatLevel.
       Extract specific timers into the 'timer' property.
       OVEN PREHEAT: Place oven-preheat steps IMMEDIATELY BEFORE the step that uses the oven. Never put oven preheat at the start of the recipe if there are long resting, proofing, or waiting steps before oven use.
       Extract the servings unit into 'servingsUnit'.
