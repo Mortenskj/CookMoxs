@@ -93,7 +93,44 @@ async function captureSectionPng(target: CaptureTarget) {
   clone.style.margin = '0';
   clone.style.background = '#fdfbf7';
 
-  clone.querySelectorAll<HTMLElement>('*').forEach((node) => {
+  // html2canvas 1.4.1's CSS parser throws on modern color functions
+  // ("color(display-p3 ...)", "color(srgb ...)") that Tailwind v4 can emit.
+  // We normalize relevant color properties to rgb() inline via the browser's
+  // own canvas color parser, which downgrades color()/oklch()/lab() to rgb().
+  // See observer evidence: captureError="Attempting to parse an unsupported color function \"color\"".
+  const colorNormalizer = (() => {
+    const probe = document.createElement('canvas').getContext('2d');
+    return (value: string): string => {
+      if (!value) return value;
+      if (!/\b(color|color-mix|oklch|oklab|lab|lch)\(/i.test(value)) return value;
+      try {
+        if (!probe) return value;
+        probe.fillStyle = '#000';
+        probe.fillStyle = value;
+        const normalized = probe.fillStyle;
+        return typeof normalized === 'string' ? normalized : value;
+      } catch {
+        return value;
+      }
+    };
+  })();
+  const COLOR_PROPS = [
+    'color',
+    'background-color',
+    'border-top-color',
+    'border-right-color',
+    'border-bottom-color',
+    'border-left-color',
+    'outline-color',
+    'text-decoration-color',
+    'caret-color',
+    'fill',
+    'stroke',
+  ];
+
+  const allNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))];
+  const originalNodes = [element, ...Array.from(element.querySelectorAll<HTMLElement>('*'))];
+  allNodes.forEach((node, idx) => {
     node.style.animation = 'none';
     node.style.transition = 'none';
     node.style.transform = 'none';
@@ -102,6 +139,25 @@ async function captureSectionPng(target: CaptureTarget) {
     if (node.style.position === 'sticky') {
       node.style.position = 'relative';
       node.style.top = 'auto';
+    }
+    const original = originalNodes[idx];
+    if (!original || !(original instanceof Element)) return;
+    try {
+      const computed = window.getComputedStyle(original);
+      for (const prop of COLOR_PROPS) {
+        const raw = computed.getPropertyValue(prop);
+        const fixed = colorNormalizer(raw);
+        if (fixed && fixed !== raw) {
+          node.style.setProperty(prop, fixed, 'important');
+        }
+      }
+      // background-image may hold gradients with color() stops
+      const bgImage = computed.getPropertyValue('background-image');
+      if (bgImage && /\b(color|color-mix|oklch|oklab|lab|lch)\(/i.test(bgImage)) {
+        node.style.setProperty('background-image', 'none', 'important');
+      }
+    } catch {
+      // ignore — leaving original styles is safer than crashing the walker
     }
   });
 

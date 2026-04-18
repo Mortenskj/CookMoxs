@@ -1411,15 +1411,21 @@ async function startServer() {
       const styleInstruction = getLevelStyleInstruction(level, 'fill');
       const ingredientNames = (recipe.ingredients || []).map((i: any) => `${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join(', ');
       const prompt = `
-        Du er en ekspertkok. Gennemgå og forbedre ingredienslisten for opskriften "${recipe.title}".
+        Du er en ekspertkok. Gennemgå og RYD OP i ingredienslisten for opskriften "${recipe.title}".
+        TROFASTHED (vigtigst): Du må IKKE opfinde nye ingredienser, udvide listen med "typiske tilbehør", foreslå alternativer eller tilføje garnish/servering-ingredienser, der ikke allerede står i listen. Kun ret, ikke udvid. Hvis en ingrediens ikke allerede er på listen, så lad være med at tilføje den.
+        Tilladte ændringer:
         - Ret stavefejl og standardiser navne (fx "loeg" -> "løg").
-        - Tilføj manglende grupper (fx "Sovs", "Tilbehør", "Krydderier").
-        - Tilføj ingredienser der tydeligvis mangler ud fra trinene.
-        - Sørg for at salt, peber og lignende basis-ingredienser er med.
-        - Behold eksisterende mængder og enheder medmindre de er åbenlyst forkerte.
+        - Flyt eksisterende ingredienser ind i korrekte grupper (rolle-baseret: "Til fyld", "Til saucen", "Til servering"). Opret KUN nye grupper, hvis eksisterende ingredienser naturligt hører hjemme der.
+        - Behold eksisterende mængder og enheder medmindre de er åbenlyst forkerte (fx typo i tal).
+        KVALITATIVE MÆNGDER: Hvis mængden er ikke-numerisk (fx "efter smag", "efter behov", "en klat", "en smule", "valgfrit", "ad libitum", "nok til ...", "per portion"), så SKAL det ind i amountText som fritekst, OG amount skal være null, OG unit skal være tom streng. Lav IKKE amount=1 + unit="efter smag" — det er forkert. Eksempler:
+        - "efter smag kanelsukker" -> { name: "kanelsukker", amount: null, unit: "", amountText: "efter smag" }
+        - "en klat smør per portion" -> { name: "smør", amount: null, unit: "", amountText: "en klat per portion" }
+        - "valgfrit vaniljestang" -> { name: "vaniljestang", amount: null, unit: "", amountText: "valgfrit" }
+        ALTERNATIVER: Hvis to ingredienser er angivet som alternativer (fx "vaniljestang eller kanelstang"), så behold dem i ét name-felt som "vaniljestang eller kanelstang", og sæt amount/unit efter den numeriske angivelse i kilden (typisk 1 stk).
+        Ingen nye flavorBoosts/pitfalls/kategorier tilføjes her.
         Match tonen til: ${styleInstruction}
         Nuværende ingredienser: ${ingredientNames}
-        Trin (til kontekst): ${(recipe.steps || []).map((s: any) => s.text).slice(0, 10).join(' | ')}
+        Trin (til kontekst, men tilføj ALDRIG nye ingredienser fordi et trin nævner noget): ${(recipe.steps || []).map((s: any) => s.text).slice(0, 10).join(' | ')}
       `;
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, INGREDIENT_POLISH_SCHEMA, 2);
       return res.json({ recipe: { ...recipe, ingredients: parsedData.ingredients, id: recipe.id, lastUsed: new Date().toISOString() } });
@@ -1670,6 +1676,8 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       - "skiver kogt skinke" → { name: "kogt skinke", amount: 4, unit: "skiver" }
       Words like 'skiver', 'stk', 'fed', 'dåse', 'bundt', 'pose' are ALWAYS units, never part of the name.
       AMOUNT RANGE RULES: If an ingredient amount is a range like "175-200 g", never collapse it to a midpoint. Store ranges as amountMin and amountMax. Use amountText to preserve the original phrasing when useful (e.g. "175-200"). Only use amount as a single number when the source clearly gives one exact amount.
+      QUALITATIVE AMOUNTS: When the source uses a non-numeric amount ("efter smag", "efter behov", "en klat", "en smule", "valgfrit", "ad libitum", "nok til at dække", "per portion", "lidt", "rigeligt"), do NOT force it into amount+unit. Put the whole phrase into amountText, set amount to null, and set unit to an empty string. Never invent a fake amount=1 with unit="efter smag" — that renders as "1 efter smag" which is broken. Exceptions: "1 knivspids", "1 bundt", "1 fed", "1 stk" are real countable units and should stay as amount + unit.
+      METHOD DEFAULT: When the source does not specify a cooking method, use the traditional/canonical method for the dish. Do not default to oven baking for dishes that are classically stovetop (e.g. dansk risengrød, havregrød, bearnaise, bechamel, frikadeller, stuvning). Do not default to stovetop for dishes that are classically oven-baked. If genuinely ambiguous, pick the most common Danish home-kitchen method and state it plainly — do not invent oven temperatures, vessels or serving garnishes that are not in the source.
       SUMMARY RULES: summary must be 1-2 short sentences only. Maximum 180 characters. Do not repeat phrases or sentences. Do not include filler like "Velbekomme", "nyd", "god fornøjelse", "god madlyst", "denne ret er...". If no useful summary is available, return an empty string.
       FLAVOR & TIPS: flavorBoosts and pitfalls are OPTIONAL. Only include them when they follow directly from the source text or from standard, uncontroversial technique for the dish. Do NOT invent creative flavor twists, alternative ingredients, or "improvements" that reinterpret the recipe. If nothing obvious applies, return empty arrays. Quality over quantity — one correct pitfall beats three speculative ones.
       CATEGORIES: Generate 2-4 neutral categories/tags in Danish that objectively classify the recipe (meal type, cuisine, main component), e.g. 'Aftensmad', 'Italiensk', 'Bagværk', 'Dessert', 'Vegetarisk'. Only use descriptors like 'Hurtig', 'Comfort food', 'Festmad' when clearly supported by the source.

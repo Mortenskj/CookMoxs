@@ -6,6 +6,7 @@ import {
   inferHeatMetadataFromText,
   normalizeForMatch,
 } from './cookModeHeuristics';
+import { normalizeIngredientAmountShape } from './ingredientAmountNormalizer';
 /**
  * Deterministic prose cleanup for step text when a structured heat signal
  * is set. The cook-mode chip already shows `Induktion N/9` or oven temp, so
@@ -243,13 +244,18 @@ function ensureOvenPreheatStep(steps: Step[]) {
 }
 
 export function normalizeRecipeForCookMode(recipe: Recipe): Recipe {
-  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const rawIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  // Rescue qualitative phrases ("efter smag", "en klat per portion", "valgfrit"…)
+  // that the AI mis-placed into unit/amount. Runs on every load/save path so
+  // existing broken records heal on next open.
+  const ingredients = rawIngredients.map((ingredient) => normalizeIngredientAmountShape(ingredient));
   const normalizedSteps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
   const steps = ensureOvenPreheatStep(normalizedSteps);
   const guides = buildHeatAndOvenGuides(steps);
 
   return {
     ...recipe,
+    ingredients,
     steps,
     heatGuide: guides.heatGuide,
     ovenGuide: guides.ovenGuide,
