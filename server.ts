@@ -39,6 +39,29 @@ import {
 import { collectRecipeObserverAssertions } from './src/services/observer/recipeAssertions.ts';
 import { stripRedundantHeatProse, hasOvenHeatSignal } from './src/services/recipeStepNormalization.ts';
 import { normalizeIngredientAmountShape } from './src/services/ingredientAmountNormalizer.ts';
+
+/**
+ * Deterministic drift guard for ingredient-touching AI passes.
+ * Normalizes names by stripping non-letters and lowercasing, then checks how
+ * many input ingredient names survive in the output (either as substring of
+ * output or containing the output name). Returns a matchRate in [0,1].
+ * Used to detect when the model silently dropped or renamed ingredients.
+ */
+function computeIngredientCoverage(input: any[], output: any[]): { matchRate: number } {
+  const normalize = (s: unknown) =>
+    typeof s === 'string' ? s.toLowerCase().replace(/[^a-zæøå0-9]+/g, '') : '';
+  const outKeys = output.map((o) => normalize(o?.name)).filter(Boolean);
+  if (!input.length) return { matchRate: 1 };
+  let matched = 0;
+  for (const inp of input) {
+    const key = normalize(inp?.name);
+    if (!key) { matched++; continue; } // unnamed input — don't penalize
+    if (outKeys.some((ok) => ok === key || ok.includes(key) || key.includes(ok))) {
+      matched++;
+    }
+  }
+  return { matchRate: matched / input.length };
+}
 import mammoth from 'mammoth';
 
 // Server-side heat-prose scrub on AI responses. The model occasionally
@@ -139,6 +162,27 @@ const RECIPE_SCHEMA = {
       },
     },
     aiRationale: { type: Type.STRING },
+  },
+  required: ['title', 'ingredients', 'steps', 'servings'],
+};
+
+/**
+ * Slim schema for the /api/ai/import primary pass. Drops heavy enrichment
+ * fields (categories, flavorBoosts, pitfalls, hints, substitutions, heatGuide,
+ * ovenGuide, kitchenTimeline, aiRationale, recipeType, folder) — those are
+ * produced by dedicated downstream passes (/api/ai/enrich, /api/ai/suggest-tags,
+ * /api/ai/generate-tips) which run after import. Reducing schema surface cuts
+ * generation time on the critical path without sacrificing MVR correctness.
+ */
+const RECIPE_IMPORT_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    title: RECIPE_SCHEMA.properties.title,
+    summary: RECIPE_SCHEMA.properties.summary,
+    servings: RECIPE_SCHEMA.properties.servings,
+    servingsUnit: RECIPE_SCHEMA.properties.servingsUnit,
+    ingredients: RECIPE_SCHEMA.properties.ingredients,
+    steps: RECIPE_SCHEMA.properties.steps,
   },
   required: ['title', 'ingredients', 'steps', 'servings'],
 };
@@ -499,7 +543,7 @@ async function importRecipeFromTextWithFallback(
   maxRetries = 0,
 ): Promise<{ data: any; importMeta: { fallbackUsed: boolean; reason?: string; primaryError?: string } }> {
   try {
-    const data = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, maxRetries);
+    const data = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_IMPORT_SCHEMA, maxRetries);
     return { data, importMeta: { fallbackUsed: false } };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1334,6 +1378,7 @@ async function startServer() {
         You are an expert chef and culinary mathematician. Adjust the following recipe based on this user request: "${instruction}".
         Rules for adjustment:
         0. FIDELITY: Only make the adjustment the user asked for. Do not reinterpret the dish, do not change the cooking method (stovetop vs oven), do not add new ingredients unless the user's request specifically requires it, do not add serving suggestions, and do not modify the title.
+        0.1 PRESERVE OVER REWRITE: Treat the incoming recipe as the source of truth. Keep ingredient names, groups, amountText (e.g. "efter smag", "valgfrit"), step order and step wording unchanged EXCEPT where the user's instruction forces a change. If a field is already clean and structured, copy it through verbatim rather than rephrasing.
         1. Gastronomic logic: Round awkward amounts and preserve cooking balance.
         2. Update timing if total volume changes significantly.
         3. Convert US/English units to Danish kitchen units when needed.
@@ -1366,6 +1411,7 @@ async function startServer() {
       const prompt = `
         You are an expert chef. Repair the recipe steps so the recipe works cleanly in cook mode.
         Rules:
+        0. PRESERVE OVER REWRITE: If an incoming step already has clear text, an appropriate heat field, and a sensible timer, COPY IT THROUGH UNCHANGED. Only rewrite a step when it has a concrete weakness (missing heat, ambiguous action, buried ingredient). Do not change wording just to sound more "AI-polished". Do not reduce the number of steps unless an existing step is genuinely redundant — a significantly shorter list (<75% of input) is a signal that you are rewriting too much. Do not merge distinct actions.
         1. Improve existing steps instead of rewriting good ones unnecessarily.
         2. Return only repaired steps plus optional aiRationale, heatGuide and ovenGuide.
         3. Preserve the dish, ingredient list and overall method. FIDELITY TO THE ORIGINAL METHOD IS MANDATORY: do not change a stovetop recipe to an oven recipe (or vice versa), do not introduce a new cooking vessel, do not add ingredients that are not already in the recipe, and do not add serving/garnish suggestions. You may clarify, split, reorder or tighten steps — but the method must match what the user already has.
@@ -1391,10 +1437,24 @@ async function startServer() {
         ${JSON.stringify(recipe)}
       `;
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, STEP_REPAIR_SCHEMA, 2);
+      // Deterministic step-count guard: if the model collapsed the step list
+      // to <70% of input (and input had at least 3 steps), treat it as drift
+      // and keep the input steps. Prevents generate-steps from degrading a
+      // good text-first import by merging distinct actions. Generic, not
+      // dish-specific.
+      const inputSteps = Array.isArray(recipe.steps) ? recipe.steps : [];
+      let aiSteps = Array.isArray(parsedData.steps) ? parsedData.steps : parsedData.steps;
+      if (Array.isArray(aiSteps) && inputSteps.length >= 3) {
+        const minAcceptable = Math.ceil(inputSteps.length * 0.7);
+        if (aiSteps.length < minAcceptable) {
+          console.warn(`[generate-steps] drift guard triggered (aiCount=${aiSteps.length}, inputCount=${inputSteps.length}) — reverting to input steps`);
+          aiSteps = inputSteps;
+        }
+      }
       return res.json({
         recipe: {
           ...recipe,
-          steps: parsedData.steps,
+          steps: aiSteps,
           aiRationale: parsedData.aiRationale || recipe.aiRationale,
           heatGuide: parsedData.heatGuide,
           ovenGuide: parsedData.ovenGuide,
@@ -1447,6 +1507,7 @@ async function startServer() {
       const prompt = `
         Du er en ekspertkok. Gennemgå og RYD OP i ingredienslisten for opskriften "${recipe.title}".
         TROFASTHED (vigtigst): Du må IKKE opfinde nye ingredienser, udvide listen med "typiske tilbehør", foreslå alternativer eller tilføje garnish/servering-ingredienser, der ikke allerede står i listen. Kun ret, ikke udvid. Hvis en ingrediens ikke allerede er på listen, så lad være med at tilføje den.
+        PRESERVE OVER REWRITE: Hvis en ingrediens allerede er veldefineret (name, amount/amountText, unit, group giver alle mening), så KOPIÉR DEN UÆNDRET. Kun ret der hvor der er en konkret fejl (typo, forkert felt, manglende gruppering). Omformulér ikke fungerende navne. Antal ingredienser må ikke falde — hver input-ingrediens SKAL have en klart tilsvarende output-ingrediens (samme kerne-navn). Hvis du er i tvivl, bevar input.
         Tilladte ændringer:
         - Ret stavefejl og standardiser navne (fx "loeg" -> "løg").
         - Flyt eksisterende ingredienser ind i korrekte grupper (rolle-baseret: "Til fyld", "Til saucen", "Til servering"). Opret KUN nye grupper, hvis eksisterende ingredienser naturligt hører hjemme der.
@@ -1480,10 +1541,21 @@ async function startServer() {
       // phrases from unit, hoist countable-unit phrases out of amountText,
       // promote Valgfrit, drop dual-channel conflicts. Keeps output clean
       // before it leaves the server rather than only healing in UI.
-      const cleanedIngredients = Array.isArray(parsedData.ingredients)
+      let aiIngredients = Array.isArray(parsedData.ingredients)
         ? parsedData.ingredients.map((ing: any) => normalizeIngredientAmountShape(ing))
         : parsedData.ingredients;
-      return res.json({ recipe: { ...recipe, ingredients: cleanedIngredients, id: recipe.id, lastUsed: new Date().toISOString() } });
+      // Deterministic drift guard: if the model dropped ingredients or renamed
+      // the majority of them, fall back to input. Generic, not dish-specific.
+      // Prevents polish-ingredients from degrading an already-good list.
+      const inputIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+      if (Array.isArray(aiIngredients) && inputIngredients.length >= 2) {
+        const coverage = computeIngredientCoverage(inputIngredients, aiIngredients);
+        if (coverage.matchRate < 0.7 || aiIngredients.length < Math.ceil(inputIngredients.length * 0.7)) {
+          console.warn(`[polish-ingredients] drift guard triggered (matchRate=${coverage.matchRate.toFixed(2)}, aiCount=${aiIngredients.length}, inputCount=${inputIngredients.length}) — reverting to input ingredients`);
+          aiIngredients = inputIngredients.map((ing: any) => normalizeIngredientAmountShape(ing));
+        }
+      }
+      return res.json({ recipe: { ...recipe, ingredients: aiIngredients, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
       console.error('AI Polish Ingredients Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/polish-ingredients');
@@ -1535,9 +1607,9 @@ async function startServer() {
         Foreslå 3-5 tags/kategorier på dansk for opskriften "${recipe.title}".
         Ingredienser: ${ingredientNames}
         Eksisterende tags: ${(recipe.categories || []).join(', ') || 'ingen'}
-        Tags skal beskrive måltidstype, køkken, sæson eller egenskab.
+        Tags skal objektivt beskrive opskriftens faktiske indhold: måltidstype, køkken, hovedkomponent, sæson. IKKE spekulative eller aspirerende tags. Hellere 3 præcise tags end 5 løse. Tag må ikke trække opskriften væk fra dens reelle profil (fx ikke "Festmad" på en hverdagsret, ikke "Hurtig" på en langtidsret).
         Eksempler: Aftensmad, Italiensk, Hurtig, Comfort food, Vegetarisk, Bagværk, Frokost, Snack, Grill, Suppe, Salat, Festmad, Hverdagsmad.
-        Behold eksisterende tags og tilføj nye. Undgå dubletter.
+        Behold eksisterende tags og tilføj kun nye, der tydeligt passer. Undgå dubletter.
       `;
       const schema = {
         type: Type.OBJECT,
@@ -1769,6 +1841,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     const styleInstruction = getLevelStyleInstruction(level, 'import');
     const sharedRules = `
       Return the recipe in Danish.
+      OUTPUT SCOPE: This is the primary import pass. Produce ONLY these fields: title, summary, servings, servingsUnit, ingredients, steps. Do NOT produce categories, flavorBoosts, pitfalls, hints, substitutions, heatGuide, ovenGuide, kitchenTimeline, aiRationale, recipeType or folder — they are generated in dedicated later passes. Spending tokens on them here slows the import without adding value.
       FIDELITY TO SOURCE (HIGHEST PRIORITY): Stay close to the source recipe. You may RESTRUCTURE and PRECISION-EDIT (fix grammar, clarify steps, standardize units, group ingredients, extract heat/timers), but you MUST NOT:
       - invent a cooking method that is not in the source (e.g. do NOT turn a stovetop recipe into an oven recipe, or vice versa)
       - add ingredients that are not in the source (no "optional" vaniljestang, kanelstang, frugt, garnish etc. unless explicitly listed)
@@ -1788,8 +1861,6 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
       QUALITATIVE AMOUNTS: When the source uses a non-numeric amount ("efter smag", "efter behov", "en klat", "en smule", "valgfrit", "ad libitum", "nok til at dække", "per portion", "lidt", "rigeligt"), do NOT force it into amount+unit. Put the whole phrase into amountText, set amount to null, and set unit to an empty string. Never invent a fake amount=1 with unit="efter smag" — that renders as "1 efter smag" which is broken. Exceptions: "1 knivspids", "1 bundt", "1 fed", "1 stk" are real countable units and should stay as amount + unit.
       METHOD DEFAULT: When the source does not specify a cooking method, use the traditional/canonical method for the dish. Do not default to oven baking for dishes that are classically stovetop (e.g. dansk risengrød, havregrød, bearnaise, bechamel, frikadeller, stuvning). Do not default to stovetop for dishes that are classically oven-baked. If genuinely ambiguous, pick the most common Danish home-kitchen method and state it plainly — do not invent oven temperatures, vessels or serving garnishes that are not in the source.
       SUMMARY RULES: summary must be 1-2 short sentences only. Maximum 180 characters. Do not repeat phrases or sentences. Do not include filler like "Velbekomme", "nyd", "god fornøjelse", "god madlyst", "denne ret er...". If no useful summary is available, return an empty string.
-      FLAVOR & TIPS: flavorBoosts and pitfalls are OPTIONAL. Only include them when they follow directly from the source text or from standard, uncontroversial technique for the dish. Do NOT invent creative flavor twists, alternative ingredients, or "improvements" that reinterpret the recipe. If nothing obvious applies, return empty arrays. Quality over quantity — one correct pitfall beats three speculative ones.
-      CATEGORIES: Generate 2-4 neutral categories/tags in Danish that objectively classify the recipe (meal type, cuisine, main component), e.g. 'Aftensmad', 'Italiensk', 'Bagværk', 'Dessert', 'Vegetarisk'. Only use descriptors like 'Hurtig', 'Comfort food', 'Festmad' when clearly supported by the source.
       Convert English/US metrics to Danish metrics.
       TEXT-FIRST STEP RULES: Step text must stand on its own in cook mode. When an ingredient is used in a step, include the ingredient name and usually the relevant quantity directly in the step text. Prefer natural phrasing like "Tilsæt de 2 hakkede løg og 3 fed hvidløg". Do not rely on a separate ingredient box to make the step understandable. Avoid repeating heat values in prose if they already exist in the structured heat field, unless needed for clarity. Each step should be understandable even if helper overlays are hidden.
       Extract heat info into the 'heat' property and ALWAYS convert it to a 1-9 induction scale.
@@ -1815,7 +1886,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
           const parsedData = await generateAIContent(
             IMPORT_MODEL,
             `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`,
-            RECIPE_SCHEMA,
+            RECIPE_IMPORT_SCHEMA,
             0,
           );
           return res.json({ parsedData: cleanParsedImportData(parsedData), importMeta: { fallbackUsed: false } });
@@ -1868,7 +1939,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
               ] }],
               config: {
                 responseMimeType: 'application/json',
-                responseSchema: RECIPE_SCHEMA,
+                responseSchema: RECIPE_IMPORT_SCHEMA,
                 httpOptions: { timeout: SERVER_AI_TIMEOUT_MS },
                 abortSignal: controller.signal,
               },
