@@ -43,8 +43,41 @@ export function buildAiTransformationSnapshot(recipe: Recipe, action: string) {
 
 // Cached decision: does this runtime produce CSS values that html2canvas
 // 1.4.1 cannot parse (modern color functions via Tailwind v4)? We evaluate
-// once per session — the answer does not change mid-session.
+// once per session — the answer does not change mid-session. The preflight
+// probe looks at a broad sample of nodes because the problem may live on
+// descendants (e.g. the observer target itself) even if <body> happens to
+// use legacy rgb() values. Additionally, once html2canvas has thrown a
+// color-function parse error at runtime, we latch the cached reason so
+// subsequent captures skip silently — no more repeated warn spam.
 let cachedPngUnsupportedReason: string | null | undefined;
+const MODERN_COLOR_FN_RE = /\b(color|color-mix|oklch|oklab|lab|lch)\(/i;
+const PROBED_PROPS = [
+  'color',
+  'background-color',
+  'background-image',
+  'border-top-color',
+  'border-right-color',
+  'border-bottom-color',
+  'border-left-color',
+  'outline-color',
+  'box-shadow',
+  'fill',
+  'stroke',
+];
+
+function sampleHasModernColorFn(el: Element): boolean {
+  try {
+    const cs = window.getComputedStyle(el);
+    for (const prop of PROBED_PROPS) {
+      const v = cs.getPropertyValue(prop);
+      if (v && MODERN_COLOR_FN_RE.test(v)) return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 function detectPngUnsupportedReason(): string | null {
   if (cachedPngUnsupportedReason !== undefined) return cachedPngUnsupportedReason;
   if (typeof document === 'undefined' || typeof window === 'undefined') {
@@ -52,32 +85,56 @@ function detectPngUnsupportedReason(): string | null {
     return cachedPngUnsupportedReason;
   }
   try {
-    // If getComputedStyle on <body> exposes a modern color function,
-    // html2canvas will throw once it hits a property carrying it and our
-    // per-element rewrite can't cover every pseudo-element / shadow stop.
-    const probe = window.getComputedStyle(document.body);
-    const sample = [
-      probe.getPropertyValue('color'),
-      probe.getPropertyValue('background-color'),
-      probe.getPropertyValue('background-image'),
-      probe.getPropertyValue('box-shadow'),
-    ].join(' ');
-    if (/\b(color|color-mix|oklch|oklab|lab|lch)\(/i.test(sample)) {
-      cachedPngUnsupportedReason = 'modern_css_color_function';
-      // one-time diagnostic so operators know why screenshots stopped
-      reportClientDiagnostic({
-        level: 'info',
-        kind: 'observer_capture_skipped',
-        message: 'html2canvas skipped — computed styles expose modern CSS color functions (Tailwind v4 / color() / oklch). Text snapshot remains active.',
-        details: { reason: cachedPngUnsupportedReason },
-      });
-      return cachedPngUnsupportedReason;
+    const candidates: Element[] = [document.documentElement, document.body];
+    // Probe the actual observer targets and a small random sample of their
+    // descendants — Tailwind v4 can emit color() on utility classes applied
+    // deep in the tree even when body itself reads as legacy rgb().
+    const observerTargets = Array.from(
+      document.querySelectorAll('[data-observer-section]'),
+    ) as Element[];
+    candidates.push(...observerTargets);
+    for (const target of observerTargets) {
+      const descendants = Array.from(target.querySelectorAll('*')).slice(0, 40) as Element[];
+      candidates.push(...descendants);
+    }
+    for (const el of candidates) {
+      if (sampleHasModernColorFn(el)) {
+        cachedPngUnsupportedReason = 'modern_css_color_function';
+        reportClientDiagnostic({
+          level: 'info',
+          kind: 'observer_capture_skipped',
+          message: 'html2canvas skipped — computed styles expose modern CSS color functions (Tailwind v4 / color() / oklch). Text snapshot remains active.',
+          details: { reason: cachedPngUnsupportedReason },
+        });
+        return cachedPngUnsupportedReason;
+      }
     }
   } catch {
     // if probe fails, let capture attempt proceed
   }
   cachedPngUnsupportedReason = null;
   return cachedPngUnsupportedReason;
+}
+
+/**
+ * Latch the cached reason after a runtime parse error so subsequent captures
+ * skip silently. Called from the capture error handler when the error matches
+ * the unsupported color-function signature.
+ */
+function latchPngUnsupportedFromRuntimeError(message: string): void {
+  if (cachedPngUnsupportedReason) return;
+  cachedPngUnsupportedReason = 'modern_css_color_function_runtime';
+  reportClientDiagnostic({
+    level: 'info',
+    kind: 'observer_capture_skipped',
+    message: 'html2canvas disabled for remainder of session — runtime hit an unsupported CSS color function. Text snapshot remains active.',
+    details: { reason: cachedPngUnsupportedReason, trigger: message.slice(0, 200) },
+  });
+}
+
+function isUnsupportedColorFnError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  return /unsupported color function/i.test(msg) || /Attempting to parse an unsupported color/i.test(msg);
 }
 
 async function captureSectionPng(target: CaptureTarget) {
@@ -255,16 +312,24 @@ export async function recordAiTransformationCapture(params: {
   } catch (error) {
     imageDataUrl = null;
     captureError = error instanceof Error ? error.message : String(error);
-    reportClientDiagnostic({
-      level: 'warn',
-      kind: 'observer_capture_failed',
-      message: captureError,
-      details: {
-        action: params.action,
-        phase: params.phase,
-        target: snapshot.target,
-      },
-    });
+    // If the error is the known Tailwind-v4 color() / oklch() parser crash,
+    // latch the skip flag so subsequent captures this session are silent
+    // no-ops rather than repeatedly emitting the same warn. Report a single
+    // info-level diagnostic from latchPngUnsupportedFromRuntimeError instead.
+    if (isUnsupportedColorFnError(error)) {
+      latchPngUnsupportedFromRuntimeError(captureError);
+    } else {
+      reportClientDiagnostic({
+        level: 'warn',
+        kind: 'observer_capture_failed',
+        message: captureError,
+        details: {
+          action: params.action,
+          phase: params.phase,
+          target: snapshot.target,
+        },
+      });
+    }
   }
 
   const body = JSON.stringify({

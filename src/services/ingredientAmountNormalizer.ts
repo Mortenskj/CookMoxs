@@ -41,6 +41,16 @@ export function normalizeIngredientAmountShape(ingredient: Ingredient): Ingredie
   let unit = typeof ingredient.unit === 'string' ? ingredient.unit : '';
   let amountText = typeof ingredient.amountText === 'string' ? ingredient.amountText : '';
 
+  // amount === 0 is virtually never a legitimate ingredient quantity — AI/import
+  // fallbacks emit 0 as a placeholder when they couldn't parse a number but were
+  // required to put *something* in the amount field. Treat it as null so the
+  // qualitative/dual-channel rules below can apply cleanly. Observer evidence:
+  //   { amount: 0, amountText: "efter smag", name: "sukker, kanel, smør..." }
+  // This rule is generic — not tied to any specific recipe.
+  if (amount === 0) {
+    amount = null;
+  }
+
   // amount was a qualitative string (e.g. amount="En klat per portion") — route to amountText
   if (amount === null && looksQualitative((ingredient as any).amount)) {
     const phrase = String((ingredient as any).amount).trim();

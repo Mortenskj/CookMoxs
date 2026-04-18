@@ -38,6 +38,7 @@ import {
 } from './src/server/services/observerService.ts';
 import { collectRecipeObserverAssertions } from './src/services/observer/recipeAssertions.ts';
 import { stripRedundantHeatProse, hasOvenHeatSignal } from './src/services/recipeStepNormalization.ts';
+import { normalizeIngredientAmountShape } from './src/services/ingredientAmountNormalizer.ts';
 import mammoth from 'mammoth';
 
 // Server-side heat-prose scrub on AI responses. The model occasionally
@@ -1475,7 +1476,14 @@ async function startServer() {
         Trin (til kontekst, men tilføj ALDRIG nye ingredienser fordi et trin nævner noget): ${(recipe.steps || []).map((s: any) => s.text).slice(0, 10).join(' | ')}
       `;
       const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, INGREDIENT_POLISH_SCHEMA, 2);
-      return res.json({ recipe: { ...recipe, ingredients: parsedData.ingredients, id: recipe.id, lastUsed: new Date().toISOString() } });
+      // Server-side shape cleanup: strip fake amount=0, rescue qualitative
+      // phrases from unit, hoist countable-unit phrases out of amountText,
+      // promote Valgfrit, drop dual-channel conflicts. Keeps output clean
+      // before it leaves the server rather than only healing in UI.
+      const cleanedIngredients = Array.isArray(parsedData.ingredients)
+        ? parsedData.ingredients.map((ing: any) => normalizeIngredientAmountShape(ing))
+        : parsedData.ingredients;
+      return res.json({ recipe: { ...recipe, ingredients: cleanedIngredients, id: recipe.id, lastUsed: new Date().toISOString() } });
     } catch (error) {
       console.error('AI Polish Ingredients Error:', error);
       const failure = toAiErrorResponse(error, '/api/ai/polish-ingredients');
@@ -1698,6 +1706,60 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
     }
   });
 
+  // Deterministic summary enforcement. The import prompt tells the model to
+  // keep summary short, but models frequently concatenate step text, categories
+  // and filler into the summary field. We clamp it server-side so raw
+  // response is already shape-clean:
+  //   - strip concatenated blocks (separated by runs of 2+ spaces)
+  //   - keep only the first 1-2 sentences
+  //   - drop leading/trailing filler phrases ("velbekomme", "nyd", etc.)
+  //   - hard-cap at 180 chars (prompt contract)
+  const SUMMARY_MAX_CHARS = 180;
+  const SUMMARY_FILLER_RE = /\b(velbekomme|nyd(?:\s+(?:den|det|dette))?|god\s+fornøjelse|god\s+madlyst|denne\s+ret\s+(?:er|bliver|serveres))\b[^.!?]*[.!?]?/gi;
+  const enforceSummaryRule = (raw: unknown): string => {
+    if (typeof raw !== 'string') return '';
+    // 1. Collapse whitespace and split on runs of 2+ spaces — models use these
+    //    as implicit paragraph breaks when dumping step/category content into
+    //    the summary field. Keep only the first chunk.
+    const firstChunk = raw.replace(/\r/g, '').split(/\s{2,}|\n+/).map(s => s.trim()).filter(Boolean)[0] || '';
+    // 2. Strip filler phrases.
+    let cleaned = firstChunk.replace(SUMMARY_FILLER_RE, '').replace(/\s+/g, ' ').trim();
+    // 3. Keep only the first 1-2 sentences.
+    const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned];
+    cleaned = sentences.slice(0, 2).join(' ').replace(/\s+/g, ' ').trim();
+    // 4. Hard-cap at SUMMARY_MAX_CHARS — prefer trimming at a sentence
+    //    boundary, otherwise at the last space, otherwise hard-cut.
+    if (cleaned.length > SUMMARY_MAX_CHARS) {
+      const oneSentence = (cleaned.match(/[^.!?]+[.!?]+/) || [''])[0].trim();
+      if (oneSentence && oneSentence.length <= SUMMARY_MAX_CHARS) {
+        cleaned = oneSentence;
+      } else {
+        const slice = cleaned.slice(0, SUMMARY_MAX_CHARS);
+        const lastSpace = slice.lastIndexOf(' ');
+        cleaned = (lastSpace > 80 ? slice.slice(0, lastSpace) : slice).trim();
+        if (!/[.!?]$/.test(cleaned)) cleaned += '…';
+      }
+    }
+    return cleaned;
+  };
+
+  // Shared server-side shape cleanup for imported recipes. Applies the same
+  // normalizer the client uses (amount=0 / qualitative / countable-unit /
+  // dual-channel / Valgfrit promotion) so import output is already clean when
+  // it leaves the server — not only healed in UI on load. Also enforces the
+  // summary contract deterministically.
+  const cleanParsedImportData = (parsed: any): any => {
+    if (!parsed || typeof parsed !== 'object') return parsed;
+    const out: any = { ...parsed };
+    if (Array.isArray(parsed.ingredients)) {
+      out.ingredients = parsed.ingredients.map((ing: any) => normalizeIngredientAmountShape(ing));
+    }
+    if (typeof parsed.summary === 'string') {
+      out.summary = enforceSummaryRule(parsed.summary);
+    }
+    return out;
+  };
+
   app.post('/api/ai/import', async (req, res) => {
     const { sourceType, textContent, isStructuredData, fileData, level, googleAccessToken } = req.body;
     if (!sourceType || !['url', 'text', 'file', 'image'].includes(sourceType)) {
@@ -1756,7 +1818,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
             RECIPE_SCHEMA,
             0,
           );
-          return res.json({ parsedData, importMeta: { fallbackUsed: false } });
+          return res.json({ parsedData: cleanParsedImportData(parsedData), importMeta: { fallbackUsed: false } });
         }
         const withFallback = sourceType === 'text'
           ? await importRecipeFromTextWithFallback(
@@ -1771,7 +1833,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
               sourceType,
               1,
             );
-        return res.json({ parsedData: withFallback.data, importMeta: withFallback.importMeta });
+        return res.json({ parsedData: cleanParsedImportData(withFallback.data), importMeta: withFallback.importMeta });
       }
 
       if ((sourceType === 'file' || sourceType === 'image') && fileData?.data && fileData?.mimeType) {
@@ -1788,7 +1850,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
             `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${extractedText.substring(0, 40000)}`,
             `file:${fileData.mimeType}`,
           );
-          return res.json({ parsedData: withFallback.data, importMeta: withFallback.importMeta });
+          return res.json({ parsedData: cleanParsedImportData(withFallback.data), importMeta: withFallback.importMeta });
         }
 
         const prompt = `Extract the recipe from this document or image. ${sharedRules}`;
@@ -1813,7 +1875,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
             });
             const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
             const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
-            return res.json({ parsedData, importMeta: { fallbackUsed: false } });
+            return res.json({ parsedData: cleanParsedImportData(parsedData), importMeta: { fallbackUsed: false } });
           } catch (error: any) {
             lastInlineError = error;
             if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED' || error?.message?.includes('timed out')) {
