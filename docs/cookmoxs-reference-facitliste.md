@@ -296,7 +296,36 @@ Per issue gives kun:
 - Ingredient lexicon er kun relevant, hvis et konkret C-fix kræver et meget lille subset.
 - Search/OCR/authz er fortsat deferred og bør ikke broades ind.
 
+### C0. Recipe-scoped assistant surface
+
+- Status:
+  - aktivt relevant i Fase C
+
+- Hvor:
+  - `src/components/RecipeView.tsx`
+  - eventuelle AI-entrypoints i recipe/edit flow
+  - `src/services/aiService.ts`
+  - `server.ts`
+- Problem:
+  De nuvaerende AI-handlinger kan foeles som spredte knapper eller tvungne "lav en aendring"-flows, selv naar importen allerede er god.
+- Hvad jeg ville aendre:
+  Indfoere den mindste recipe-scoped assistant-surface som UI for eksisterende AI-handlinger.
+  Start med faste section-naere handlinger, ikke fri chat.
+  Giv AI et legitimt `no_change`-udfald og vis forslag som tydelig delta med `Behold` / `Fortryd`.
+- Beroerte filer:
+  - `src/components/RecipeView.tsx`
+  - eventuelle assistant/panel/sheet-komponenter
+  - `src/services/aiService.ts`
+  - `server.ts`
+- Broad ikke samtidig:
+  global chatbot, nyt agent-system, guardrails-stack eller cook-mode assistant-editing.
+
 ### C1. Listener churn
+
+- Status:
+  - ikke aktivt nu
+  - deferred til Fase D
+  - eneste undtagelse er, hvis current repo state viser at det er direkte noedvendigt for et konkret Fase C-flow, der allerede roeres
 
 - Hvor:
   - `src/App.tsx:460`

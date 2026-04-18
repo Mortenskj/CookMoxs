@@ -64,7 +64,7 @@ Scope:
 
 - app-shell og top-level view-flow
 - loading/hjaelper/AI-surface i rigtig UI
-- chat/assistant-surface som primaer UI for AI-handlinger i recipe-flow, hvis det kan loeses smalt
+- recipe-scoped assistant-surface som primaer UI for AI-handlinger i recipe-flow, hvis det kan loeses smalt
 - view-level lazy loading
 - analytics defer i bootstrap
 - duplicate queue watchers hvor det paavirker importoplevelsen
@@ -76,7 +76,9 @@ Status:
 
 - Fase C er nu den rigtige naeste arbejdsretning.
 - Det er her UI-opgraderingen boer kobles med de shell-naere performanceforbedringer.
-- Det er ogsaa her en eventuel chat-baseret AI-overflade hoerer hjemme, fordi den er et UI- og produktflow-spoergsmaal, ikke en ren backend- eller foundation-opgave.
+- Det er ogsaa her en eventuel assistant-overflade hoerer hjemme, fordi den er et UI- og produktflow-spoergsmaal, ikke en ren backend- eller foundation-opgave.
+- Fase C skal fortolkes som "byg den mindste recipe-scoped assistant-surface", ikke "start et nyt chat- eller agentspor".
+- Shared listener churn er ikke et aktivt Fase C-spor og hoerer som udgangspunkt til Fase D, medmindre current repo state viser at det er direkte noedvendigt for et konkret C-flow, der allerede roeres.
 
 ## Fase D: Technical efficiency & residual foundation
 
