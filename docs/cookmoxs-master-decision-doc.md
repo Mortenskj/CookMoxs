@@ -64,6 +64,7 @@ Scope:
 
 - app-shell og top-level view-flow
 - loading/hjaelper/AI-surface i rigtig UI
+- chat/assistant-surface som primaer UI for AI-handlinger i recipe-flow, hvis det kan loeses smalt
 - view-level lazy loading
 - analytics defer i bootstrap
 - duplicate queue watchers hvor det paavirker importoplevelsen
@@ -75,6 +76,7 @@ Status:
 
 - Fase C er nu den rigtige naeste arbejdsretning.
 - Det er her UI-opgraderingen boer kobles med de shell-naere performanceforbedringer.
+- Det er ogsaa her en eventuel chat-baseret AI-overflade hoerer hjemme, fordi den er et UI- og produktflow-spoergsmaal, ikke en ren backend- eller foundation-opgave.
 
 ## Fase D: Technical efficiency & residual foundation
 

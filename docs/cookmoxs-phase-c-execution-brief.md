@@ -16,6 +16,7 @@ Goer appen roligere, lettere og mere sammenhaengende i de top-level flows, bruge
 - recipe
 - cook mode
 - topbar / helper / loading surfaces
+- AI-chat / assistant-surface i stedet for skjult eller aggressiv "forbedr"-adfaerd
 
 ## In scope
 
@@ -26,6 +27,7 @@ Goer appen roligere, lettere og mere sammenhaengende i de top-level flows, bruge
 5. Framer Motion / motion-overhead hvis det kan loeses smalt
 6. Storage churn kun hvor det naturligt hoerer med til save/edit/app-shell flow
 7. UI-upgrade i app-shell, loading, helper-lag og top-level surfaces
+8. Chat-baseret AI-surface til recipe/edit flows, hvis den kan indfoeres smalt uden at broadene til nyt agent-system
 
 ## Repo-state validation
 
@@ -37,6 +39,8 @@ Disse punkter giver stadig mening i current repo state:
 - timer tick lever stadig for hoejt i app-shell
 - motion og helper/loading-lag er stadig ikke samlet under en helt rolig, konsekvent UI-retning
 - metadata/save-relateret churn kan stadig vaere relevant, hvis save/edit/topbar flyttes rundt i samme batch
+- de nuvaerende AI-knapper kan stadig foeles som tvungne "lav en aendring"-flows, selv naar importen allerede er god
+- der mangler stadig et naturligt sted i UI, hvor AI kan sige "ingen aendring anbefales" i stedet for at opfinde en forbedring
 
 ## Out of scope
 
@@ -53,6 +57,7 @@ Disse punkter giver stadig mening i current repo state:
 - Loes UI og shell-naer performance sammen, kun hvor de faktisk hoerer til samme flows.
 - Brug ikke Fase C som undskyldning for at broadene til platformoprydning.
 - Hvis et punkt viser sig at vaere rent teknisk og ikke naturligt koblet til UI/shell-batchen, saa flyt det til `deferred` eller behold det til Fase D.
+- Hvis chat introduceres, saa skal den foerst og fremmest vaere en UI- og produktkorrekt overflade for de eksisterende AI-handlinger, ikke et nyt stort agent- eller orkestreringsprojekt.
 
 ## Definition of done
 
@@ -64,6 +69,8 @@ Fase C er kun faerdig naar alle disse er sande:
 4. Aktiv timer tick rerender ikke hele app-shell hvert sekund.
 5. Motion/loading/helper surfaces foeles rolige, bevidste og uden stoej.
 6. Eventuel storage churn, som bliver roert i samme save/edit/app-shell arbejde, er reduceret uden regression.
+7. AI-surface er flyttet til en mere naturlig chat/assistant-overflade eller tilsvarende inline helper, hvor "ingen aendring anbefales" er en legitim no-op udgang.
+8. Recipe/edit-flowet foeler ikke laengere, at AI skal tvinges til at omskrive noget for at vaere nyttig.
 
 ## Regression checks
 
@@ -95,6 +102,13 @@ Fase C er kun faerdig naar alle disse er sande:
 - verificer normal mode og reduced-motion
 - verificer at helper/loading/UI-lag er laeselige, rolige og ikke kolliderer med topbar/cook flow
 - verificer at AI/loading affordances foeles som en del af samme designretning
+
+### Chat / assistant surface
+
+- verificer at AI-interaktion kan ske fra standard recipe-mode uden at sende brugeren ind i et skjult eller tungt edit-mode flow
+- verificer at section-naere handlinger som ingredienser, fremgangsmaade og beskrivelse kan igangsaettes fra den nye overflade eller fra naerliggende UI
+- verificer at AI eksplicit kan no-op'e, naar input allerede er godt, i stedet for at opfinde en aendring
+- verificer at brugeren kan se, hvad AI foreslaar eller har aendret, og kan beholde eller fortryde uden at miste overblik
 
 ### Storage churn
 
