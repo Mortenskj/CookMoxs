@@ -291,7 +291,7 @@ Per issue gives kun:
 
 ### Fase C note
 
-- Aktivt Fase C-batch bør holdes til C1-C7 nedenfor.
+- Aktivt Fase C-batch bør holdes til C0 og C2-C7 nedenfor.
 - Observability er allerede løftet nok til, at det ikke bør være et hovedspor i denne fase.
 - Ingredient lexicon er kun relevant, hvis et konkret C-fix kræver et meget lille subset.
 - Search/OCR/authz er fortsat deferred og bør ikke broades ind.
