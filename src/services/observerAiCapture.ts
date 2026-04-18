@@ -41,8 +41,57 @@ export function buildAiTransformationSnapshot(recipe: Recipe, action: string) {
   };
 }
 
+// Cached decision: does this runtime produce CSS values that html2canvas
+// 1.4.1 cannot parse (modern color functions via Tailwind v4)? We evaluate
+// once per session — the answer does not change mid-session.
+let cachedPngUnsupportedReason: string | null | undefined;
+function detectPngUnsupportedReason(): string | null {
+  if (cachedPngUnsupportedReason !== undefined) return cachedPngUnsupportedReason;
+  if (typeof document === 'undefined' || typeof window === 'undefined') {
+    cachedPngUnsupportedReason = 'no_dom';
+    return cachedPngUnsupportedReason;
+  }
+  try {
+    // If getComputedStyle on <body> exposes a modern color function,
+    // html2canvas will throw once it hits a property carrying it and our
+    // per-element rewrite can't cover every pseudo-element / shadow stop.
+    const probe = window.getComputedStyle(document.body);
+    const sample = [
+      probe.getPropertyValue('color'),
+      probe.getPropertyValue('background-color'),
+      probe.getPropertyValue('background-image'),
+      probe.getPropertyValue('box-shadow'),
+    ].join(' ');
+    if (/\b(color|color-mix|oklch|oklab|lab|lch)\(/i.test(sample)) {
+      cachedPngUnsupportedReason = 'modern_css_color_function';
+      // one-time diagnostic so operators know why screenshots stopped
+      reportClientDiagnostic({
+        level: 'info',
+        kind: 'observer_capture_skipped',
+        message: 'html2canvas skipped — computed styles expose modern CSS color functions (Tailwind v4 / color() / oklch). Text snapshot remains active.',
+        details: { reason: cachedPngUnsupportedReason },
+      });
+      return cachedPngUnsupportedReason;
+    }
+  } catch {
+    // if probe fails, let capture attempt proceed
+  }
+  cachedPngUnsupportedReason = null;
+  return cachedPngUnsupportedReason;
+}
+
 async function captureSectionPng(target: CaptureTarget) {
   if (typeof document === 'undefined') return null;
+
+  const unsupportedReason = detectPngUnsupportedReason();
+  if (unsupportedReason) {
+    // Narrow bail-out: html2canvas 1.4.1 cannot parse the modern CSS color
+    // functions Tailwind v4 emits. Repeatedly invoking it only fills the log
+    // with the same error. Skip silently — text snapshot remains primary
+    // evidence. See captureError="Attempting to parse an unsupported color
+    // function \"color\"" in earlier observer logs.
+    return null;
+  }
 
   const selector = target === 'ingredients'
     ? '[data-observer-section="ingredients"]'

@@ -1417,11 +1417,20 @@ async function startServer() {
         - Ret stavefejl og standardiser navne (fx "loeg" -> "løg").
         - Flyt eksisterende ingredienser ind i korrekte grupper (rolle-baseret: "Til fyld", "Til saucen", "Til servering"). Opret KUN nye grupper, hvis eksisterende ingredienser naturligt hører hjemme der.
         - Behold eksisterende mængder og enheder medmindre de er åbenlyst forkerte (fx typo i tal).
-        KVALITATIVE MÆNGDER: Hvis mængden er ikke-numerisk (fx "efter smag", "efter behov", "en klat", "en smule", "valgfrit", "ad libitum", "nok til ...", "per portion"), så SKAL det ind i amountText som fritekst, OG amount skal være null, OG unit skal være tom streng. Lav IKKE amount=1 + unit="efter smag" — det er forkert. Eksempler:
+        KVALITATIVE MÆNGDER: Hvis mængden er ikke-numerisk (fx "efter smag", "efter behov", "valgfrit", "ad libitum", "nok til ...", "per portion"), så SKAL det ind i amountText som fritekst, OG amount skal være null, OG unit skal være tom streng. Sæt ALDRIG både amount OG amountText for den samme mængdebetydning — det giver dobbelt-rendering som "efter smag 1 sukker". Eksempler:
         - "efter smag kanelsukker" -> { name: "kanelsukker", amount: null, unit: "", amountText: "efter smag" }
-        - "en klat smør per portion" -> { name: "smør", amount: null, unit: "", amountText: "en klat per portion" }
         - "valgfrit vaniljestang" -> { name: "vaniljestang", amount: null, unit: "", amountText: "valgfrit" }
+        - "Sukker, kanel, smør eller frugt til servering efter smag" -> { name: "sukker, kanel, smør eller frugt", amount: null, unit: "", amountText: "efter smag", group: "Til servering" }
+        TÆLLEBARE ENHEDER (knivspids, smule, klat, nip): "knivspids", "smule", "klat", "nip" ER enheder i dansk køkken. De skal IND i unit, ikke i amountText. Eksempler:
+        - "En knivspids salt" -> { name: "salt", amount: 1, unit: "knivspids", amountText: "" }
+        - "En klat smør per portion" -> { name: "smør", amount: null, unit: "", amountText: "en klat per portion" } (kun når per-portion-gør den ikke-tællelig)
+        - "En smule peber" -> { name: "peber", amount: 1, unit: "smule", amountText: "" }
+        DOBBELT-MÆNGDE ER FORBUDT: Hvis du sætter amount (tal), så SKAL amountText være tom. Hvis du sætter amountText, så SKAL amount være null. Eksempler på forkert output (undgå):
+        - { amountText: "en knivspids", amount: 1, unit: "", name: "salt" }   // rendering bliver "en knivspids 1 salt"
+        - { amountText: "valgfrit", amount: 1, unit: "stk", name: "..." }    // rendering bliver "valgfrit 1 stk ..."
+        - { amountText: "efter smag", amount: 1, unit: "", name: "..." }    // rendering bliver "efter smag 1 ..."
         ALTERNATIVER: Hvis to ingredienser er angivet som alternativer (fx "vaniljestang eller kanelstang"), så behold dem i ét name-felt som "vaniljestang eller kanelstang", og sæt amount/unit efter den numeriske angivelse i kilden (typisk 1 stk).
+        OPTIONAL/NOTE-GRUPPER: Valgfrie linjer og note-linjer som "Sukker, kanel, smør eller frugt til servering efter smag" skal IKKE blandes ind i hovedgruppen. Placér dem i en dedikeret gruppe som "Til servering", "Valgfrit" eller "Noter", så de ikke fremstår som ligeværdige målbare ingredienser.
         Ingen nye flavorBoosts/pitfalls/kategorier tilføjes her.
         Match tonen til: ${styleInstruction}
         Nuværende ingredienser: ${ingredientNames}
