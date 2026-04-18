@@ -184,7 +184,26 @@ export async function enrichRecipe(recipe: any, level?: string): Promise<Enrichm
   return data.enrichment;
 }
 
-export async function importRecipe(payload: ImportRecipePayload): Promise<any> {
-  const data = await request<{ parsedData: any }>('/api/ai/import', payload);
-  return data.parsedData;
+export interface AiImportMeta {
+  fallbackUsed: boolean;
+  reason?: string;
+  primaryError?: string;
+}
+
+export interface AiImportResult {
+  parsedData: any;
+  importMeta: AiImportMeta;
+}
+
+/**
+ * Returns parsedData + importMeta so callers can distinguish between a
+ * primary AI import and a deterministic-parser fallback. Legacy callers that
+ * only need parsedData can ignore `importMeta`.
+ */
+export async function importRecipe(payload: ImportRecipePayload): Promise<AiImportResult> {
+  const data = await request<{ parsedData: any; importMeta?: AiImportMeta }>('/api/ai/import', payload);
+  return {
+    parsedData: data.parsedData,
+    importMeta: data.importMeta ?? { fallbackUsed: false },
+  };
 }

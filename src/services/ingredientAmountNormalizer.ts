@@ -89,6 +89,24 @@ export function normalizeIngredientAmountShape(ingredient: Ingredient): Ingredie
     }
   }
 
+  // Optional/valgfrit promotion: when amountText begins with valgfrit/valgfri/
+  // optional and the group is missing or generic, move the item into a
+  // dedicated "Valgfrit" group so it doesn't render as a loose prefix in the
+  // main list. Observer evidence 1776516929706 polish_ingredients after:
+  //   { amountText:"valgfrit", name:"vaniljestang eller kanelstænger" }
+  // ended up alongside measurable ingredients without a group.
+  let group = typeof ingredient.group === 'string' ? ingredient.group : '';
+  const isGenericGroup = !group
+    || /^(andre|ingredienser|hovedingredienser|main|other)$/i.test(group.trim())
+    || /^(til\s+)?gr(ø|o)den$/i.test(group.trim())
+    || group.trim().toLowerCase() === (ingredient.name || '').trim().toLowerCase();
+  if (amountText && /^\s*(valgfrit|valgfri|optional)\b/i.test(amountText) && isGenericGroup) {
+    group = 'Valgfrit';
+    // Clear the prefix since the group conveys the semantic — avoids
+    // double-marking ("Valgfrit" group + amountText="valgfrit").
+    amountText = '';
+  }
+
   return {
     ...ingredient,
     amount,
@@ -96,5 +114,6 @@ export function normalizeIngredientAmountShape(ingredient: Ingredient): Ingredie
     amountMax: typeof ingredient.amountMax === 'number' ? ingredient.amountMax : null,
     amountText,
     unit,
+    group,
   };
 }

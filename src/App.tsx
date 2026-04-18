@@ -1148,6 +1148,7 @@ export default function App() {
         }
 
         let parsedData: any;
+        let aiImportMeta: { fallbackUsed: boolean; reason?: string; primaryError?: string } | undefined;
 
         if (type === 'url' || type === 'text') {
           let textToParse = content as string;
@@ -1207,12 +1208,14 @@ export default function App() {
             sourceType: type,
             inputSignature: buildTextObserverSignature(textToParse),
           });
-          parsedData = await aiImportRecipe({
+          const aiImportResult = await aiImportRecipe({
             sourceType: type,
             textContent: textToParse,
             isStructuredData: isJson,
             level: userLevel,
           });
+          parsedData = aiImportResult.parsedData;
+          aiImportMeta = aiImportResult.importMeta;
         } else if (type === 'file' || type === 'image') {
           const fileContent = content as { data: string, mimeType: string };
           recordObserverPipelineStage({
@@ -1222,12 +1225,14 @@ export default function App() {
             sourceType: type,
             inputSignature: buildTextObserverSignature(fileContent.mimeType),
           });
-          parsedData = await aiImportRecipe({
+          const aiImportResult = await aiImportRecipe({
             sourceType: type,
             fileData: fileContent,
             level: userLevel,
             googleAccessToken: sessionStorage.getItem('google_access_token') || undefined,
           });
+          parsedData = aiImportResult.parsedData;
+          aiImportMeta = aiImportResult.importMeta;
         }
 
         newRecipe = buildRecipeFromImport({
@@ -1238,12 +1243,18 @@ export default function App() {
           userId: user?.uid,
         });
         newRecipe = normalizeRecipeForCookMode(newRecipe);
+        // Truthful stage: distinguish a real AI success from a deterministic
+        // fallback that the server silently used when primary AI timed out /
+        // errored. Observer evidence recipeId 1776516929706 showed AI timeout
+        // + fallback + "ai_import_succeeded" stage all coexisting — misleading.
         recordObserverPipelineStage({
           feature: observerFeature,
-          stage: 'ai_import_succeeded',
+          stage: aiImportMeta?.fallbackUsed ? 'ai_import_fallback_used' : 'ai_import_succeeded',
           userState: observerUserState,
           sourceType: type,
           outputSignature: buildRecipeObserverSignature(newRecipe),
+          fallbackUsed: aiImportMeta?.fallbackUsed ? (aiImportMeta.reason || 'ai_error') : null,
+          note: aiImportMeta?.fallbackUsed ? aiImportMeta.primaryError?.slice(0, 240) ?? null : null,
         });
         reportRecipeAssertions(observerFeature, newRecipe);
         setAiUnavailableMessage(null);

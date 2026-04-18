@@ -483,15 +483,48 @@ async function extractTextFromFile(base64Data: string, mimeType: string, googleA
   return null;
 }
 
-async function importRecipeFromTextWithFallback(text: string, prompt: string, fallbackLabel: string, maxRetries = 0) {
+/**
+ * Returns `{ data, importMeta }` so callers (and the /api/ai/import response)
+ * can distinguish between a primary AI success and a deterministic-parser
+ * fallback. The client uses importMeta to emit a truthful pipeline stage
+ * (`ai_import_fallback_used` vs `ai_import_succeeded`) instead of hiding the
+ * fallback behind a generic success — see observer evidence recipeId
+ * 1776516929706 where fallback + success coexisted silently (DEADLINE_EXCEEDED).
+ */
+async function importRecipeFromTextWithFallback(
+  text: string,
+  prompt: string,
+  fallbackLabel: string,
+  maxRetries = 0,
+): Promise<{ data: any; importMeta: { fallbackUsed: boolean; reason?: string; primaryError?: string } }> {
   try {
-    return await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, maxRetries);
+    const data = await generateAIContent(IMPORT_MODEL, prompt, RECIPE_SCHEMA, maxRetries);
+    return { data, importMeta: { fallbackUsed: false } };
   } catch (error) {
-    console.warn(`[import] AI import failed for ${fallbackLabel}, falling back to deterministic text parser: ${error instanceof Error ? error.message : error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const reason = /DEADLINE_EXCEEDED|timed out|deadline/i.test(errorMessage)
+      ? 'ai_timeout'
+      : /quota|rate/i.test(errorMessage) ? 'ai_quota'
+      : 'ai_error';
+    console.warn(`[import] AI import failed for ${fallbackLabel}, falling back to deterministic text parser: ${errorMessage}`);
+    recordObserverPipelineStage('file_import', 'ai_primary_failed', {
+      fallbackLabel,
+      reason,
+      errorMessage: errorMessage.slice(0, 240),
+    });
     try {
-      return parsePlainTextRecipeToRecipe(text);
+      const data = parsePlainTextRecipeToRecipe(text);
+      recordObserverPipelineStage('file_import', 'deterministic_fallback_used', {
+        fallbackLabel,
+        reason,
+      });
+      return { data, importMeta: { fallbackUsed: true, reason, primaryError: errorMessage.slice(0, 240) } };
     } catch (fallbackError) {
       console.warn(`[import] Deterministic text parser also failed for ${fallbackLabel}: ${fallbackError instanceof Error ? fallbackError.message : fallbackError}`);
+      recordObserverFailure('file_import', 'deterministic_fallback_failed', 'parser_error', {
+        fallbackLabel,
+        reason,
+      });
       throw error;
     }
   }
@@ -1430,7 +1463,12 @@ async function startServer() {
         - { amountText: "valgfrit", amount: 1, unit: "stk", name: "..." }    // rendering bliver "valgfrit 1 stk ..."
         - { amountText: "efter smag", amount: 1, unit: "", name: "..." }    // rendering bliver "efter smag 1 ..."
         ALTERNATIVER: Hvis to ingredienser er angivet som alternativer (fx "vaniljestang eller kanelstang"), så behold dem i ét name-felt som "vaniljestang eller kanelstang", og sæt amount/unit efter den numeriske angivelse i kilden (typisk 1 stk).
-        OPTIONAL/NOTE-GRUPPER: Valgfrie linjer og note-linjer som "Sukker, kanel, smør eller frugt til servering efter smag" skal IKKE blandes ind i hovedgruppen. Placér dem i en dedikeret gruppe som "Til servering", "Valgfrit" eller "Noter", så de ikke fremstår som ligeværdige målbare ingredienser.
+        OPTIONAL/NOTE-GRUPPER (OBLIGATORISK):
+        - Hvis en kildelinje starter med "Valgfrit", "Valgfri", "Optional" eller har karakter af note/alternativ (fx "Valgfrit: en stang vanilje eller kanelstænger"), SKAL ingrediensen lægges i gruppen "Valgfrit". IKKE i hovedgruppen med amountText="valgfrit" som et løst præfiks.
+        - Hvis en kildelinje har karakter af serverings-/drys-/topping-note (fx "Sukker, kanel, smør eller frugt til servering efter smag"), SKAL den lægges i gruppen "Til servering".
+        - Hvis en linje er en generel note uden klar mængde og ikke en målbar ingrediens, læg den i gruppen "Noter".
+        - Når gruppen er "Valgfrit" eller "Til servering" og kilden bruger "efter smag"/"valgfrit", så må amountText være tom (gruppen bærer semantikken) — eller "efter smag" hvis det giver læsbarhed. Sæt IKKE både gruppe="Valgfrit" OG amountText="valgfrit" samtidigt; det er dobbeltmarkering.
+        - Hovedgruppen ("Ingredienser"/rolle-gruppen) må kun indeholde ingredienser med en reel mængde eller en tællbar enhed.
         Ingen nye flavorBoosts/pitfalls/kategorier tilføjes her.
         Match tonen til: ${styleInstruction}
         Nuværende ingredienser: ${ingredientNames}
@@ -1711,27 +1749,29 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
           });
         }
 
-        const parsedData = isStructuredData
-          ? await generateAIContent(
-              IMPORT_MODEL,
-              `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`,
-              RECIPE_SCHEMA,
-              0,
+        if (isStructuredData) {
+          const parsedData = await generateAIContent(
+            IMPORT_MODEL,
+            `Extract the recipe from this JSON-LD/Microdata. ${sharedRules}\nJSON data: ${textContent}`,
+            RECIPE_SCHEMA,
+            0,
+          );
+          return res.json({ parsedData, importMeta: { fallbackUsed: false } });
+        }
+        const withFallback = sourceType === 'text'
+          ? await importRecipeFromTextWithFallback(
+              textContent,
+              `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
+              sourceType,
+              1,
             )
-          : sourceType === 'text'
-            ? await importRecipeFromTextWithFallback(
-                textContent,
-                `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
-                sourceType,
-                1,
-              )
-            : await importRecipeFromTextWithFallback(
-                textContent,
-                `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
-                sourceType,
-                1,
-              );
-        return res.json({ parsedData });
+          : await importRecipeFromTextWithFallback(
+              textContent,
+              `Extract the recipe from this text. Focus on the main recipe content and ignore ads, navigation, and unrelated sections. ${sharedRules}\nContent: ${textContent.substring(0, 40000)}`,
+              sourceType,
+              1,
+            );
+        return res.json({ parsedData: withFallback.data, importMeta: withFallback.importMeta });
       }
 
       if ((sourceType === 'file' || sourceType === 'image') && fileData?.data && fileData?.mimeType) {
@@ -1743,12 +1783,12 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
           if (!extractedText?.trim()) {
             return res.status(400).json({ error: 'Denne filtype kunne ikke læses. Prøv PDF, billede eller indsæt teksten direkte.' });
           }
-          const parsedData = await importRecipeFromTextWithFallback(
+          const withFallback = await importRecipeFromTextWithFallback(
             extractedText,
             `Extract the recipe from this text. Focus on the main recipe content. ${sharedRules}\nContent: ${extractedText.substring(0, 40000)}`,
             `file:${fileData.mimeType}`,
           );
-          return res.json({ parsedData });
+          return res.json({ parsedData: withFallback.data, importMeta: withFallback.importMeta });
         }
 
         const prompt = `Extract the recipe from this document or image. ${sharedRules}`;
@@ -1773,7 +1813,7 @@ Opskrift: ${JSON.stringify(compactRecipe)}`;
             });
             const responseText = extractTextFromAiResponse(result, `import ${sourceType}`);
             const parsedData = parseAiJsonResponse(responseText, `import ${sourceType}`);
-            return res.json({ parsedData });
+            return res.json({ parsedData, importMeta: { fallbackUsed: false } });
           } catch (error: any) {
             lastInlineError = error;
             if (error?.name === 'AbortError' || error?.code === 'ECONNABORTED' || error?.message?.includes('timed out')) {
