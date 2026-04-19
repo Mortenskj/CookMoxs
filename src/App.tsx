@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { TimerAnimationIcon, getTimerAnimationType } from './components/TimerAnimationIcon';
 import { CookingPot, BookOpen, Home, PlusCircle, X } from 'lucide-react';
 import {
@@ -76,12 +76,24 @@ import {
   saveRecipe as saveRecipeInCloud,
 } from './services/firestoreDataService';
 import { HomeView } from './components/HomeView';
-import { ActiveView } from './components/ActiveView';
-import { ImportView } from './components/ImportView';
-import { LibraryView } from './components/LibraryView';
-import { RecipeView } from './components/RecipeView';
-import { CookView } from './components/CookView';
-import { SettingsView } from './components/SettingsView';
+import { InlineLoadingLabel } from './components/LoadingAnimation';
+// Phase C C4: top-level views are code-split so that the initial bundle only
+// pays for HomeView. Non-home routes stream in the first time the user opens
+// them. A calm fallback keeps the view area quiet during chunk load.
+const ActiveView = lazy(() => import('./components/ActiveView').then((m) => ({ default: m.ActiveView })));
+const ImportView = lazy(() => import('./components/ImportView').then((m) => ({ default: m.ImportView })));
+const LibraryView = lazy(() => import('./components/LibraryView').then((m) => ({ default: m.LibraryView })));
+const RecipeView = lazy(() => import('./components/RecipeView').then((m) => ({ default: m.RecipeView })));
+const CookView = lazy(() => import('./components/CookView').then((m) => ({ default: m.CookView })));
+const SettingsView = lazy(() => import('./components/SettingsView').then((m) => ({ default: m.SettingsView })));
+
+function ViewFallback() {
+  return (
+    <div className="flex items-center justify-center py-16 opacity-70">
+      <InlineLoadingLabel label="Henter..." />
+    </div>
+  );
+}
 import { UndoToast } from './components/UndoToast';
 import { GlobalAiActivity } from './components/GlobalAiActivity';
 import { AppUpdateToast } from './components/AppUpdateToast';
@@ -1779,6 +1791,26 @@ export default function App() {
     }
   };
 
+  // Phase C C0: accept an already-computed proposal from the recipe-scoped
+  // assistant. Does not trigger another AI call — the assistant has already
+  // run the mutation through aiService and is handing us the proposed recipe.
+  const handleApplyAssistantProposal = (previous: Recipe, proposed: Recipe) => {
+    try {
+      setLastAiSnapshot({ previous, action: 'smart_adjust' });
+      const normalized = normalizeRecipeForCookMode({
+        ...proposed,
+        id: previous.id,
+        lastUsed: new Date().toISOString(),
+      });
+      setViewingRecipe(normalized);
+      reportRecipeAssertions('smart_adjust', normalized);
+      queueAiCapture({ action: 'smart_adjust', phase: 'after', recipeAfter: normalized, recipeId: previous.id, delayMs: 350 });
+    } catch (err) {
+      console.error('Assistant apply error:', err);
+      pushNotice({ type: 'error', message: 'Forslaget kunne ikke anvendes.', autoHideMs: 6000 });
+    }
+  };
+
   const handleSmartAdjust = async (recipe: Recipe, instruction: string) => {
     const startedAt = Date.now();
     const observerUserState = getObserverUserState();
@@ -2160,8 +2192,9 @@ export default function App() {
       )}
 
 
+        <Suspense fallback={<ViewFallback />}>
         {currentView === 'home' && (
-        <HomeView 
+        <HomeView
           activeRecipe={activeRecipe} 
           recentRecipes={savedRecipes.filter(r => r.lastUsed).sort((a, b) => new Date(b.lastUsed!).getTime() - new Date(a.lastUsed!).getTime())}
           totalRecipes={savedRecipes.length}
@@ -2263,6 +2296,8 @@ export default function App() {
           onDelete={() => handleDeleteRecipe(viewingRecipe.id)}
           onToggleFavorite={handleToggleFavorite}
           onSmartAdjust={handleSmartAdjust}
+          onApplyAssistantProposal={handleApplyAssistantProposal}
+          userLevel={userLevel}
           onGenerateSteps={handleGenerateSteps}
           onFillRest={handleFillRest}
           onPolishIngredients={handlePolishIngredients}
@@ -2346,6 +2381,7 @@ export default function App() {
           aiDisabledReason={aiDisabledReason}
         />
       )}
+      </Suspense>
       </main>
 
 

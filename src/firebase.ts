@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
+import type { Analytics } from 'firebase/analytics';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot, query, where, deleteDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -26,12 +26,25 @@ export const db = typedFirebaseConfig.firestoreDatabaseId
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
-export const analyticsPromise: Promise<Analytics | null> =
-  typeof window !== 'undefined' && typeof document !== 'undefined' && Boolean(typedFirebaseConfig.measurementId)
-    ? isSupported()
-        .then((supported) => (supported ? getAnalytics(app) : null))
-        .catch(() => null)
-    : Promise.resolve(null);
+// Analytics is imported lazily so firebase/analytics is not paid for in the
+// initial bootstrap bundle. The promise is materialised only on first call to
+// getAnalyticsInstance() (which is currently unused by the app but kept for
+// optional future wiring — trackEvent() posts to /api/events instead).
+let analyticsPromiseCache: Promise<Analytics | null> | null = null;
+export function getAnalyticsInstance(): Promise<Analytics | null> {
+  if (analyticsPromiseCache) return analyticsPromiseCache;
+  if (typeof window === 'undefined' || typeof document === 'undefined' || !typedFirebaseConfig.measurementId) {
+    analyticsPromiseCache = Promise.resolve(null);
+    return analyticsPromiseCache;
+  }
+  analyticsPromiseCache = import('firebase/analytics')
+    .then(async ({ getAnalytics, isSupported }) => {
+      const supported = await isSupported();
+      return supported ? getAnalytics(app) : null;
+    })
+    .catch(() => null);
+  return analyticsPromiseCache;
+}
 
 export { signInWithPopup, signOut, onAuthStateChanged };
 

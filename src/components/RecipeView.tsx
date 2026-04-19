@@ -1,6 +1,7 @@
 ﻿import { Recipe, Ingredient, Step, Folder as FolderType } from '../types';
-import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle, Share2 } from 'lucide-react';
+import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle, Share2, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { RecipeAssistant } from './RecipeAssistant';
 import { motion } from 'framer-motion';
 import { DEFAULT_RECIPE_CATEGORIES, COMMON_INGREDIENT_SUGGESTIONS, COMMON_RECIPE_UNITS } from '../config/recipeEditorOptions';
 import { RECIPE_PRINT_STYLES } from '../config/recipePrintStyles';
@@ -32,6 +33,7 @@ interface RecipeViewProps {
   onDelete: () => void;
   onToggleFavorite: (recipe: Recipe) => void;
   onSmartAdjust: (recipe: Recipe, instruction: string) => void;
+  onApplyAssistantProposal?: (previous: Recipe, proposed: Recipe) => void;
   onGenerateSteps?: (recipe: Recipe) => void;
   onFillRest?: (recipe: Recipe) => void;
   onPolishIngredients?: (recipe: Recipe) => void;
@@ -47,9 +49,10 @@ interface RecipeViewProps {
   aiDisabledReason?: string | null;
   initialEditMode?: boolean;
   currentUser?: any;
+  userLevel?: string;
 }
 
-export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onGenerateSteps, onFillRest, onPolishIngredients, onPolishSteps, onSuggestTags, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, activeAiAction, error, aiDisabledReason, initialEditMode = false, currentUser }: RecipeViewProps) {
+export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, onBack, onForward, hasForward, onStartCook, onSave, onDelete, onToggleFavorite, onSmartAdjust, onApplyAssistantProposal, onGenerateSteps, onFillRest, onPolishIngredients, onPolishSteps, onSuggestTags, onGenerateTips, onEstimateNutrition, onApplyPrefix, onUndoAI, isAdjusting, activeAiAction, error, aiDisabledReason, initialEditMode = false, currentUser, userLevel }: RecipeViewProps) {
   const [scale, setScale] = useState(1);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [editData, setEditData] = useState<Recipe>(recipe);
@@ -92,6 +95,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showTipsModal, setShowTipsModal] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [editPermissionConfirmed, setEditPermissionConfirmed] = useState(false);
   const [folderConfirmationError, setFolderConfirmationError] = useState<string | null>(null);
@@ -950,6 +954,16 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </button>
           )}
           {canMutateRecipe && (
+            <button
+              onClick={() => setShowAssistant(true)}
+              className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5"
+              title="Assistent"
+              disabled={isAdjusting}
+            >
+              <span className="cm-nav-icon"><Sparkles size={16} /></span>
+            </button>
+          )}
+          {canMutateRecipe && (
             <button onClick={() => setIsEditing(true)} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title="Rediger">
               <span className="cm-nav-icon"><Edit3 size={16} /></span>
             </button>
@@ -1762,7 +1776,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </div>
             )}
 
-            <button 
+            <button
               onClick={() => {
                 commitFolderSave(null);
               }}
@@ -1773,6 +1787,23 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           </div>
         </div>
       )}
+
+      {/* Phase C C0: Recipe-scoped assistant-surface */}
+      <RecipeAssistant
+        open={showAssistant && canMutateRecipe}
+        onClose={() => setShowAssistant(false)}
+        recipe={recipe}
+        onApply={(proposed) => {
+          // Behold → commit the already-computed proposal. App-level handler
+          // registers the undo snapshot and normalises the recipe; no extra
+          // AI roundtrip happens on accept.
+          if (onApplyAssistantProposal) {
+            onApplyAssistantProposal(recipe, proposed);
+          }
+        }}
+        aiDisabledReason={aiDisabledReason}
+        userLevel={userLevel}
+      />
     </div>
   );
 }
