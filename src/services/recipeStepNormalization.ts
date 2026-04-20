@@ -248,7 +248,15 @@ export function normalizeRecipeForCookMode(recipe: Recipe): Recipe {
   // Rescue qualitative phrases ("efter smag", "en klat per portion", "valgfrit"…)
   // that the AI mis-placed into unit/amount. Runs on every load/save path so
   // existing broken records heal on next open.
-  const ingredients = rawIngredients.map((ingredient) => normalizeIngredientAmountShape(ingredient));
+  // Ensure every ingredient carries a stable id — AI responses routinely
+  // drop ids, which later surfaces as React duplicate-key warnings when
+  // child lists use `key={ing.id}` directly. Mirrors the step-id fallback
+  // below and the importers in recipeImportService / recipeDirectParser.
+  const ingredients = rawIngredients.map((ingredient, index) => {
+    const normalized = normalizeIngredientAmountShape(ingredient);
+    const existingId = typeof normalized.id === 'string' && normalized.id.trim() ? normalized.id : null;
+    return existingId ? normalized : { ...normalized, id: `ing-${index}` };
+  });
   const normalizedSteps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
   const steps = ensureOvenPreheatStep(normalizedSteps);
   const guides = buildHeatAndOvenGuides(steps);

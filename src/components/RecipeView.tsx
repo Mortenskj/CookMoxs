@@ -1,5 +1,5 @@
 ﻿import { Recipe, Ingredient, Step, Folder as FolderType } from '../types';
-import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle, Share2, Sparkles } from 'lucide-react';
+import { ChefHat, Heart, Printer, Save, ArrowLeft, ArrowRight, Clock, Flame, Info, AlertTriangle, Lightbulb, Edit3, Trash2, Plus, Minus, X, Lock, Unlock, Wand2, Loader2, Check, Folder, AlertCircle, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { RecipeAssistant } from './RecipeAssistant';
 import { motion } from 'framer-motion';
@@ -95,7 +95,6 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showTipsModal, setShowTipsModal] = useState(false);
-  const [showAssistant, setShowAssistant] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [editPermissionConfirmed, setEditPermissionConfirmed] = useState(false);
   const [folderConfirmationError, setFolderConfirmationError] = useState<string | null>(null);
@@ -954,16 +953,6 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             </button>
           )}
           {canMutateRecipe && (
-            <button
-              onClick={() => setShowAssistant(true)}
-              className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5"
-              title="Assistent"
-              disabled={isAdjusting}
-            >
-              <span className="cm-nav-icon"><Sparkles size={16} /></span>
-            </button>
-          )}
-          {canMutateRecipe && (
             <button onClick={() => setIsEditing(true)} className="cm-nav-item !min-h-0 !w-auto !gap-1 px-2.5 py-1.5" title="Rediger">
               <span className="cm-nav-icon"><Edit3 size={16} /></span>
             </button>
@@ -1788,15 +1777,13 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         </div>
       )}
 
-      {/* Phase C C0: Recipe-scoped assistant-surface */}
+      {/* Phase C C0: Recipe-scoped assistant-surface as floating toast.
+          Manages its own open/closed state via the floating bubble (mirrors
+          the Tips FAB pattern). Hidden entirely when the user can't mutate. */}
       <RecipeAssistant
-        open={showAssistant && canMutateRecipe}
-        onClose={() => setShowAssistant(false)}
+        enabled={canMutateRecipe}
         recipe={recipe}
         onApply={(proposed) => {
-          // Behold → commit the already-computed proposal. App-level handler
-          // registers the undo snapshot and normalises the recipe; no extra
-          // AI roundtrip happens on accept.
           if (onApplyAssistantProposal) {
             onApplyAssistantProposal(recipe, proposed);
           }

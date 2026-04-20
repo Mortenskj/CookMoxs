@@ -1795,8 +1795,20 @@ export default function App() {
   // assistant. Does not trigger another AI call — the assistant has already
   // run the mutation through aiService and is handing us the proposed recipe.
   const handleApplyAssistantProposal = (previous: Recipe, proposed: Recipe) => {
+    const startedAt = Date.now();
+    const observerUserState = getObserverUserState();
+    const inputSignature = buildRecipeObserverSignature(previous);
     try {
       setLastAiSnapshot({ previous, action: 'smart_adjust' });
+      queueAiCapture({ action: 'smart_adjust', phase: 'before', recipeBefore: previous, recipeId: previous.id });
+      recordObserverPipelineStage({
+        feature: 'smart_adjust',
+        stage: 'started',
+        userState: observerUserState,
+        recipeId: previous.id,
+        inputSignature,
+        note: 'assistant_apply',
+      });
       const normalized = normalizeRecipeForCookMode({
         ...proposed,
         id: previous.id,
@@ -1805,6 +1817,16 @@ export default function App() {
       setViewingRecipe(normalized);
       reportRecipeAssertions('smart_adjust', normalized);
       queueAiCapture({ action: 'smart_adjust', phase: 'after', recipeAfter: normalized, recipeId: previous.id, delayMs: 350 });
+      recordObserverPipelineStage({
+        feature: 'smart_adjust',
+        stage: 'completed',
+        userState: observerUserState,
+        recipeId: previous.id,
+        durationMs: Date.now() - startedAt,
+        inputSignature,
+        outputSignature: buildRecipeObserverSignature(normalized),
+        note: 'assistant_apply',
+      });
     } catch (err) {
       console.error('Assistant apply error:', err);
       pushNotice({ type: 'error', message: 'Forslaget kunne ikke anvendes.', autoHideMs: 6000 });
