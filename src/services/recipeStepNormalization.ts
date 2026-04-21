@@ -243,22 +243,58 @@ function ensureOvenPreheatStep(steps: Step[]) {
   return [preheatStep, ...steps];
 }
 
+// Enforce globally-unique ids in a list, preserving any existing good ids.
+// If an id is missing OR duplicates one already seen, deterministically
+// derive a suffixed / indexed id so downstream React keys can never collide
+// (observer assertion: duplicate-key warnings from AI / import payloads that
+// reuse step/ingredient ids).
+function assignUniqueId(
+  rawId: unknown,
+  fallback: string,
+  seen: Set<string>,
+): string {
+  const trimmed = typeof rawId === 'string' ? rawId.trim() : '';
+  let id = trimmed || fallback;
+  if (seen.has(id)) {
+    // Suffix deterministically; preserves stable id across re-normalization
+    // as long as list order doesn't change.
+    let suffix = 2;
+    while (seen.has(`${id}-${suffix}`)) suffix += 1;
+    id = `${id}-${suffix}`;
+  }
+  seen.add(id);
+  return id;
+}
+
 export function normalizeRecipeForCookMode(recipe: Recipe): Recipe {
   const rawIngredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   // Rescue qualitative phrases ("efter smag", "en klat per portion", "valgfrit"…)
   // that the AI mis-placed into unit/amount. Runs on every load/save path so
   // existing broken records heal on next open.
-  // Ensure every ingredient carries a stable id — AI responses routinely
-  // drop ids, which later surfaces as React duplicate-key warnings when
-  // child lists use `key={ing.id}` directly. Mirrors the step-id fallback
-  // below and the importers in recipeImportService / recipeDirectParser.
+  // Ensure every ingredient carries a stable AND unique id — AI responses
+  // routinely drop ids OR reuse the same id across groups, which surfaces as
+  // React duplicate-key warnings when child lists use `key={ing.id}` directly.
+  // Mirrors the step-id dedup below and the importers in recipeImportService /
+  // recipeDirectParser.
+  const seenIngredientIds = new Set<string>();
   const ingredients = rawIngredients.map((ingredient, index) => {
     const normalized = normalizeIngredientAmountShape(ingredient);
-    const existingId = typeof normalized.id === 'string' && normalized.id.trim() ? normalized.id : null;
-    return existingId ? normalized : { ...normalized, id: `ing-${index}` };
+    const uniqueId = assignUniqueId(normalized.id, `ing-${index}`, seenIngredientIds);
+    return normalized.id === uniqueId ? normalized : { ...normalized, id: uniqueId };
   });
   const normalizedSteps = (recipe.steps || []).map((step, index) => normalizeStep(step, ingredients, index));
-  const steps = ensureOvenPreheatStep(normalizedSteps);
+  const withPreheat = ensureOvenPreheatStep(normalizedSteps);
+
+  // Final pass: dedup step ids globally. `normalizeStep` falls back to
+  // `step-${index}` per original index, and `ensureOvenPreheatStep` prepends
+  // a fixed `step-oven-preheat` id — both can collide with existing ids on
+  // AI payloads, so we enforce uniqueness here as the last mile.
+  const seenStepIds = new Set<string>();
+  const steps = withPreheat.map((step, index) => {
+    const uniqueId = assignUniqueId(step.id, `step-${index}`, seenStepIds);
+    return step.id === uniqueId ? step : { ...step, id: uniqueId };
+  });
+
   const guides = buildHeatAndOvenGuides(steps);
 
   return {

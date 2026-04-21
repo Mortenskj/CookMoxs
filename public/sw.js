@@ -62,6 +62,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Non-navigation asset fetch (JS, CSS, image, font, JSON, …). On offline
+  // miss we must NOT fall back to '/' because that would deliver the HTML
+  // shell as if it were a JS/CSS asset, which the browser then fails to
+  // parse (observer: "Expected a JavaScript module script but the server
+  // responded with a MIME type of 'text/html'"). Order of precedence:
+  //   1. live network response
+  //   2. cached asset for the same request
+  //   3. synthetic 504 (empty) — lets the caller decide how to degrade.
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -71,6 +79,12 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/'))),
+      .catch(() => caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return new Response('', {
+          status: 504,
+          statusText: 'Gateway Timeout (offline, asset not cached)',
+        });
+      })),
   );
 });
