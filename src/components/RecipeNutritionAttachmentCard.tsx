@@ -578,8 +578,11 @@ export function RecipeNutritionAttachmentCard({
                     </p>
 
                     <ul className="cm-nutrition-source-list">
-                      {macroSourceItems.map((item) => (
-                        <li key={`${activeMacroTab}-${item.ingredientName}`} className="cm-nutrition-source-item rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2.5">
+                      {macroSourceItems.map((item, itemIdx) => (
+                        // Recipes legitimately reuse ingredient names across groups
+                        // (e.g. "løg" in both meatballs + sauce), so include the
+                        // index in the key to keep React happy.
+                        <li key={`${activeMacroTab}-${itemIdx}-${item.ingredientName}`} className="cm-nutrition-source-item rounded-xl bg-white/50 dark:bg-black/15 px-3 py-2.5">
                           <div className="cm-nutrition-source-item-row">
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-forest-dark cm-light-surface-ink truncate">{item.ingredientName}</p>

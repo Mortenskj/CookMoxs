@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Check, Undo2 } from 'lucide-react';
-import type { Recipe } from '../types';
+import { X, Send, Check, Undo2, Sparkles, Lightbulb } from 'lucide-react';
+import type { Recipe, Step, Ingredient } from '../types';
 import { BrandMark } from './BrandMark';
 import {
   adjustRecipe as aiAdjustRecipe,
@@ -14,6 +14,16 @@ import { normalizeAiActionError } from '../services/errorMessageService';
 // Phase C C0: Recipe-scoped assistant-surface.
 // Messenger-style floating toast. Reuses existing AI endpoints via aiService.
 // Output contract: no_change | proposal | answer | clarify | error.
+//
+// Design notes (batch 2026-04-21):
+// - Dark mode: deep forest base with a matte karry-yellow accent (not the
+//   heath-mid green that's used everywhere else) so the assistant reads as
+//   distinct. Light mode matches the Tips & Tricks surface: sand background,
+//   heath-mid accents.
+// - "Tips" is folded in as a tab so the surface doesn't proliferate FABs.
+// - Proposal deltas are now step-level concrete bullets (e.g. "Trin 4:
+//   omformuleret", "Nyt trin indsat efter trin 6", "Trin 7: timer ændret"),
+//   not just "11 → 12 trin".
 
 type ActionId =
   | 'adjust_ingredients'
@@ -40,11 +50,13 @@ type ViewState =
       action: ActionId;
       proposed: Recipe;
       summary: string;
-      delta: string[];
+      bullets: string[];
     }
   | { kind: 'answer'; text: string }
   | { kind: 'clarify'; question: string }
   | { kind: 'error'; message: string };
+
+type TabId = 'chat' | 'tips';
 
 interface RecipeAssistantProps {
   recipe: Recipe;
@@ -57,6 +69,8 @@ interface RecipeAssistantProps {
 
 const INSTRUCTION_DESCRIPTION =
   'Kig kun på titel, kort beskrivelse og eventuelle hints. Hold ingredienser og fremgangsmåde uændret, medmindre en formulering er direkte misvisende.';
+
+// ---------- normalization helpers ----------
 
 function normalizeString(input: unknown): string {
   if (typeof input !== 'string') return '';
@@ -81,60 +95,222 @@ function stepSignature(list: Recipe['steps']): string {
   return list.map((s) => normalizeString(s?.text)).join('\n');
 }
 
-function computeDelta(prev: Recipe, next: Recipe): string[] {
-  const delta: string[] = [];
-
-  if (normalizeString(prev.title) !== normalizeString(next.title)) {
-    delta.push('titel');
-  }
-  if (normalizeString(prev.summary) !== normalizeString(next.summary)) {
-    delta.push('beskrivelse');
-  }
-
-  const prevIng = Array.isArray(prev.ingredients) ? prev.ingredients : [];
-  const nextIng = Array.isArray(next.ingredients) ? next.ingredients : [];
-  if (ingredientSignature(prevIng) !== ingredientSignature(nextIng)) {
-    const added = nextIng.length - prevIng.length;
-    delta.push(
-      added === 0
-        ? `ingredienser (${nextIng.length} uændret antal, tekst justeret)`
-        : `ingredienser (${prevIng.length} → ${nextIng.length})`,
-    );
-  }
-
-  const prevSteps = Array.isArray(prev.steps) ? prev.steps : [];
-  const nextSteps = Array.isArray(next.steps) ? next.steps : [];
-  if (stepSignature(prevSteps) !== stepSignature(nextSteps)) {
-    const added = nextSteps.length - prevSteps.length;
-    delta.push(
-      added === 0
-        ? `fremgangsmåde (${nextSteps.length} trin, tekst justeret)`
-        : `fremgangsmåde (${prevSteps.length} → ${nextSteps.length} trin)`,
-    );
-  }
-
-  const prevCats = Array.isArray(prev.categories) ? prev.categories : [];
-  const nextCats = Array.isArray(next.categories) ? next.categories : [];
-  if (prevCats.slice().sort().join('|') !== nextCats.slice().sort().join('|')) {
-    delta.push('kategorier');
-  }
-
-  return delta;
+function truncate(text: string | undefined | null, max = 70): string {
+  if (!text) return '';
+  const str = text.trim();
+  if (str.length <= max) return str;
+  return str.slice(0, max - 1).trimEnd() + '…';
 }
 
-function buildProposalSummary(action: ActionId, delta: string[]): string {
-  if (delta.length === 0) return 'Ingen synlige ændringer';
-  const head = delta.slice(0, 3).join(', ');
-  const rest = delta.length > 3 ? ` +${delta.length - 3}` : '';
+// ---------- concrete delta computation ----------
+//
+// Returns a list of human-readable bullets that describe what the proposed
+// recipe actually changes, at step-level and ingredient-level granularity.
+// Previous version only said e.g. "fremgangsmåde (11 → 12 trin)" which did
+// not give the user enough to judge the change.
+
+interface StepChangeBullet {
+  // Used for stable ordering; not rendered.
+  sortKey: number;
+  text: string;
+}
+
+function describeHeatChange(prev: Step | undefined, next: Step | undefined): string | null {
+  const prevHeat = (prev?.heat || '').trim();
+  const nextHeat = (next?.heat || '').trim();
+  const prevLvl = prev?.heatLevel;
+  const nextLvl = next?.heatLevel;
+
+  const heatChanged = normalizeString(prevHeat) !== normalizeString(nextHeat);
+  const lvlChanged = (prevLvl ?? null) !== (nextLvl ?? null);
+
+  if (!heatChanged && !lvlChanged) return null;
+
+  if (prevHeat && nextHeat && heatChanged) {
+    return `varme: ${prevHeat} → ${nextHeat}`;
+  }
+  if (!prevHeat && nextHeat) return `varme tilføjet (${nextHeat})`;
+  if (prevHeat && !nextHeat) return `varme fjernet`;
+  if (lvlChanged) {
+    return `varmetrin ${prevLvl ?? '?'} → ${nextLvl ?? '?'}`;
+  }
+  return null;
+}
+
+function describeTimerChange(prev: Step | undefined, next: Step | undefined): string | null {
+  const p = prev?.timer;
+  const n = next?.timer;
+  if (!p && !n) return null;
+  if (!p && n) return `timer tilføjet (${n.duration} min)`;
+  if (p && !n) return `timer fjernet`;
+  if (p && n && p.duration !== n.duration) {
+    return `timer ${p.duration} → ${n.duration} min`;
+  }
+  return null;
+}
+
+function textChangeKind(prevText: string, nextText: string): 'unchanged' | 'rewrite' | 'tweak' {
+  const p = normalizeString(prevText);
+  const n = normalizeString(nextText);
+  if (p === n) return 'unchanged';
+  // Crude: if either string is a prefix/suffix of the other, call it a tweak
+  if (p.length > 0 && (n.startsWith(p) || p.startsWith(n))) return 'tweak';
+  if (p.length > 0 && n.includes(p.slice(0, Math.min(30, p.length)))) return 'tweak';
+  return 'rewrite';
+}
+
+function describeIngredientsDelta(prev: Ingredient[], next: Ingredient[]): string[] {
+  const bullets: string[] = [];
+  const prevByName = new Map<string, Ingredient>();
+  for (const ing of prev) {
+    const key = normalizeString(ing.name);
+    if (key && !prevByName.has(key)) prevByName.set(key, ing);
+  }
+  const nextByName = new Map<string, Ingredient>();
+  for (const ing of next) {
+    const key = normalizeString(ing.name);
+    if (key && !nextByName.has(key)) nextByName.set(key, ing);
+  }
+
+  const added: string[] = [];
+  const removed: string[] = [];
+  const modified: string[] = [];
+
+  for (const [name, nextIng] of nextByName.entries()) {
+    const prevIng = prevByName.get(name);
+    if (!prevIng) {
+      added.push(nextIng.name);
+      continue;
+    }
+    const amountChanged = String(prevIng.amount ?? '') !== String(nextIng.amount ?? '');
+    const unitChanged = normalizeString(prevIng.unit) !== normalizeString(nextIng.unit);
+    if (amountChanged || unitChanged) {
+      const prevAmt = prevIng.amount == null ? '—' : `${prevIng.amount}${prevIng.unit ? ' ' + prevIng.unit : ''}`;
+      const nextAmt = nextIng.amount == null ? '—' : `${nextIng.amount}${nextIng.unit ? ' ' + nextIng.unit : ''}`;
+      modified.push(`${nextIng.name}: ${prevAmt} → ${nextAmt}`);
+    }
+  }
+  for (const [name, prevIng] of prevByName.entries()) {
+    if (!nextByName.has(name)) removed.push(prevIng.name);
+  }
+
+  if (added.length) bullets.push(`Tilføjer: ${added.slice(0, 4).join(', ')}${added.length > 4 ? ` +${added.length - 4}` : ''}`);
+  if (removed.length) bullets.push(`Fjerner: ${removed.slice(0, 4).join(', ')}${removed.length > 4 ? ` +${removed.length - 4}` : ''}`);
+  for (const m of modified.slice(0, 6)) bullets.push(m);
+  if (modified.length > 6) bullets.push(`+${modified.length - 6} mængde-justeringer`);
+
+  return bullets;
+}
+
+function describeStepsDelta(prev: Step[], next: Step[]): string[] {
+  const bullets: StepChangeBullet[] = [];
+
+  const countDelta = next.length - prev.length;
+
+  // Pair by index first, then mark tail as pure adds/removes. This is good
+  // enough for small (<20 step) recipes and gives concrete bullets per trin
+  // which is what the user asked for. Split/merge detection is intentionally
+  // simple: if count increased by 1 we assume the new step was inserted.
+  const commonLen = Math.min(prev.length, next.length);
+  for (let i = 0; i < commonLen; i += 1) {
+    const p = prev[i];
+    const n = next[i];
+    const heatBit = describeHeatChange(p, n);
+    const timerBit = describeTimerChange(p, n);
+    const textKind = textChangeKind(p.text || '', n.text || '');
+
+    if (textKind === 'unchanged' && !heatBit && !timerBit) continue;
+
+    const parts: string[] = [];
+    if (textKind === 'rewrite') {
+      parts.push(`omformuleret → "${truncate(n.text, 60)}"`);
+    } else if (textKind === 'tweak') {
+      parts.push(`mindre sproglig justering`);
+    }
+    if (heatBit) parts.push(heatBit);
+    if (timerBit) parts.push(timerBit);
+    bullets.push({ sortKey: i, text: `Trin ${i + 1}: ${parts.join(' · ')}` });
+  }
+
+  if (countDelta > 0) {
+    // New steps at the tail
+    for (let i = prev.length; i < next.length; i += 1) {
+      bullets.push({
+        sortKey: i,
+        text: `Nyt trin ${i + 1}: "${truncate(next[i].text, 60)}"`,
+      });
+    }
+  } else if (countDelta < 0) {
+    for (let i = next.length; i < prev.length; i += 1) {
+      bullets.push({
+        sortKey: i,
+        text: `Fjerner trin ${i + 1}: "${truncate(prev[i].text, 60)}"`,
+      });
+    }
+  }
+
+  bullets.sort((a, b) => a.sortKey - b.sortKey);
+  return bullets.map((b) => b.text);
+}
+
+function describeRecipeDelta(prev: Recipe, next: Recipe, action: ActionId): {
+  bullets: string[];
+  summary: string;
+} {
+  const bullets: string[] = [];
+  const prevIng = Array.isArray(prev.ingredients) ? prev.ingredients : [];
+  const nextIng = Array.isArray(next.ingredients) ? next.ingredients : [];
+  const prevSteps = Array.isArray(prev.steps) ? prev.steps : [];
+  const nextSteps = Array.isArray(next.steps) ? next.steps : [];
+
+  // Title
+  if (normalizeString(prev.title) !== normalizeString(next.title)) {
+    bullets.push(`Titel: "${truncate(prev.title, 40)}" → "${truncate(next.title, 40)}"`);
+  }
+
+  // Summary
+  if (normalizeString(prev.summary) !== normalizeString(next.summary)) {
+    bullets.push(`Beskrivelse omformuleret`);
+  }
+
+  // Ingredients
+  if (ingredientSignature(prevIng) !== ingredientSignature(nextIng)) {
+    const ingBullets = describeIngredientsDelta(prevIng, nextIng);
+    if (ingBullets.length) {
+      bullets.push(...ingBullets.map((b) => `Ingredienser: ${b}`));
+    } else {
+      bullets.push(`Ingredienser: tekst justeret`);
+    }
+  }
+
+  // Steps
+  if (stepSignature(prevSteps) !== stepSignature(nextSteps)
+      || prevSteps.length !== nextSteps.length
+      || prevSteps.some((p, i) => {
+        const n = nextSteps[i];
+        return !!describeHeatChange(p, n) || !!describeTimerChange(p, n);
+      })) {
+    const stepBullets = describeStepsDelta(prevSteps, nextSteps);
+    if (stepBullets.length) bullets.push(...stepBullets);
+  }
+
+  // Categories
+  const prevCats = Array.isArray(prev.categories) ? prev.categories.slice().sort().join('|') : '';
+  const nextCats = Array.isArray(next.categories) ? next.categories.slice().sort().join('|') : '';
+  if (prevCats !== nextCats) bullets.push('Kategorier opdateret');
+
+  // Summary line
   const prefix =
     action === 'adjust_ingredients'
-      ? 'Forslag til ingredienser'
+      ? 'Jeg vil tilpasse ingredienserne'
       : action === 'adjust_steps'
-        ? 'Forslag til fremgangsmåde'
+        ? 'Jeg vil tilpasse fremgangsmåden'
         : action === 'adjust_description'
-          ? 'Forslag til beskrivelse'
-          : 'Forslag';
-  return `${prefix}: ${head}${rest}`;
+          ? 'Jeg vil tilpasse beskrivelsen'
+          : 'Jeg har et forslag';
+  const summary = bullets.length === 0 ? 'Ingen synlige ændringer' : `${prefix}:`;
+
+  return { bullets, summary };
 }
 
 function reasonForNoChange(action: ActionId): string {
@@ -167,6 +343,8 @@ function loadingLabelFor(action: ActionId): string {
   }
 }
 
+// ---------- component ----------
+
 export function RecipeAssistant({
   recipe,
   onApply,
@@ -175,6 +353,7 @@ export function RecipeAssistant({
   enabled = true,
 }: RecipeAssistantProps) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<TabId>('chat');
   const [view, setView] = useState<ViewState>({ kind: 'idle' });
   const [freeText, setFreeText] = useState('');
 
@@ -190,6 +369,7 @@ export function RecipeAssistant({
   }, [open]);
   useEffect(() => {
     setView({ kind: 'idle' });
+    setTab('chat');
     setOpen(false);
   }, [recipe.id]);
 
@@ -269,8 +449,8 @@ export function RecipeAssistant({
           return;
         }
 
-        const delta = computeDelta(recipe, proposed);
-        if (delta.length === 0) {
+        const { bullets, summary } = describeRecipeDelta(recipe, proposed, action);
+        if (bullets.length === 0) {
           setView({ kind: 'no_change', action, reason: reasonForNoChange(action) });
           return;
         }
@@ -278,8 +458,8 @@ export function RecipeAssistant({
           kind: 'proposal',
           action,
           proposed,
-          summary: buildProposalSummary(action, delta),
-          delta,
+          summary,
+          bullets,
         });
       } catch (error) {
         const normalized = normalizeAiActionError(
@@ -315,11 +495,11 @@ export function RecipeAssistant({
   if (!enabled) return null;
 
   const isBusy = view.kind === 'loading';
+  const recipeTips = Array.isArray(recipe.tipsAndTricks) ? recipe.tipsAndTricks : [];
 
   return (
     <>
-      {/* Floating bubble — messenger FAB pattern, draggable so it can be
-          moved out of the way. Uses the CookMoxs BrandMark as identity. */}
+      {/* Floating bubble — toggles the panel open/closed (both directions). */}
       <motion.div
         drag
         dragConstraints={
@@ -343,17 +523,17 @@ export function RecipeAssistant({
             'relative w-12 h-12 rounded-full shadow-lg flex items-center justify-center',
             'transition-all duration-200 border',
             open
-              ? 'bg-[color:var(--theme-accent-mid)] text-white border-black/10 shadow-xl'
-              : 'bg-[color:var(--theme-light)]/95 dark:bg-[color:var(--theme-dark)]/90 text-[color:var(--theme-accent-dark)] dark:text-[color:var(--theme-accent-mid)] border-black/5 dark:border-white/10 hover:shadow-xl',
+              ? 'bg-heath-mid text-white border-black/10 shadow-xl dark:bg-[#C9A14A] dark:text-[#1A221E] dark:border-[#C9A14A]/60'
+              : 'bg-sand/95 text-heath-mid border-black/5 hover:bg-white hover:shadow-xl dark:bg-[#1A221E]/95 dark:text-[#D9B564] dark:border-[#C9A14A]/30 dark:hover:bg-[#1f2a24]',
           ].join(' ')}
-          aria-label={open ? 'Luk CookMoxs-assistent' : 'Åbn CookMoxs-assistent'}
+          aria-label={open ? 'Minimer CookMoxs-assistent' : 'Åbn CookMoxs-assistent'}
           aria-expanded={open}
         >
-          <BrandMark size={24} className="drop-shadow-sm" />
+          <BrandMark size={40} className="drop-shadow-sm" />
           {isBusy && (
             <span
               aria-hidden="true"
-              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[color:var(--theme-accent-mid)] ring-2 ring-[color:var(--theme-light)] animate-pulse"
+              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-heath-mid dark:bg-[#C9A14A] ring-2 ring-sand dark:ring-[#1A221E] animate-pulse"
             />
           )}
         </button>
@@ -367,203 +547,248 @@ export function RecipeAssistant({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="fixed right-3 sm:right-4 bottom-[6.5rem] sm:bottom-[7.5rem] z-40 w-[min(20rem,calc(100vw-1.5rem))] print:hidden"
+            className="fixed right-3 sm:right-4 bottom-[6.5rem] sm:bottom-[7.5rem] z-40 w-[min(22rem,calc(100vw-1.5rem))] print:hidden"
             role="dialog"
             aria-label="CookMoxs-assistent"
           >
-            <div className="rounded-[1.25rem] overflow-hidden shadow-2xl border border-black/10 dark:border-white/10 backdrop-blur-xl bg-[color:var(--theme-light)]/92 dark:bg-[color:var(--theme-dark)]/92">
-              {/* Header — messenger-style compact */}
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-black/5 dark:border-white/10 bg-[color:var(--theme-accent-mid)]/8 dark:bg-[color:var(--theme-accent-mid)]/14">
-                <div className="w-7 h-7 rounded-full bg-[color:var(--theme-accent-mid)]/15 text-[color:var(--theme-accent-dark)] dark:text-[color:var(--theme-accent-mid)] flex items-center justify-center">
-                  <BrandMark size={16} />
+            <div className="rounded-[1.5rem] overflow-hidden shadow-2xl border border-black/10 dark:border-[#C9A14A]/25 backdrop-blur-xl bg-sand/95 dark:bg-[#1A221E]/95">
+              {/* Header */}
+              <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03]">
+                <div className="w-8 h-8 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center shadow-sm">
+                  <BrandMark size={28} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[color:var(--theme-mid)] cm-light-surface-ink-muted leading-none mb-0.5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-forest-mid cm-light-surface-ink-muted dark:text-[#E2C06E] leading-none mb-0.5">
                     Assistent
                   </div>
-                  <div className="text-[11px] text-[color:var(--theme-mid)]/80 cm-light-surface-ink-muted truncate italic leading-tight">
+                  <div className="text-[11px] text-forest-mid/85 dark:text-white/65 truncate italic leading-tight">
                     {recipe.title || 'Opskrift'}
                   </div>
                 </div>
                 <button
                   onClick={close}
-                  className="p-1.5 rounded-full text-[color:var(--theme-mid)] cm-light-surface-icon hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                  aria-label="Luk"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-forest-dark hover:bg-black/10 transition-colors dark:text-[#E2C06E] dark:hover:bg-[#C9A14A]/15 border border-transparent dark:hover:border-[#C9A14A]/30"
+                  aria-label="Minimer"
+                  title="Minimer"
                 >
-                  <X size={14} />
+                  <X size={16} strokeWidth={2.5} />
                 </button>
               </div>
 
-              {/* Chat transcript */}
-              <div className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2.5">
-                {aiDisabled && (
-                  <div className="rounded-2xl border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-amber-900 text-[12px]">
-                    {aiDisabledReason || 'AI er ikke tilgængelig lige nu.'}
-                  </div>
-                )}
-
-                {/* Intro bubble — always shown so the panel feels like a chat */}
-                <AssistantBubble>
-                  Hvad kan jeg hjælpe med på <span className="italic">{recipe.title || 'denne opskrift'}</span>?
-                </AssistantBubble>
-
-                {view.kind === 'idle' && (
-                  <div className="flex flex-wrap gap-1.5 pl-8">
-                    {starters.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          if (!s.available) return;
-                          void dispatch(s.id);
-                        }}
-                        disabled={!s.available}
-                        title={!s.available ? s.disabledReason : s.hint}
-                        className={[
-                          'text-[12px] rounded-full px-3 py-1.5 border transition-colors',
-                          s.available
-                            ? 'border-[color:var(--theme-accent-mid)]/30 bg-white/60 dark:bg-white/5 text-[color:var(--theme-dark)] cm-light-surface-ink hover:bg-[color:var(--theme-accent-mid)]/12 hover:border-[color:var(--theme-accent-mid)]/50'
-                            : 'border-black/5 dark:border-white/10 bg-transparent opacity-45 cursor-not-allowed',
-                        ].join(' ')}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {view.kind === 'loading' && <TypingIndicator label={`${view.label}…`} />}
-
-                {view.kind === 'no_change' && (
-                  <>
-                    <AssistantBubble>
-                      <div className="font-bold mb-0.5 text-[12px]">Ingen ændring anbefales</div>
-                      <div className="italic opacity-80">{view.reason}</div>
-                    </AssistantBubble>
-                    <div className="pl-8">
-                      <button
-                        onClick={() => setView({ kind: 'idle' })}
-                        className="text-[12px] rounded-full border border-black/10 dark:border-white/15 px-3 py-1 text-[color:var(--theme-dark)] cm-light-surface-ink hover:bg-white/50 dark:hover:bg-white/5"
-                      >
-                        Tilbage
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {view.kind === 'proposal' && (
-                  <>
-                    <AssistantBubble>
-                      <div className="font-bold text-[12px] mb-1">{view.summary}</div>
-                      <ul className="text-[11px] opacity-80 list-disc pl-4 space-y-0.5">
-                        {view.delta.map((d, idx) => (
-                          <li key={idx}>{d}</li>
-                        ))}
-                      </ul>
-                    </AssistantBubble>
-
-                    <div className="pl-8">
-                      <ProposalDiff prev={recipe} next={view.proposed} />
-                    </div>
-
-                    <div className="flex gap-1.5 pl-8 pt-0.5">
-                      <button
-                        onClick={handleDiscard}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-black/10 dark:border-white/15 px-3 py-1.5 text-[12px] font-bold text-[color:var(--theme-dark)] cm-light-surface-ink hover:bg-white/50 dark:hover:bg-white/5"
-                      >
-                        <Undo2 size={12} />
-                        Fortryd
-                      </button>
-                      <button
-                        onClick={handleApply}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[color:var(--theme-accent-mid)] text-white text-[12px] font-bold px-3 py-1.5 hover:bg-[color:var(--theme-accent-dark)] transition-colors"
-                      >
-                        <Check size={12} />
-                        Behold
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {view.kind === 'clarify' && (
-                  <>
-                    <AssistantBubble>{view.question}</AssistantBubble>
-                    <div className="pl-8">
-                      <button
-                        onClick={() => setView({ kind: 'idle' })}
-                        className="text-[12px] rounded-full border border-black/10 dark:border-white/15 px-3 py-1 text-[color:var(--theme-dark)] cm-light-surface-ink hover:bg-white/50 dark:hover:bg-white/5"
-                      >
-                        Tilbage
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {view.kind === 'answer' && (
-                  <>
-                    <AssistantBubble>
-                      <div className="whitespace-pre-wrap">{view.text}</div>
-                    </AssistantBubble>
-                    <div className="pl-8">
-                      <button
-                        onClick={() => setView({ kind: 'idle' })}
-                        className="text-[12px] rounded-full border border-black/10 dark:border-white/15 px-3 py-1 text-[color:var(--theme-dark)] cm-light-surface-ink hover:bg-white/50 dark:hover:bg-white/5"
-                      >
-                        Tilbage
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {view.kind === 'error' && (
-                  <>
-                    <div className="flex items-start gap-1.5">
-                      <div className="w-6 h-6 shrink-0 rounded-full bg-red-100 text-red-700 flex items-center justify-center mt-0.5">
-                        <BrandMark size={12} />
-                      </div>
-                      <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-red-50 border border-red-200/70 px-3 py-2 text-[12px] text-red-900">
-                        {view.message}
-                      </div>
-                    </div>
-                    <div className="pl-8">
-                      <button
-                        onClick={() => setView({ kind: 'idle' })}
-                        className="text-[12px] rounded-full border border-black/10 dark:border-white/15 px-3 py-1 text-[color:var(--theme-dark)] cm-light-surface-ink hover:bg-white/50 dark:hover:bg-white/5"
-                      >
-                        Tilbage
-                      </button>
-                    </div>
-                  </>
-                )}
+              {/* Tab strip */}
+              <div
+                role="tablist"
+                aria-label="Assistent-faner"
+                className="flex border-b border-black/5 dark:border-white/10 bg-white/20 dark:bg-black/20"
+              >
+                <TabButton
+                  active={tab === 'chat'}
+                  onClick={() => setTab('chat')}
+                  icon={<Sparkles size={13} />}
+                  label="Forslag"
+                />
+                <TabButton
+                  active={tab === 'tips'}
+                  onClick={() => setTab('tips')}
+                  icon={<Lightbulb size={13} />}
+                  label={`Tips${recipeTips.length ? ` (${recipeTips.length})` : ''}`}
+                />
               </div>
+
+              {/* Body */}
+              {tab === 'chat' ? (
+                <div className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2.5">
+                  {aiDisabled && (
+                    <div className="rounded-2xl border border-amber-200/70 bg-amber-50/90 dark:bg-amber-950/40 dark:border-amber-700/50 px-3 py-2 text-amber-900 dark:text-amber-200 text-[12px]">
+                      {aiDisabledReason || 'AI er ikke tilgængelig lige nu.'}
+                    </div>
+                  )}
+
+                  {/* Intro bubble */}
+                  <AssistantBubble>
+                    Hvad kan jeg hjælpe med på{' '}
+                    <span className="italic">{recipe.title || 'denne opskrift'}</span>?
+                  </AssistantBubble>
+
+                  {view.kind === 'idle' && (
+                    <div className="flex flex-wrap gap-1.5 pl-8">
+                      {starters.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            if (!s.available) return;
+                            void dispatch(s.id);
+                          }}
+                          disabled={!s.available}
+                          title={!s.available ? s.disabledReason : s.hint}
+                          className={[
+                            'text-[12px] font-medium rounded-full px-3 py-1.5 border transition-all duration-150',
+                            s.available
+                              ? 'bg-white/80 dark:bg-[#223029]/80 border-heath-mid/30 dark:border-[#C9A14A]/30 text-forest-dark dark:text-[#F0D997] hover:bg-heath-mid hover:text-white hover:border-heath-mid dark:hover:bg-[#C9A14A] dark:hover:text-[#1A221E] dark:hover:border-[#C9A14A] hover:shadow-md active:scale-[0.97]'
+                              : 'bg-transparent border-black/5 dark:border-white/10 opacity-45 cursor-not-allowed text-forest-mid dark:text-white/40',
+                          ].join(' ')}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {view.kind === 'loading' && <TypingIndicator label={`${view.label}…`} />}
+
+                  {view.kind === 'no_change' && (
+                    <>
+                      <AssistantBubble>
+                        <div className="font-bold mb-0.5 text-[12px]">
+                          Ingen ændring anbefales
+                        </div>
+                        <div className="italic opacity-80">{view.reason}</div>
+                      </AssistantBubble>
+                      <div className="pl-8">
+                        <GhostButton onClick={() => setView({ kind: 'idle' })}>
+                          Tilbage
+                        </GhostButton>
+                      </div>
+                    </>
+                  )}
+
+                  {view.kind === 'proposal' && (
+                    <>
+                      <AssistantBubble>
+                        <div className="font-bold text-[12px] mb-1.5">{view.summary}</div>
+                        <ul className="text-[11.5px] leading-snug opacity-90 space-y-1">
+                          {view.bullets.map((b, idx) => (
+                            <li key={idx} className="flex gap-1.5">
+                              <span className="text-heath-mid dark:text-[#C9A14A] font-bold mt-0.5 shrink-0">
+                                •
+                              </span>
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </AssistantBubble>
+
+                      <div className="pl-8 flex gap-1.5 pt-0.5">
+                        <button
+                          onClick={handleDiscard}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-black/15 dark:border-white/20 px-3 py-1.5 text-[12px] font-bold text-forest-dark dark:text-white/80 hover:bg-white/70 dark:hover:bg-white/10 transition-colors active:scale-[0.97]"
+                        >
+                          <Undo2 size={12} />
+                          Fortryd
+                        </button>
+                        <button
+                          onClick={handleApply}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] text-[12px] font-bold px-3 py-1.5 hover:bg-heath-dark dark:hover:bg-[#D9B564] transition-colors active:scale-[0.97] shadow-sm"
+                        >
+                          <Check size={12} />
+                          Behold
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {view.kind === 'clarify' && (
+                    <>
+                      <AssistantBubble>{view.question}</AssistantBubble>
+                      <div className="pl-8">
+                        <GhostButton onClick={() => setView({ kind: 'idle' })}>
+                          Tilbage
+                        </GhostButton>
+                      </div>
+                    </>
+                  )}
+
+                  {view.kind === 'answer' && (
+                    <>
+                      <AssistantBubble>
+                        <div className="whitespace-pre-wrap">{view.text}</div>
+                      </AssistantBubble>
+                      <div className="pl-8">
+                        <GhostButton onClick={() => setView({ kind: 'idle' })}>
+                          Tilbage
+                        </GhostButton>
+                      </div>
+                    </>
+                  )}
+
+                  {view.kind === 'error' && (
+                    <>
+                      <div className="flex items-start gap-1.5">
+                        <div className="w-6 h-6 shrink-0 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 flex items-center justify-center mt-0.5">
+                          <BrandMark size={20} />
+                        </div>
+                        <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-700/40 px-3 py-2 text-[12px] text-red-900 dark:text-red-200">
+                          {view.message}
+                        </div>
+                      </div>
+                      <div className="pl-8">
+                        <GhostButton onClick={() => setView({ kind: 'idle' })}>
+                          Tilbage
+                        </GhostButton>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* Tips tab */
+                <div className="max-h-[52vh] overflow-y-auto px-3 py-3">
+                  {recipeTips.length === 0 ? (
+                    <div className="text-center py-6 text-forest-mid dark:text-white/60 italic text-[12px]">
+                      <p className="mb-1">Ingen tips endnu på denne opskrift.</p>
+                      <p className="opacity-70 text-[11px]">
+                        Brug “Ret hele opskriften” eller knappen på opskriftsiden til at
+                        generere tips.
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {recipeTips.map((tip, idx) => (
+                        <li
+                          key={idx}
+                          className="rounded-xl bg-white/60 dark:bg-[#223029]/60 border border-black/5 dark:border-[#C9A14A]/20 px-3 py-2 text-[12px] leading-snug text-forest-dark dark:text-white/85 flex gap-2"
+                        >
+                          <Lightbulb
+                            size={13}
+                            className="shrink-0 mt-0.5 text-heath-mid dark:text-[#C9A14A]"
+                          />
+                          <span className="italic">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
 
               {/* Composer — messenger-style */}
-              <div className="px-2.5 py-2 border-t border-black/5 dark:border-white/10 bg-white/30 dark:bg-white/[0.03]">
-                <div className="flex items-end gap-1.5">
-                  <textarea
-                    value={freeText}
-                    onChange={(e) => setFreeText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendFreeText();
-                      }
-                    }}
-                    placeholder="Skriv til assistenten…"
-                    rows={1}
-                    disabled={aiDisabled || isBusy}
-                    className="flex-1 resize-none rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/20 px-3 py-1.5 text-[12px] leading-snug text-[color:var(--theme-dark)] cm-light-surface-ink placeholder-[color:var(--theme-mid)]/50 focus:outline-none focus:border-[color:var(--theme-accent-mid)]/60 disabled:opacity-50"
-                    style={{ maxHeight: '5.5rem' }}
-                  />
-                  <button
-                    onClick={handleSendFreeText}
-                    disabled={!freeText.trim() || aiDisabled || isBusy}
-                    className="shrink-0 w-8 h-8 rounded-full bg-[color:var(--theme-accent-mid)] text-white flex items-center justify-center disabled:opacity-35 disabled:cursor-not-allowed hover:bg-[color:var(--theme-accent-dark)] transition-colors"
-                    aria-label="Send"
-                  >
-                    <Send size={13} />
-                  </button>
+              {tab === 'chat' && (
+                <div className="px-2.5 py-2 border-t border-black/5 dark:border-white/10 bg-white/30 dark:bg-black/30">
+                  <div className="flex items-end gap-1.5">
+                    <textarea
+                      value={freeText}
+                      onChange={(e) => setFreeText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendFreeText();
+                        }
+                      }}
+                      placeholder="Skriv til assistenten…"
+                      rows={1}
+                      disabled={aiDisabled || isBusy}
+                      className="flex-1 resize-none rounded-2xl border border-black/10 dark:border-[#C9A14A]/25 bg-white/80 dark:bg-[#223029]/80 px-3 py-1.5 text-[12px] leading-snug text-forest-dark dark:text-white/90 placeholder-forest-mid/50 dark:placeholder-white/30 focus:outline-none focus:border-heath-mid dark:focus:border-[#C9A14A] disabled:opacity-50"
+                      style={{ maxHeight: '5.5rem' }}
+                    />
+                    <button
+                      onClick={handleSendFreeText}
+                      disabled={!freeText.trim() || aiDisabled || isBusy}
+                      className="shrink-0 w-8 h-8 rounded-full bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] flex items-center justify-center disabled:opacity-35 disabled:cursor-not-allowed hover:bg-heath-dark dark:hover:bg-[#D9B564] transition-colors active:scale-[0.94] shadow-sm"
+                      aria-label="Send"
+                    >
+                      <Send size={13} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -572,13 +797,44 @@ export function RecipeAssistant({
   );
 }
 
-function AssistantBubble({ children }: { children: React.ReactNode }) {
+// ---------- small presentational pieces ----------
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={[
+        'flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors',
+        active
+          ? 'text-heath-mid dark:text-[#E2C06E] border-b-2 border-heath-mid dark:border-[#C9A14A] bg-white/40 dark:bg-white/[0.04]'
+          : 'text-forest-mid/70 dark:text-white/45 border-b-2 border-transparent hover:text-forest-dark dark:hover:text-[#E2C06E] hover:bg-white/30 dark:hover:bg-white/[0.02]',
+      ].join(' ')}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function AssistantBubble({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-start gap-1.5">
-      <div className="w-6 h-6 shrink-0 rounded-full bg-[color:var(--theme-accent-mid)]/15 text-[color:var(--theme-accent-dark)] dark:text-[color:var(--theme-accent-mid)] flex items-center justify-center mt-0.5">
-        <BrandMark size={12} />
+      <div className="w-6 h-6 shrink-0 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center mt-0.5">
+        <BrandMark size={20} />
       </div>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white/75 dark:bg-white/[0.06] border border-black/5 dark:border-white/10 px-3 py-2 text-[12px] leading-snug text-[color:var(--theme-dark)] cm-light-surface-ink">
+      <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white/85 dark:bg-[#223029]/85 border border-black/5 dark:border-[#C9A14A]/15 px-3 py-2 text-[12px] leading-snug text-forest-dark dark:text-white/90 shadow-sm">
         {children}
       </div>
     </div>
@@ -588,16 +844,16 @@ function AssistantBubble({ children }: { children: React.ReactNode }) {
 function TypingIndicator({ label }: { label: string }) {
   return (
     <div className="flex items-start gap-1.5" role="status" aria-live="polite">
-      <div className="w-6 h-6 shrink-0 rounded-full bg-[color:var(--theme-accent-mid)]/15 text-[color:var(--theme-accent-dark)] dark:text-[color:var(--theme-accent-mid)] flex items-center justify-center mt-0.5">
-        <BrandMark size={12} />
+      <div className="w-6 h-6 shrink-0 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center mt-0.5">
+        <BrandMark size={20} />
       </div>
-      <div className="rounded-2xl rounded-tl-md bg-white/75 dark:bg-white/[0.06] border border-black/5 dark:border-white/10 px-3 py-2 flex items-center gap-2">
+      <div className="rounded-2xl rounded-tl-md bg-white/85 dark:bg-[#223029]/85 border border-black/5 dark:border-[#C9A14A]/15 px-3 py-2 flex items-center gap-2 shadow-sm">
         <span className="flex items-end gap-[3px] h-3">
           <TypingDot delay={0} />
           <TypingDot delay={0.15} />
           <TypingDot delay={0.3} />
         </span>
-        <span className="text-[11px] italic text-[color:var(--theme-mid)] cm-light-surface-ink-muted">
+        <span className="text-[11px] italic text-forest-mid dark:text-white/70">
           {label}
         </span>
       </div>
@@ -608,72 +864,20 @@ function TypingIndicator({ label }: { label: string }) {
 function TypingDot({ delay }: { delay: number }) {
   return (
     <motion.span
-      className="w-1.5 h-1.5 rounded-full bg-[color:var(--theme-accent-mid)]"
+      className="w-1.5 h-1.5 rounded-full bg-heath-mid dark:bg-[#C9A14A]"
       animate={{ y: [0, -3, 0], opacity: [0.4, 1, 0.4] }}
       transition={{ duration: 0.9, repeat: Infinity, delay, ease: 'easeInOut' }}
     />
   );
 }
 
-function truncate(text: string | undefined | null, max = 120): string {
-  if (!text) return '';
-  const str = text.trim();
-  if (str.length <= max) return str;
-  return str.slice(0, max - 1).trimEnd() + '…';
-}
-
-function ProposalDiff({ prev, next }: { prev: Recipe; next: Recipe }) {
-  const showTitle = normalizeString(prev.title) !== normalizeString(next.title);
-  const showSummary = normalizeString(prev.summary) !== normalizeString(next.summary);
-  const prevIngCount = Array.isArray(prev.ingredients) ? prev.ingredients.length : 0;
-  const nextIngCount = Array.isArray(next.ingredients) ? next.ingredients.length : 0;
-  const showIng = ingredientSignature(prev.ingredients) !== ingredientSignature(next.ingredients);
-  const prevStepCount = Array.isArray(prev.steps) ? prev.steps.length : 0;
-  const nextStepCount = Array.isArray(next.steps) ? next.steps.length : 0;
-  const showSteps = stepSignature(prev.steps) !== stepSignature(next.steps);
-
-  if (!showTitle && !showSummary && !showIng && !showSteps) return null;
-
+function GhostButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <div className="rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03] px-2.5 py-2 space-y-2 text-[11px]">
-      {showTitle && <DiffRow label="Titel" before={prev.title} after={next.title} />}
-      {showSummary && (
-        <DiffRow label="Beskrivelse" before={truncate(prev.summary)} after={truncate(next.summary)} />
-      )}
-      {showIng && (
-        <DiffRow
-          label="Ingredienser"
-          before={`${prevIngCount} linjer`}
-          after={`${nextIngCount} linjer`}
-        />
-      )}
-      {showSteps && (
-        <DiffRow
-          label="Fremgangsmåde"
-          before={`${prevStepCount} trin`}
-          after={`${nextStepCount} trin`}
-        />
-      )}
-    </div>
-  );
-}
-
-function DiffRow({ label, before, after }: { label: string; before: string; after: string }) {
-  return (
-    <div>
-      <div className="font-bold uppercase tracking-[0.14em] text-[color:var(--theme-mid)] cm-light-surface-ink-muted text-[10px] mb-1">
-        {label}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        <div className="rounded-lg bg-black/5 dark:bg-white/5 px-2 py-1.5 text-[color:var(--theme-dark)] cm-light-surface-ink">
-          <div className="text-[9px] uppercase tracking-wider text-[color:var(--theme-mid)]/70 mb-0.5">Før</div>
-          {before || <span className="italic opacity-60">(tom)</span>}
-        </div>
-        <div className="rounded-lg bg-[color:var(--theme-accent-mid)]/10 px-2 py-1.5 text-[color:var(--theme-dark)] cm-light-surface-ink">
-          <div className="text-[9px] uppercase tracking-wider text-[color:var(--theme-accent-dark)] mb-0.5">Efter</div>
-          {after || <span className="italic opacity-60">(tom)</span>}
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={onClick}
+      className="text-[12px] rounded-full border border-black/15 dark:border-white/20 px-3 py-1 text-forest-dark dark:text-white/80 hover:bg-white/70 dark:hover:bg-white/10 transition-colors active:scale-[0.97]"
+    >
+      {children}
+    </button>
   );
 }
