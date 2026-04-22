@@ -1188,8 +1188,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         </div>
       )}
 
-      {/* Floating Tips Button */}
-      {recipeTips.length > 0 && (
+      {/* Floating Tips Button — hidden when the assistant owns the AI surface */}
+      {recipeTips.length > 0 && !assistantOwnsAi && (
         <motion.div
           drag
           dragConstraints={{ left: -window.innerWidth + 80, right: 0, top: -window.innerHeight/2 + 80, bottom: window.innerHeight/2 - 80 }}
@@ -1207,8 +1207,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
         </motion.div>
       )}
 
-      {/* Tips Modal */}
-      {showTipsModal && (
+      {/* Tips Modal — hidden when the assistant owns the AI surface */}
+      {showTipsModal && !assistantOwnsAi && (
         <div className="cm-dialog-backdrop fixed inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="cm-dialog-surface glass-brushed border border-black/5 dark:border-white/10 rounded-[3rem] p-6 sm:p-8 max-w-sm w-full shadow-2xl relative bg-sand/95 dark:bg-[#1A221E]/95 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button 

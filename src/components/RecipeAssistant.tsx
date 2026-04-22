@@ -26,6 +26,7 @@ import {
   polishSteps as aiPolishSteps,
   applyPrefix as aiApplyPrefix,
   generateTips as aiGenerateTips,
+  explainProposal as aiExplainProposal,
   AiRequestError,
 } from '../services/aiService';
 import { normalizeAiActionError } from '../services/errorMessageService';
@@ -60,6 +61,14 @@ type Section = 'home' | 'adjust' | 'variants';
 
 type TabId = 'chat' | 'tips';
 
+interface ProposalDiscussionEntry {
+  id: string;
+  question: string;
+  answer?: string;
+  pending?: boolean;
+  errored?: boolean;
+}
+
 type ViewState =
   | { kind: 'idle' }
   | { kind: 'loading'; action: ActionId; label: string }
@@ -70,6 +79,9 @@ type ViewState =
       proposed: Recipe;
       summary: string;
       bullets: string[];
+      // Threaded Q&A about THIS proposal. User can ask "why 900 min?" and
+      // get a short text answer without losing the Apply/Discard buttons.
+      discussion: ProposalDiscussionEntry[];
     }
   | { kind: 'answer'; text: string }
   | { kind: 'clarify'; question: string }
@@ -394,6 +406,7 @@ export function RecipeAssistant({
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const dragControls = useDragControls();
 
   const close = useCallback(() => setOpen(false), []);
@@ -429,6 +442,35 @@ export function RecipeAssistant({
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
+
+  // ESC closes the panel — standard dialog-shaped affordance.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  // Auto-scroll the chat body to the bottom whenever the view changes or a
+  // new discussion entry arrives so the user doesn't miss the latest reply.
+  const discussionLen =
+    view.kind === 'proposal' ? view.discussion.length : 0;
+  const lastDiscussionPending =
+    view.kind === 'proposal'
+      ? view.discussion[view.discussion.length - 1]?.pending ?? false
+      : false;
+  useEffect(() => {
+    if (!open) return;
+    const el = chatScrollRef.current;
+    if (!el) return;
+    // Use rAF so the DOM has flushed the new bubble before we measure.
+    const raf = requestAnimationFrame(() => {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open, view.kind, discussionLen, lastDiscussionPending]);
 
   const aiDisabled = Boolean(aiDisabledReason);
 
@@ -489,6 +531,7 @@ export function RecipeAssistant({
           proposed,
           summary,
           bullets,
+          discussion: [],
         });
       } catch (error) {
         const normalized = normalizeAiActionError(
@@ -521,12 +564,79 @@ export function RecipeAssistant({
     setView({ kind: 'idle' });
   }, []);
 
+  // When a proposal is on screen, the composer instead threads a short
+  // clarifying Q&A via /api/ai/explain-proposal — cheaper than re-running
+  // adjust, and the proposal stays editable so the user can Apply once the
+  // answer resolves the doubt.
+  const askAboutProposal = useCallback(
+    async (question: string) => {
+      setView((prev) => {
+        if (prev.kind !== 'proposal') return prev;
+        const entry: ProposalDiscussionEntry = {
+          id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          question,
+          pending: true,
+        };
+        return { ...prev, discussion: [...prev.discussion, entry] };
+      });
+      try {
+        const proposedSnapshot = view.kind === 'proposal' ? view.proposed : recipe;
+        const bulletsSnapshot = view.kind === 'proposal' ? view.bullets : [];
+        const answer = await aiExplainProposal(
+          recipe,
+          proposedSnapshot,
+          question,
+          bulletsSnapshot,
+        );
+        setView((prev) => {
+          if (prev.kind !== 'proposal') return prev;
+          return {
+            ...prev,
+            discussion: prev.discussion.map((entry) =>
+              entry.pending && entry.question === question
+                ? { ...entry, pending: false, answer: answer || 'Intet svar.' }
+                : entry,
+            ),
+          };
+        });
+      } catch (error) {
+        const normalized = normalizeAiActionError(
+          error instanceof AiRequestError ? error : error,
+        );
+        setView((prev) => {
+          if (prev.kind !== 'proposal') return prev;
+          return {
+            ...prev,
+            discussion: prev.discussion.map((entry) =>
+              entry.pending && entry.question === question
+                ? {
+                    ...entry,
+                    pending: false,
+                    errored: true,
+                    answer: normalized.message || 'Kunne ikke hente svar.',
+                  }
+                : entry,
+            ),
+          };
+        });
+      }
+    },
+    [recipe, view],
+  );
+
   const handleSendFreeText = useCallback(() => {
     const text = freeText.trim();
     if (!text) return;
+    // In the proposal view, route the composer to ask-about-proposal so the
+    // user can interrogate a suspicious proposal before applying it.
+    if (view.kind === 'proposal') {
+      void askAboutProposal(text);
+      setFreeText('');
+      return;
+    }
     void dispatch('adjust_all', { instruction: text });
     setFreeText('');
-  }, [dispatch, freeText]);
+  }, [askAboutProposal, dispatch, freeText, view]);
 
   if (!enabled) return null;
 
@@ -654,7 +764,12 @@ export function RecipeAssistant({
 
               {/* Body */}
               {tab === 'chat' ? (
-                <div className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2.5">
+                <div
+                  ref={chatScrollRef}
+                  aria-live="polite"
+                  aria-relevant="additions text"
+                  className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2.5"
+                >
                   {aiDisabled && (
                     <div className="rounded-2xl border border-amber-200/70 bg-amber-50/90 dark:bg-amber-950/40 dark:border-amber-700/50 px-3 py-2 text-amber-900 dark:text-amber-200 text-[12px]">
                       {aiDisabledReason || 'AI er ikke tilgængelig lige nu.'}
@@ -782,7 +897,33 @@ export function RecipeAssistant({
                             </li>
                           ))}
                         </ul>
+                        <div className="mt-2 text-[10.5px] italic opacity-60 leading-snug">
+                          Spørg mig hvis noget ser forkert ud — “hvorfor 900 min
+                          i stedet for 60?”. Forslaget ændres først når du
+                          trykker Behold.
+                        </div>
                       </AssistantBubble>
+
+                      {view.discussion.map((entry) => (
+                        <div key={entry.id} className="space-y-1">
+                          {/* user question bubble (right-aligned) */}
+                          <div className="flex justify-end pr-0.5">
+                            <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] px-3 py-1.5 text-[12px] leading-snug shadow-sm">
+                              {entry.question}
+                            </div>
+                          </div>
+                          {/* assistant answer bubble */}
+                          {entry.pending ? (
+                            <TypingIndicator label="Tænker…" />
+                          ) : (
+                            <AssistantBubble tone={entry.errored ? 'error' : 'default'}>
+                              <div className="whitespace-pre-wrap text-[12px] leading-snug">
+                                {entry.answer}
+                              </div>
+                            </AssistantBubble>
+                          )}
+                        </div>
+                      ))}
 
                       <div className="pl-8 flex gap-1.5 pt-0.5">
                         <button
@@ -899,7 +1040,11 @@ export function RecipeAssistant({
                           handleSendFreeText();
                         }
                       }}
-                      placeholder="Skriv til assistenten…"
+                      placeholder={
+                        view.kind === 'proposal'
+                          ? 'Spørg om forslaget — fx “hvorfor 900 min?”'
+                          : 'Skriv til assistenten…'
+                      }
                       rows={1}
                       disabled={aiDisabled || isBusy}
                       className="flex-1 resize-none rounded-2xl border border-black/10 dark:border-[#C9A14A]/25 bg-white/80 dark:bg-[#223029]/80 px-3 py-1.5 text-[12px] leading-snug text-forest-dark dark:text-white/90 placeholder-forest-mid/50 dark:placeholder-white/30 focus:outline-none focus:border-heath-mid dark:focus:border-[#C9A14A] disabled:opacity-50"
@@ -1039,13 +1184,27 @@ function StarterChip({
   );
 }
 
-function AssistantBubble({ children }: { children: ReactNode }) {
+function AssistantBubble({
+  children,
+  tone = 'default',
+}: {
+  children: ReactNode;
+  tone?: 'default' | 'error';
+}) {
+  const avatarCls =
+    tone === 'error'
+      ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+      : 'bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E]';
+  const bubbleCls =
+    tone === 'error'
+      ? 'bg-red-50 dark:bg-red-950/30 border-red-200/70 dark:border-red-700/40 text-red-900 dark:text-red-200'
+      : 'bg-white/85 dark:bg-[#223029]/85 border-black/5 dark:border-[#C9A14A]/15 text-forest-dark dark:text-white/90';
   return (
     <div className="flex items-start gap-1.5">
-      <div className="w-6 h-6 shrink-0 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center mt-0.5">
+      <div className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center mt-0.5 ${avatarCls}`}>
         <BrandMark size={20} />
       </div>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white/85 dark:bg-[#223029]/85 border border-black/5 dark:border-[#C9A14A]/15 px-3 py-2 text-[12px] leading-snug text-forest-dark dark:text-white/90 shadow-sm">
+      <div className={`max-w-[85%] rounded-2xl rounded-tl-md border px-3 py-2 text-[12px] leading-snug shadow-sm ${bubbleCls}`}>
         {children}
       </div>
     </div>

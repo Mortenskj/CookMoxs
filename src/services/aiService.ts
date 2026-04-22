@@ -155,6 +155,27 @@ export async function applyPrefix(recipe: any, prefix: string): Promise<any> {
   return data.recipe;
 }
 
+/**
+ * Asks a short clarifying question about a pending proposal without
+ * re-running the full adjust round-trip. The server keeps the proposal
+ * untouched and returns only a short text answer so the user can decide
+ * whether to keep/discard based on the explanation.
+ */
+export async function explainProposal(
+  recipe: any,
+  proposed: any,
+  question: string,
+  bullets: string[],
+): Promise<string> {
+  const data = await request<{ answer: string }>('/api/ai/explain-proposal', {
+    recipe,
+    proposed,
+    question,
+    bullets,
+  });
+  return data.answer;
+}
+
 export async function estimateRecipeNutrition(recipe: Recipe, level?: string): Promise<RecipeNutritionEstimate> {
   const data = await request<{ estimate: RecipeNutritionEstimate }>('/api/ai/estimate-nutrition', { recipe, level });
   return data.estimate;

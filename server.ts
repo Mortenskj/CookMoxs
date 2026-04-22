@@ -1775,6 +1775,50 @@ async function startServer() {
     }
   });
 
+  // Small, cheap Q&A about a pending proposal. Used by the recipe-scoped
+  // assistant so the user can ask "hvorfor 900 min i stedet for 60?" without
+  // re-running a full adjust/apply round-trip. We return ONLY a short text
+  // answer — the proposal itself is not modified here. If the assistant
+  // actually needs to correct the proposal the user discards and re-runs.
+  app.post('/api/ai/explain-proposal', async (req, res) => {
+    const { recipe, proposed, question, bullets } = req.body ?? {};
+    if (!recipe || !proposed || typeof question !== 'string' || !question.trim()) {
+      return res.status(400).json({ error: 'recipe, proposed and question are required' });
+    }
+    try {
+      const bulletLines = Array.isArray(bullets) && bullets.length
+        ? bullets.map((b: unknown) => `- ${String(b)}`).join('\n')
+        : '(ingen delta-liste leveret)';
+      const prompt = `
+Du er en sober dansk køkkenassistent. Brugeren kigger på et AI-forslag til en eksisterende opskrift og har et spørgsmål til forslaget. Svar kort og konkret på dansk (maks 3-4 sætninger). Referér til konkrete tal og trin fra forslaget når det er relevant. Brug aldrig marketingsprog. Hvis forslaget virker forkert (fx urealistisk tid eller temperatur), så sig det ligeud — anbefal at brugeren fortryder og genkører med en præcis instruktion. Hvis spørgsmålet ikke handler om forslaget, så svar alligevel kort, men mind brugeren om at ændringer ikke er gemt endnu.
+
+ORIGINAL OPSKRIFT (JSON):
+${JSON.stringify(recipe)}
+
+FORESLÅET ÆNDRING (JSON):
+${JSON.stringify(proposed)}
+
+KONKRET DELTA:
+${bulletLines}
+
+SPØRGSMÅL FRA BRUGEREN:
+"${question.trim()}"
+
+Svar i feltet "answer".`;
+      const schema = {
+        type: Type.OBJECT,
+        properties: { answer: { type: Type.STRING } },
+      };
+      const parsedData = await generateAIContent(DEFAULT_STRUCTURED_MODEL, prompt, schema, 1);
+      const answer = typeof parsedData?.answer === 'string' ? parsedData.answer.trim() : '';
+      return res.json({ answer });
+    } catch (error) {
+      console.error('AI Explain Proposal Error:', error);
+      const failure = toAiErrorResponse(error, '/api/ai/explain-proposal');
+      return res.status(failure.status).json(failure.body);
+    }
+  });
+
   app.post('/api/ai/estimate-nutrition', async (req, res) => {
     const { recipe, level } = req.body;
     if (!recipe) return res.status(400).json({ error: 'recipe is required' });
