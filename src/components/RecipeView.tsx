@@ -129,6 +129,11 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
       && (!currentFolder || currentFolder.ownerUID === currentUser.uid)
     );
 
+  // Phase C0: when the recipe-scoped Assistant is wired in, it becomes the
+  // single AI entrypoint in RecipeView. Hide the legacy buttons/select so the
+  // user only meets one surface.
+  const assistantOwnsAi = Boolean(onApplyAssistantProposal) && canMutateRecipe;
+
   const requiresPermissionConfirmation = (targetFolder?: FolderType) => {
     if (!targetFolder) return false;
     if (getFolderOwnershipDisplay(targetFolder, currentUser).state === 'private') return false;
@@ -1045,7 +1050,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
             )}
 
             <div className="cm-recipe-utility-row">
-            {canMutateRecipe && (
+            {canMutateRecipe && !assistantOwnsAi && (
             <div className="cm-recipe-ai-shell relative">
               <select
                 onChange={(e) => {
@@ -1076,8 +1081,8 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               </span>
             )}
 
-            {canMutateRecipe && onGenerateTips && (
-              <button 
+            {canMutateRecipe && onGenerateTips && !assistantOwnsAi && (
+              <button
                 onClick={() => setShowTipsModal(true)}
                 disabled={isAdjusting || aiDisabled}
                 className="cm-recipe-utility-button"
@@ -1328,7 +1333,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
           );
         })}
 
-        {!isEditing && onPolishIngredients && canMutateRecipe && (
+        {!isEditing && onPolishIngredients && canMutateRecipe && !assistantOwnsAi && (
           <button
             onClick={() => onPolishIngredients(recipe)}
             disabled={isAdjusting || aiDisabled}
@@ -1396,7 +1401,7 @@ export function RecipeView({ recipe, allCategories, allFolders, onFolderCreate, 
               Brug AI til at gennemgå trin, varme og tider, så opskriften fungerer bedre i cookmode.
             </p>
           </div>
-          {canMutateRecipe && onGenerateSteps && (
+          {canMutateRecipe && onGenerateSteps && !assistantOwnsAi && (
             <button
               onClick={() => onGenerateSteps(recipe)}
               disabled={isAdjusting || aiDisabled}

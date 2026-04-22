@@ -1,12 +1,31 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Check, Undo2, Sparkles, Lightbulb } from 'lucide-react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import {
+  X,
+  Send,
+  Check,
+  Undo2,
+  Sparkles,
+  Lightbulb,
+  Wand2,
+  ArrowLeft,
+  ChevronRight,
+} from 'lucide-react';
 import type { Recipe, Step, Ingredient } from '../types';
 import { BrandMark } from './BrandMark';
 import {
   adjustRecipe as aiAdjustRecipe,
   polishIngredients as aiPolishIngredients,
   polishSteps as aiPolishSteps,
+  applyPrefix as aiApplyPrefix,
+  generateTips as aiGenerateTips,
   AiRequestError,
 } from '../services/aiService';
 import { normalizeAiActionError } from '../services/errorMessageService';
@@ -15,31 +34,31 @@ import { normalizeAiActionError } from '../services/errorMessageService';
 // Messenger-style floating toast. Reuses existing AI endpoints via aiService.
 // Output contract: no_change | proposal | answer | clarify | error.
 //
-// Design notes (batch 2026-04-21):
-// - Dark mode: deep forest base with a matte karry-yellow accent (not the
-//   heath-mid green that's used everywhere else) so the assistant reads as
-//   distinct. Light mode matches the Tips & Tricks surface: sand background,
-//   heath-mid accents.
-// - "Tips" is folded in as a tab so the surface doesn't proliferate FABs.
-// - Proposal deltas are now step-level concrete bullets (e.g. "Trin 4:
-//   omformuleret", "Nyt trin indsat efter trin 6", "Trin 7: timer ændret"),
-//   not just "11 → 12 trin".
+// Design notes (batch 2026-04-22):
+// - Assistant is the SINGLE AI-surface in RecipeView. Old inline buttons
+//   ("AI - Ret til cookmode", "Stram ingredienser op", "Tips & Tricks",
+//   "AI Varianter") are hidden at the RecipeView layer when this mounts —
+//   those flows live here as:
+//     Home  → 3 big cards (Tilpas / Varianter / Tips)
+//     Adjust section → 4 starter chips (ingredients, fremgangsmåde,
+//       beskrivelse, hele opskriften / free-text)
+//     Variants section → preset variant buttons (Gourmet, Autentisk, …)
+//     Tips tab → "Generer tips" + existing tips list
+// - Click outside closes the panel. Panel is draggable via its header.
+// - Dark mode: deep forest base with a matte karry-yellow accent. Light
+//   mode matches the Tips & Tricks surface (sand bg, heath-mid accents).
 
 type ActionId =
   | 'adjust_ingredients'
   | 'adjust_steps'
   | 'adjust_description'
   | 'adjust_all'
-  | 'ask';
+  | 'apply_variant'
+  | 'generate_tips';
 
-interface ActionStarter {
-  id: ActionId;
-  label: string;
-  hint: string;
-  needsInput: boolean;
-  available: boolean;
-  disabledReason?: string;
-}
+type Section = 'home' | 'adjust' | 'variants';
+
+type TabId = 'chat' | 'tips';
 
 type ViewState =
   | { kind: 'idle' }
@@ -56,8 +75,6 @@ type ViewState =
   | { kind: 'clarify'; question: string }
   | { kind: 'error'; message: string };
 
-type TabId = 'chat' | 'tips';
-
 interface RecipeAssistantProps {
   recipe: Recipe;
   onApply: (proposed: Recipe) => void;
@@ -69,6 +86,16 @@ interface RecipeAssistantProps {
 
 const INSTRUCTION_DESCRIPTION =
   'Kig kun på titel, kort beskrivelse og eventuelle hints. Hold ingredienser og fremgangsmåde uændret, medmindre en formulering er direkte misvisende.';
+
+const VARIANT_PRESETS: { prefix: string; label: string; hint: string }[] = [
+  { prefix: 'Gourmet', label: 'Gourmet', hint: 'Mere forfinet version.' },
+  { prefix: 'Autentisk', label: 'Autentisk', hint: 'Tættere på oprindelsen.' },
+  { prefix: 'Den hurtige', label: 'Den hurtige', hint: 'Færre trin, kortere tid.' },
+  { prefix: 'Begynderen', label: 'Begynderen', hint: 'Enklere teknikker.' },
+  { prefix: 'Babyvenlig 0/1 år', label: 'Babyvenlig', hint: 'Tilpasset 0/1 år.' },
+  { prefix: 'Børnevenlig 1/3 år', label: 'Børnevenlig', hint: 'Tilpasset 1/3 år.' },
+  { prefix: 'Spice it up', label: 'Spice it up', hint: 'Mere krydret.' },
+];
 
 // ---------- normalization helpers ----------
 
@@ -103,14 +130,8 @@ function truncate(text: string | undefined | null, max = 70): string {
 }
 
 // ---------- concrete delta computation ----------
-//
-// Returns a list of human-readable bullets that describe what the proposed
-// recipe actually changes, at step-level and ingredient-level granularity.
-// Previous version only said e.g. "fremgangsmåde (11 → 12 trin)" which did
-// not give the user enough to judge the change.
 
 interface StepChangeBullet {
-  // Used for stable ordering; not rendered.
   sortKey: number;
   text: string;
 }
@@ -153,7 +174,6 @@ function textChangeKind(prevText: string, nextText: string): 'unchanged' | 'rewr
   const p = normalizeString(prevText);
   const n = normalizeString(nextText);
   if (p === n) return 'unchanged';
-  // Crude: if either string is a prefix/suffix of the other, call it a tweak
   if (p.length > 0 && (n.startsWith(p) || p.startsWith(n))) return 'tweak';
   if (p.length > 0 && n.includes(p.slice(0, Math.min(30, p.length)))) return 'tweak';
   return 'rewrite';
@@ -206,11 +226,6 @@ function describeStepsDelta(prev: Step[], next: Step[]): string[] {
   const bullets: StepChangeBullet[] = [];
 
   const countDelta = next.length - prev.length;
-
-  // Pair by index first, then mark tail as pure adds/removes. This is good
-  // enough for small (<20 step) recipes and gives concrete bullets per trin
-  // which is what the user asked for. Split/merge detection is intentionally
-  // simple: if count increased by 1 we assume the new step was inserted.
   const commonLen = Math.min(prev.length, next.length);
   for (let i = 0; i < commonLen; i += 1) {
     const p = prev[i];
@@ -233,7 +248,6 @@ function describeStepsDelta(prev: Step[], next: Step[]): string[] {
   }
 
   if (countDelta > 0) {
-    // New steps at the tail
     for (let i = prev.length; i < next.length; i += 1) {
       bullets.push({
         sortKey: i,
@@ -263,17 +277,13 @@ function describeRecipeDelta(prev: Recipe, next: Recipe, action: ActionId): {
   const prevSteps = Array.isArray(prev.steps) ? prev.steps : [];
   const nextSteps = Array.isArray(next.steps) ? next.steps : [];
 
-  // Title
   if (normalizeString(prev.title) !== normalizeString(next.title)) {
     bullets.push(`Titel: "${truncate(prev.title, 40)}" → "${truncate(next.title, 40)}"`);
   }
-
-  // Summary
   if (normalizeString(prev.summary) !== normalizeString(next.summary)) {
     bullets.push(`Beskrivelse omformuleret`);
   }
 
-  // Ingredients
   if (ingredientSignature(prevIng) !== ingredientSignature(nextIng)) {
     const ingBullets = describeIngredientsDelta(prevIng, nextIng);
     if (ingBullets.length) {
@@ -283,7 +293,6 @@ function describeRecipeDelta(prev: Recipe, next: Recipe, action: ActionId): {
     }
   }
 
-  // Steps
   if (stepSignature(prevSteps) !== stepSignature(nextSteps)
       || prevSteps.length !== nextSteps.length
       || prevSteps.some((p, i) => {
@@ -294,12 +303,25 @@ function describeRecipeDelta(prev: Recipe, next: Recipe, action: ActionId): {
     if (stepBullets.length) bullets.push(...stepBullets);
   }
 
-  // Categories
+  // Tips (generate_tips flow)
+  const prevTips = Array.isArray(prev.tipsAndTricks) ? prev.tipsAndTricks : [];
+  const nextTips = Array.isArray(next.tipsAndTricks) ? next.tipsAndTricks : [];
+  if (prevTips.join('|') !== nextTips.join('|')) {
+    const added = nextTips.length - prevTips.length;
+    if (added > 0) bullets.push(`Tips: ${added} nye tip${added === 1 ? '' : 's'}`);
+    else if (added < 0) bullets.push(`Tips: ${-added} fjernet`);
+    else bullets.push(`Tips omformuleret`);
+  }
+
+  // Variant prefix
+  if ((prev.variantPrefix || '') !== (next.variantPrefix || '')) {
+    bullets.push(`Variant: ${next.variantPrefix || '—'}`);
+  }
+
   const prevCats = Array.isArray(prev.categories) ? prev.categories.slice().sort().join('|') : '';
   const nextCats = Array.isArray(next.categories) ? next.categories.slice().sort().join('|') : '';
   if (prevCats !== nextCats) bullets.push('Kategorier opdateret');
 
-  // Summary line
   const prefix =
     action === 'adjust_ingredients'
       ? 'Jeg vil tilpasse ingredienserne'
@@ -307,7 +329,11 @@ function describeRecipeDelta(prev: Recipe, next: Recipe, action: ActionId): {
         ? 'Jeg vil tilpasse fremgangsmåden'
         : action === 'adjust_description'
           ? 'Jeg vil tilpasse beskrivelsen'
-          : 'Jeg har et forslag';
+          : action === 'apply_variant'
+            ? 'Jeg foreslår en variant'
+            : action === 'generate_tips'
+              ? 'Jeg har nye tips'
+              : 'Jeg har et forslag';
   const summary = bullets.length === 0 ? 'Ingen synlige ændringer' : `${prefix}:`;
 
   return { bullets, summary };
@@ -323,6 +349,10 @@ function reasonForNoChange(action: ActionId): string {
       return 'Beskrivelsen rammer allerede opskriften. Jeg foreslår ingen ændring.';
     case 'adjust_all':
       return 'Opskriften ser allerede rimeligt ud. Jeg foreslår ingen ændring.';
+    case 'apply_variant':
+      return 'Varianten ligner allerede nuværende opskrift.';
+    case 'generate_tips':
+      return 'Ingen nye tips denne gang.';
     default:
       return 'Jeg foreslår ingen ændring.';
   }
@@ -338,6 +368,10 @@ function loadingLabelFor(action: ActionId): string {
       return 'Gennemgår beskrivelse';
     case 'adjust_all':
       return 'Genererer et svar';
+    case 'apply_variant':
+      return 'Bygger variant';
+    case 'generate_tips':
+      return 'Finder tips';
     default:
       return 'Arbejder';
   }
@@ -354,67 +388,52 @@ export function RecipeAssistant({
 }: RecipeAssistantProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabId>('chat');
+  const [section, setSection] = useState<Section>('home');
   const [view, setView] = useState<ViewState>({ kind: 'idle' });
   const [freeText, setFreeText] = useState('');
 
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const bubbleRef = useRef<HTMLDivElement | null>(null);
+  const dragControls = useDragControls();
+
   const close = useCallback(() => setOpen(false), []);
 
-  // Reset when the panel closes or the active recipe changes so we never
-  // render a proposal against a different recipe.
+  // Reset when closing OR when recipe changes so we never render a proposal
+  // against a different recipe.
   useEffect(() => {
     if (!open) {
       setView({ kind: 'idle' });
       setFreeText('');
+      setSection('home');
     }
   }, [open]);
   useEffect(() => {
     setView({ kind: 'idle' });
     setTab('chat');
+    setSection('home');
     setOpen(false);
   }, [recipe.id]);
 
+  // Click outside panel closes it. We compare against both the panel and the
+  // floating bubble so clicking the bubble still just toggles (doesn't
+  // double-fire close + open race).
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (ev: PointerEvent) => {
+      const target = ev.target as Node | null;
+      if (!target) return;
+      if (panelRef.current && panelRef.current.contains(target)) return;
+      if (bubbleRef.current && bubbleRef.current.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
   const aiDisabled = Boolean(aiDisabledReason);
 
-  const starters = useMemo<ActionStarter[]>(
-    () => [
-      {
-        id: 'adjust_ingredients',
-        label: 'Tilpas ingredienser',
-        hint: 'Ret mængder og navne uden nye råvarer.',
-        needsInput: false,
-        available: !aiDisabled,
-        disabledReason: aiDisabledReason ?? undefined,
-      },
-      {
-        id: 'adjust_steps',
-        label: 'Tilpas fremgangsmåde',
-        hint: 'Gør trinnene klarere.',
-        needsInput: false,
-        available: !aiDisabled,
-        disabledReason: aiDisabledReason ?? undefined,
-      },
-      {
-        id: 'adjust_description',
-        label: 'Tilpas beskrivelse',
-        hint: 'Kort og ærlig beskrivelse.',
-        needsInput: false,
-        available: !aiDisabled,
-        disabledReason: aiDisabledReason ?? undefined,
-      },
-      {
-        id: 'ask',
-        label: 'Stil et spørgsmål',
-        hint: 'Kommer snart.',
-        needsInput: false,
-        available: false,
-        disabledReason: 'Q&A er ikke i denne version.',
-      },
-    ],
-    [aiDisabled, aiDisabledReason],
-  );
-
   const dispatch = useCallback(
-    async (action: ActionId, instruction?: string) => {
+    async (action: ActionId, opts?: { instruction?: string; variantPrefix?: string }) => {
       if (aiDisabled) {
         setView({
           kind: 'error',
@@ -432,7 +451,7 @@ export function RecipeAssistant({
         } else if (action === 'adjust_description') {
           proposed = (await aiAdjustRecipe(recipe, INSTRUCTION_DESCRIPTION)) as Recipe;
         } else if (action === 'adjust_all') {
-          const text = (instruction || '').trim();
+          const text = (opts?.instruction || '').trim();
           if (!text) {
             setView({
               kind: 'clarify',
@@ -441,6 +460,16 @@ export function RecipeAssistant({
             return;
           }
           proposed = (await aiAdjustRecipe(recipe, text)) as Recipe;
+        } else if (action === 'apply_variant') {
+          const prefix = (opts?.variantPrefix || '').trim();
+          if (!prefix) {
+            setView({ kind: 'clarify', question: 'Vælg en variant først.' });
+            return;
+          }
+          proposed = (await aiApplyPrefix(recipe, prefix)) as Recipe;
+        } else if (action === 'generate_tips') {
+          const tips = (await aiGenerateTips(recipe)) as string[];
+          proposed = { ...recipe, tipsAndTricks: Array.isArray(tips) ? tips : [] } as Recipe;
         } else {
           setView({
             kind: 'clarify',
@@ -477,8 +506,15 @@ export function RecipeAssistant({
   const handleApply = useCallback(() => {
     if (view.kind !== 'proposal') return;
     onApply(view.proposed);
-    setView({ kind: 'idle' });
-    close();
+    // After applying a tips-generate, stay on the tips tab so user sees the
+    // new tips. Other actions close the panel as a natural "confirm" beat.
+    if (view.action === 'generate_tips') {
+      setView({ kind: 'idle' });
+      setTab('tips');
+    } else {
+      setView({ kind: 'idle' });
+      close();
+    }
   }, [onApply, close, view]);
 
   const handleDiscard = useCallback(() => {
@@ -488,7 +524,7 @@ export function RecipeAssistant({
   const handleSendFreeText = useCallback(() => {
     const text = freeText.trim();
     if (!text) return;
-    void dispatch('adjust_all', text);
+    void dispatch('adjust_all', { instruction: text });
     setFreeText('');
   }, [dispatch, freeText]);
 
@@ -501,6 +537,7 @@ export function RecipeAssistant({
     <>
       {/* Floating bubble — toggles the panel open/closed (both directions). */}
       <motion.div
+        ref={bubbleRef}
         drag
         dragConstraints={
           typeof window !== 'undefined'
@@ -543,6 +580,21 @@ export function RecipeAssistant({
         {open && (
           <motion.div
             key="assistant-panel"
+            ref={panelRef}
+            drag
+            dragListener={false}
+            dragControls={dragControls}
+            dragMomentum={false}
+            dragConstraints={
+              typeof window !== 'undefined'
+                ? {
+                    left: -window.innerWidth + 80,
+                    right: 40,
+                    top: -window.innerHeight + 200,
+                    bottom: 40,
+                  }
+                : undefined
+            }
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
@@ -552,8 +604,12 @@ export function RecipeAssistant({
             aria-label="CookMoxs-assistent"
           >
             <div className="rounded-[1.5rem] overflow-hidden shadow-2xl border border-black/10 dark:border-[#C9A14A]/25 backdrop-blur-xl bg-sand/95 dark:bg-[#1A221E]/95">
-              {/* Header */}
-              <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03]">
+              {/* Header — serves as drag handle */}
+              <div
+                className="flex items-center gap-2.5 px-3.5 py-3 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03] cursor-grab active:cursor-grabbing select-none"
+                onPointerDown={(e) => dragControls.start(e)}
+                style={{ touchAction: 'none' }}
+              >
                 <div className="w-8 h-8 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center shadow-sm">
                   <BrandMark size={28} />
                 </div>
@@ -567,6 +623,7 @@ export function RecipeAssistant({
                 </div>
                 <button
                   onClick={close}
+                  onPointerDown={(e) => e.stopPropagation()}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-forest-dark hover:bg-black/10 transition-colors dark:text-[#E2C06E] dark:hover:bg-[#C9A14A]/15 border border-transparent dark:hover:border-[#C9A14A]/30"
                   aria-label="Minimer"
                   title="Minimer"
@@ -610,28 +667,87 @@ export function RecipeAssistant({
                     <span className="italic">{recipe.title || 'denne opskrift'}</span>?
                   </AssistantBubble>
 
-                  {view.kind === 'idle' && (
-                    <div className="flex flex-wrap gap-1.5 pl-8">
-                      {starters.map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            if (!s.available) return;
-                            void dispatch(s.id);
-                          }}
-                          disabled={!s.available}
-                          title={!s.available ? s.disabledReason : s.hint}
-                          className={[
-                            'text-[12px] font-medium rounded-full px-3 py-1.5 border transition-all duration-150',
-                            s.available
-                              ? 'bg-white/80 dark:bg-[#223029]/80 border-heath-mid/30 dark:border-[#C9A14A]/30 text-forest-dark dark:text-[#F0D997] hover:bg-heath-mid hover:text-white hover:border-heath-mid dark:hover:bg-[#C9A14A] dark:hover:text-[#1A221E] dark:hover:border-[#C9A14A] hover:shadow-md active:scale-[0.97]'
-                              : 'bg-transparent border-black/5 dark:border-white/10 opacity-45 cursor-not-allowed text-forest-mid dark:text-white/40',
-                          ].join(' ')}
-                        >
-                          {s.label}
-                        </button>
-                      ))}
+                  {view.kind === 'idle' && section === 'home' && (
+                    <div className="pl-8 space-y-1.5">
+                      <HomeCard
+                        icon={<Wand2 size={16} />}
+                        label="Tilpas opskriften"
+                        hint="Ret ingredienser, fremgangsmåde eller beskrivelse."
+                        onClick={() => setSection('adjust')}
+                        disabled={aiDisabled}
+                      />
+                      <HomeCard
+                        icon={<Sparkles size={16} />}
+                        label="AI-Varianter"
+                        hint="Gourmet, hurtig, børnevenlig og flere."
+                        onClick={() => setSection('variants')}
+                        disabled={aiDisabled}
+                      />
+                      <HomeCard
+                        icon={<Lightbulb size={16} />}
+                        label="Generer tips"
+                        hint="Få nye tips og tricks til retten."
+                        onClick={() => {
+                          if (aiDisabled) return;
+                          void dispatch('generate_tips');
+                        }}
+                        disabled={aiDisabled}
+                      />
                     </div>
+                  )}
+
+                  {view.kind === 'idle' && section === 'adjust' && (
+                    <>
+                      <BackToHome onClick={() => setSection('home')} />
+                      <div className="flex flex-wrap gap-1.5 pl-8">
+                        <StarterChip
+                          label="Tilpas ingredienser"
+                          hint="Ret mængder og navne uden nye råvarer."
+                          disabled={aiDisabled}
+                          onClick={() => void dispatch('adjust_ingredients')}
+                        />
+                        <StarterChip
+                          label="Tilpas fremgangsmåde"
+                          hint="Gør trinnene klarere."
+                          disabled={aiDisabled}
+                          onClick={() => void dispatch('adjust_steps')}
+                        />
+                        <StarterChip
+                          label="Tilpas beskrivelse"
+                          hint="Kort og ærlig beskrivelse."
+                          disabled={aiDisabled}
+                          onClick={() => void dispatch('adjust_description')}
+                        />
+                        <StarterChip
+                          label="Tilpas hele opskriften"
+                          hint="Skriv frit hvad du vil ændre nedenfor."
+                          disabled={aiDisabled}
+                          onClick={() => {
+                            setView({
+                              kind: 'clarify',
+                              question: 'Skriv kort hvad der skal rettes — jeg bruger det som instruktion.',
+                            });
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {view.kind === 'idle' && section === 'variants' && (
+                    <>
+                      <BackToHome onClick={() => setSection('home')} />
+                      <div className="flex flex-wrap gap-1.5 pl-8">
+                        {VARIANT_PRESETS.map((v) => (
+                          <StarterChip
+                            key={v.prefix}
+                            label={v.label}
+                            hint={v.hint}
+                            disabled={aiDisabled}
+                            onClick={() => void dispatch('apply_variant', { variantPrefix: v.prefix })}
+                          />
+                        ))}
+                      </div>
+                    </>
                   )}
 
                   {view.kind === 'loading' && <TypingIndicator label={`${view.label}…`} />}
@@ -731,13 +847,12 @@ export function RecipeAssistant({
                 </div>
               ) : (
                 /* Tips tab */
-                <div className="max-h-[52vh] overflow-y-auto px-3 py-3">
+                <div className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2">
                   {recipeTips.length === 0 ? (
-                    <div className="text-center py-6 text-forest-mid dark:text-white/60 italic text-[12px]">
+                    <div className="text-center py-4 text-forest-mid dark:text-white/60 italic text-[12px]">
                       <p className="mb-1">Ingen tips endnu på denne opskrift.</p>
                       <p className="opacity-70 text-[11px]">
-                        Brug “Ret hele opskriften” eller knappen på opskriftsiden til at
-                        generere tips.
+                        Tryk “Generer tips” for at få nye tips og tricks.
                       </p>
                     </div>
                   ) : (
@@ -756,10 +871,22 @@ export function RecipeAssistant({
                       ))}
                     </ul>
                   )}
+                  <button
+                    onClick={() => {
+                      if (aiDisabled || isBusy) return;
+                      setTab('chat');
+                      void dispatch('generate_tips');
+                    }}
+                    disabled={aiDisabled || isBusy}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] text-[12px] font-bold px-3 py-2 hover:bg-heath-dark dark:hover:bg-[#D9B564] transition-colors active:scale-[0.97] shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Wand2 size={13} />
+                    {recipeTips.length > 0 ? 'Generer nye tips' : 'Generer tips'}
+                  </button>
                 </div>
               )}
 
-              {/* Composer — messenger-style */}
+              {/* Composer — messenger-style (only on chat tab) */}
               {tab === 'chat' && (
                 <div className="px-2.5 py-2 border-t border-black/5 dark:border-white/10 bg-white/30 dark:bg-black/30">
                   <div className="flex items-end gap-1.5">
@@ -823,6 +950,90 @@ function TabButton({
       ].join(' ')}
     >
       {icon}
+      {label}
+    </button>
+  );
+}
+
+function HomeCard({
+  icon,
+  label,
+  hint,
+  onClick,
+  disabled,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        'w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 border text-left transition-all duration-150',
+        disabled
+          ? 'opacity-45 cursor-not-allowed border-black/5 dark:border-white/10 bg-white/40 dark:bg-[#223029]/40'
+          : 'border-heath-mid/25 dark:border-[#C9A14A]/25 bg-white/85 dark:bg-[#223029]/80 hover:bg-heath-mid hover:text-white hover:border-heath-mid dark:hover:bg-[#C9A14A] dark:hover:text-[#1A221E] dark:hover:border-[#C9A14A] hover:shadow-md active:scale-[0.98]',
+      ].join(' ')}
+    >
+      <span className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E]">
+        {icon}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[12px] font-bold leading-tight">{label}</span>
+        <span className="block text-[11px] italic opacity-75 leading-tight mt-0.5">{hint}</span>
+      </span>
+      <ChevronRight size={14} className="shrink-0 opacity-60" />
+    </button>
+  );
+}
+
+function BackToHome({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="pl-8">
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1 text-[11px] text-forest-mid dark:text-[#E2C06E] hover:text-forest-dark dark:hover:text-[#F0D997] transition-colors"
+      >
+        <ArrowLeft size={12} /> Tilbage til start
+      </button>
+    </div>
+  );
+}
+
+function StarterChip({
+  label,
+  hint,
+  disabled,
+  onClick,
+}: {
+  // `key` is intentionally declared optional so map() call-sites can pass it.
+  // The project runs without `@types/react`, so TS's built-in JSX fallback
+  // treats `key` as a regular prop rather than a React-special attribute.
+  key?: string | number;
+  label: string;
+  hint: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={() => {
+        if (disabled) return;
+        onClick();
+      }}
+      disabled={disabled}
+      title={hint}
+      className={[
+        'text-[12px] font-medium rounded-full px-3 py-1.5 border transition-all duration-150',
+        disabled
+          ? 'bg-transparent border-black/5 dark:border-white/10 opacity-45 cursor-not-allowed text-forest-mid dark:text-white/40'
+          : 'bg-white/80 dark:bg-[#223029]/80 border-heath-mid/30 dark:border-[#C9A14A]/30 text-forest-dark dark:text-[#F0D997] hover:bg-heath-mid hover:text-white hover:border-heath-mid dark:hover:bg-[#C9A14A] dark:hover:text-[#1A221E] dark:hover:border-[#C9A14A] hover:shadow-md active:scale-[0.97]',
+      ].join(' ')}
+    >
       {label}
     </button>
   );

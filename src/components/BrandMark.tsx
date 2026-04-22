@@ -7,7 +7,7 @@ export function BrandMark({ size = 32, className = '' }: BrandMarkProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="140 120 1520 1560"
+      viewBox="170 130 1440 1520"
       preserveAspectRatio="xMidYMid meet"
       width={size}
       height={size}
