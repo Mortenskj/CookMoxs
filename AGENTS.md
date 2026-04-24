@@ -171,3 +171,121 @@ Any changes to rules require:
 ## Source documents
 Use `PLAN.md` as the current execution plan.
 If a larger historical reference exists, use it only as supporting context — not as a replacement for `PLAN.md`.
+
+# AGENTS.md Appendix — CookMoxs Codex Subagent Protocol v2
+
+Append this section to the bottom of the repo-root `AGENTS.md`.
+
+Do not replace existing `AGENTS.md` content.
+Do not weaken existing CookMoxs rules.
+
+---
+
+## CookMoxs Codex Subagent Protocol
+
+Detailed subagent definitions live in:
+
+`docs/codex-subagents.md`
+
+Subagents are review and analysis roles only.
+Main Codex owns implementation.
+
+### Native support rule
+
+Do not invent native subagent configuration.
+
+If the current Codex environment supports native subagents, use the documented syntax for that environment.
+If native support is not confirmed, run the subagent protocol as sequential read-only role passes.
+
+Do not create `.codex/agents/*`, TOML, YAML, custom tools, or new dependencies unless the current Codex environment explicitly documents that format and the user asks for native configuration.
+
+### Default
+
+Do not use subagents for small, obvious fixes.
+
+### Use subagents when the task touches
+
+- Cook Mode
+- AI/import/server behavior
+- cache, service worker, local storage, stale state
+- Firestore, auth, permissions
+- observer-log mysteries
+- phase gates
+- larger UI/QoL audits
+- final diff review before commit or handoff
+
+### Do not use subagents for
+
+- tiny copy changes
+- small CSS-only fixes
+- single-file obvious repairs
+- visual asset generation
+- speculative feature design
+- broad redesigns
+- unsupported native-agent configuration work
+
+### Standard protocol
+
+For complex tasks, run read-only:
+
+1. `cookmoxs-repo-scout`
+2. `cookmoxs-runtime-skeptic`
+3. `cookmoxs-product-rule-auditor`
+
+For UI/QoL review, add:
+
+4. `cookmoxs-qol-ui-product-auditor`
+
+For verification planning, add:
+
+5. `cookmoxs-test-gap-finder`
+
+Before commit or handoff, use:
+
+6. `cookmoxs-diff-reviewer`
+
+### Implementation rule
+
+Only Main Codex may edit files unless explicitly instructed otherwise.
+
+Subagents must return findings only.
+No subagent may perform speculative refactors.
+No two agents may edit the same file.
+All findings must be synthesized by Main Codex before implementation.
+
+### Required synthesis before implementation
+
+Before editing files, Main Codex must provide:
+
+- top risks
+- minimal implementation plan
+- files to touch
+- files not to touch
+- verification commands
+- rollback note
+- could-not-verify items
+
+### Required synthesis after implementation
+
+After editing files, Main Codex must provide:
+
+- files changed
+- what changed
+- commands run
+- health check result
+- proof mapped to acceptance criteria
+- document status update if relevant
+- rollback note
+- user-facing Danish summary
+- next recommended step
+
+### Stop conditions
+
+Main Codex must stop and report instead of implementing if:
+
+- the task requires unsupported native agent configuration
+- app code would change during a docs-only task
+- the task conflicts with CookMoxs source-of-truth docs
+- the task would require broad changes outside the selected issue
+- implementation requires changing auth, permissions, AI behavior, payment, privacy defaults, or model IDs without explicit scope
+- verification cannot be performed and the risk is P0 or P1
