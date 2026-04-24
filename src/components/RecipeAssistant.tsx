@@ -1442,21 +1442,39 @@ export function RecipeAssistant({
                                   {entry.answer}
                                 </div>
                               </AssistantBubble>
-                              {/* Inline "apply this as a correction" action —
-                                   only on explain-answers, not on refine-answers
-                                   (which are already the correction). Lets the
-                                   user commit "yes, fix it based on what we just
-                                   discussed" without retyping. */}
+                              {/* "Brug som udkast" pre-fills the composer with
+                                   the question text so the user can edit it
+                                   into a real correction and confirm with the
+                                   Ret-button. It does NOT fire an AI call —
+                                   Q&A and refine stay cleanly separated. */}
                               {!entry.errored && !entry.isRefine && (
                                 <div className="pl-8">
                                   <button
-                                    onClick={() => void refineProposal(entry.question)}
+                                    onClick={() => {
+                                      setFreeText(entry.question);
+                                      // Focus + place caret at end so the user
+                                      // can immediately rewrite the draft into
+                                      // a correction.
+                                      requestAnimationFrame(() => {
+                                        const el = textareaRef.current;
+                                        if (!el) return;
+                                        el.focus();
+                                        const len = el.value.length;
+                                        try {
+                                          el.setSelectionRange(len, len);
+                                        } catch {
+                                          // Some mobile browsers throw on
+                                          // setSelectionRange for hidden
+                                          // elements — focus alone is fine.
+                                        }
+                                      });
+                                    }}
                                     disabled={aiDisabled || isAsking}
                                     className="inline-flex items-center gap-1 rounded-full border border-heath-mid/40 dark:border-[#C9A14A]/40 bg-white/70 dark:bg-[#223029]/70 text-forest-dark dark:text-[#F0D997] text-[11px] font-bold px-2.5 py-1 hover:bg-heath-mid hover:text-white dark:hover:bg-[#C9A14A] dark:hover:text-[#1A221E] transition-colors active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
-                                    title="Brug dette spørgsmål som en rettelse til forslaget"
+                                    title="Kopiér spørgsmålet til feltet — redigér og tryk Ret for at ændre forslaget"
                                   >
                                     <Wand2 size={11} />
-                                    Ret ud fra dette
+                                    Brug som udkast
                                   </button>
                                 </div>
                               )}
