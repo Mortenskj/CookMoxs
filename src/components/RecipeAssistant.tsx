@@ -99,14 +99,87 @@ interface RecipeAssistantProps {
 const INSTRUCTION_DESCRIPTION =
   'Kig kun på titel, kort beskrivelse og eventuelle hints. Hold ingredienser og fremgangsmåde uændret, medmindre en formulering er direkte misvisende.';
 
-const VARIANT_PRESETS: { prefix: string; label: string; hint: string }[] = [
-  { prefix: 'Gourmet', label: 'Gourmet', hint: 'Mere forfinet version.' },
-  { prefix: 'Autentisk', label: 'Autentisk', hint: 'Tættere på oprindelsen.' },
-  { prefix: 'Den hurtige', label: 'Den hurtige', hint: 'Færre trin, kortere tid.' },
-  { prefix: 'Begynderen', label: 'Begynderen', hint: 'Enklere teknikker.' },
-  { prefix: 'Babyvenlig 0/1 år', label: 'Babyvenlig', hint: 'Tilpasset 0/1 år.' },
-  { prefix: 'Børnevenlig 1/3 år', label: 'Børnevenlig', hint: 'Tilpasset 1/3 år.' },
-  { prefix: 'Spice it up', label: 'Spice it up', hint: 'Mere krydret.' },
+interface VariantPreset {
+  prefix: string;
+  label: string;
+  hint: string;
+  // Deterministic, up-front hint of what the AI variant is likely to touch.
+  // Shown in a lightweight confirm step so the user isn't forced into a blind
+  // commit before the heavy AI round-trip fires.
+  previewBullets: string[];
+}
+
+const VARIANT_PRESETS: VariantPreset[] = [
+  {
+    prefix: 'Gourmet',
+    label: 'Gourmet',
+    hint: 'Mere forfinet version.',
+    previewBullets: [
+      'Finere teknikker og plating',
+      'Kan tilføje forædlede smagselementer (fx kryddersmør, reduktioner)',
+      'Titelprefix: "Gourmet"',
+    ],
+  },
+  {
+    prefix: 'Autentisk',
+    label: 'Autentisk',
+    hint: 'Tættere på oprindelsen.',
+    previewBullets: [
+      'Tættere på oprindelseslandets smagsprofil',
+      'Typiske krydderier og teknikker kan blive tilføjet',
+      'Titelprefix: "Autentisk"',
+    ],
+  },
+  {
+    prefix: 'Den hurtige',
+    label: 'Den hurtige',
+    hint: 'Færre trin, kortere tid.',
+    previewBullets: [
+      'Kortere samlet tilberedningstid',
+      'Færre eller sammenlagte trin',
+      'Titelprefix: "Den hurtige"',
+    ],
+  },
+  {
+    prefix: 'Begynderen',
+    label: 'Begynderen',
+    hint: 'Enklere teknikker.',
+    previewBullets: [
+      'Enklere teknikker, forklaret mere udførligt',
+      'Flere hjælpetrin og sikkerhedsnet',
+      'Titelprefix: "Begynderen"',
+    ],
+  },
+  {
+    prefix: 'Babyvenlig 0/1 år',
+    label: 'Babyvenlig',
+    hint: 'Tilpasset 0/1 år.',
+    previewBullets: [
+      'Ingen salt, sukker eller stærke krydderier',
+      'Blødere konsistens og mindre bidder',
+      'Titelprefix: "Babyvenlig 0/1 år"',
+    ],
+  },
+  {
+    prefix: 'Børnevenlig 1/3 år',
+    label: 'Børnevenlig',
+    hint: 'Tilpasset 1/3 år.',
+    previewBullets: [
+      'Mildere smag og mindre salt',
+      'Mere bide-venlig konsistens',
+      'Titelprefix: "Børnevenlig 1/3 år"',
+    ],
+  },
+  {
+    prefix: 'Spice it up',
+    label: 'Spice it up',
+    hint: 'Mere krydret.',
+    previewBullets: [
+      'Mere chili eller stærke krydderier',
+      'Dybere, mere kompleks smagsprofil',
+      'Titelprefix: "Spice it up"',
+    ],
+  },
 ];
 
 // ---------- normalization helpers ----------
@@ -403,10 +476,28 @@ export function RecipeAssistant({
   const [section, setSection] = useState<Section>('home');
   const [view, setView] = useState<ViewState>({ kind: 'idle' });
   const [freeText, setFreeText] = useState('');
+  // In-flight guard for proposal Q&A (explainProposal). Prevents the user
+  // from spamming Enter and kicking off N parallel identical requests.
+  const [isAsking, setIsAsking] = useState(false);
+  // Holds the pre-apply recipe so the assistant can offer a local "Fortryd"
+  // even after the proposal has been committed (reuses the existing onApply
+  // flow by calling it with the previous snapshot — no new state-machine).
+  const [lastApplied, setLastApplied] = useState<Recipe | null>(null);
+  // Variant preview: a single-step confirm between "chip click" and the
+  // heavy apply_variant AI round-trip. Deterministic hint text — no new
+  // backend call — so the user knows what they're about to trigger.
+  const [pendingVariant, setPendingVariant] = useState<VariantPreset | null>(null);
+  // VisualViewport-derived keyboard inset. On iOS Safari the browser does
+  // NOT shrink the layout viewport when the soft keyboard opens, so a
+  // fixed-bottom panel ends up hidden behind the keyboard. We read
+  // window.visualViewport and shift the panel up + cap its height.
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const dragControls = useDragControls();
 
   const close = useCallback(() => setOpen(false), []);
@@ -471,6 +562,52 @@ export function RecipeAssistant({
     });
     return () => cancelAnimationFrame(raf);
   }, [open, view.kind, discussionLen, lastDiscussionPending]);
+
+  // Track the VisualViewport so the panel repositions above the soft
+  // keyboard and shrinks to fit the available height on small screens.
+  // Desktop browsers expose a stable VisualViewport too; this is a no-op
+  // for them because the inset stays 0.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const vv = window.visualViewport;
+    const update = () => {
+      if (vv) {
+        const inset = Math.max(
+          0,
+          window.innerHeight - vv.height - vv.offsetTop,
+        );
+        setKeyboardInset(inset);
+        setViewportHeight(vv.height);
+      } else {
+        setKeyboardInset(0);
+        setViewportHeight(window.innerHeight);
+      }
+    };
+    update();
+    if (vv) {
+      vv.addEventListener('resize', update);
+      vv.addEventListener('scroll', update);
+    }
+    window.addEventListener('resize', update);
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', update);
+        vv.removeEventListener('scroll', update);
+      }
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+
+  // Auto-grow the composer textarea up to a hard cap. Keeps the messenger
+  // feel (no rigid single-line cramp) without letting the composer eat the
+  // whole panel on a long paste.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const next = Math.min(el.scrollHeight, 144); // ~9rem
+    el.style.height = `${next}px`;
+  }, [freeText, open, tab]);
 
   const aiDisabled = Boolean(aiDisabledReason);
 
@@ -548,9 +685,12 @@ export function RecipeAssistant({
 
   const handleApply = useCallback(() => {
     if (view.kind !== 'proposal') return;
+    // Snapshot the pre-apply recipe so the in-panel "Fortryd" can restore it
+    // via the same onApply pipe (no new parent wiring required — the global
+    // UndoToast in App.tsx still fires too, this is just the in-panel mirror
+    // for flows where the assistant stays open, e.g. generate_tips).
+    setLastApplied(recipe);
     onApply(view.proposed);
-    // After applying a tips-generate, stay on the tips tab so user sees the
-    // new tips. Other actions close the panel as a natural "confirm" beat.
     if (view.action === 'generate_tips') {
       setView({ kind: 'idle' });
       setTab('tips');
@@ -558,7 +698,14 @@ export function RecipeAssistant({
       setView({ kind: 'idle' });
       close();
     }
-  }, [onApply, close, view]);
+  }, [onApply, close, recipe, view]);
+
+  const handleUndoLastApply = useCallback(() => {
+    if (!lastApplied) return;
+    const snap = lastApplied;
+    setLastApplied(null);
+    onApply(snap);
+  }, [lastApplied, onApply]);
 
   const handleDiscard = useCallback(() => {
     setView({ kind: 'idle' });
@@ -570,6 +717,9 @@ export function RecipeAssistant({
   // answer resolves the doubt.
   const askAboutProposal = useCallback(
     async (question: string) => {
+      // In-flight guard — block parallel sends before we even touch state.
+      if (isAsking) return;
+      setIsAsking(true);
       setView((prev) => {
         if (prev.kind !== 'proposal') return prev;
         const entry: ProposalDiscussionEntry = {
@@ -619,24 +769,41 @@ export function RecipeAssistant({
             ),
           };
         });
+      } finally {
+        setIsAsking(false);
       }
     },
-    [recipe, view],
+    [isAsking, recipe, view],
   );
 
   const handleSendFreeText = useCallback(() => {
     const text = freeText.trim();
     if (!text) return;
     // In the proposal view, route the composer to ask-about-proposal so the
-    // user can interrogate a suspicious proposal before applying it.
+    // user can interrogate a suspicious proposal before applying it. Guard
+    // against re-entry while the previous question is still in flight.
     if (view.kind === 'proposal') {
+      if (isAsking) return;
       void askAboutProposal(text);
       setFreeText('');
       return;
     }
     void dispatch('adjust_all', { instruction: text });
     setFreeText('');
-  }, [askAboutProposal, dispatch, freeText, view]);
+  }, [askAboutProposal, dispatch, freeText, isAsking, view]);
+
+  // Per-tip delete: pushes the filtered list through the same onApply channel
+  // so history/undo stays coherent with every other AI-applied change.
+  const handleDeleteTip = useCallback(
+    (index: number) => {
+      const tips = Array.isArray(recipe.tipsAndTricks) ? recipe.tipsAndTricks : [];
+      if (index < 0 || index >= tips.length) return;
+      setLastApplied(recipe);
+      const nextTips = tips.filter((_, i) => i !== index);
+      onApply({ ...recipe, tipsAndTricks: nextTips } as Recipe);
+    },
+    [onApply, recipe],
+  );
 
   if (!enabled) return null;
 
@@ -676,7 +843,7 @@ export function RecipeAssistant({
           aria-label={open ? 'Minimer CookMoxs-assistent' : 'Åbn CookMoxs-assistent'}
           aria-expanded={open}
         >
-          <BrandMark size={40} className="drop-shadow-sm" />
+          <BrandMark size={44} className="drop-shadow-sm" />
           {isBusy && (
             <span
               aria-hidden="true"
@@ -709,19 +876,38 @@ export function RecipeAssistant({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="fixed right-3 sm:right-4 bottom-[6.5rem] sm:bottom-[7.5rem] z-40 w-[min(22rem,calc(100vw-1.5rem))] print:hidden"
+            className="fixed right-3 sm:right-4 bottom-[6.5rem] sm:bottom-[7.5rem] z-40 w-[min(22rem,calc(100vw-1.5rem))] print:hidden flex flex-col"
+            style={{
+              // Shift above iOS soft-keyboard when VisualViewport reports an
+              // inset. On desktop / non-soft-keyboard browsers the inset stays
+              // 0 and this collapses to a no-op.
+              bottom:
+                keyboardInset > 0
+                  ? `calc(6.5rem + ${keyboardInset}px)`
+                  : undefined,
+              // Cap the panel so long threads + composer can never overflow
+              // the visible viewport. Falls back to CSS dvh when VV is missing
+              // (old browsers) so there's still a sane ceiling.
+              maxHeight:
+                viewportHeight != null
+                  ? `${Math.max(260, viewportHeight - 140)}px`
+                  : 'min(80dvh, 640px)',
+            }}
             role="dialog"
             aria-label="CookMoxs-assistent"
           >
-            <div className="rounded-[1.5rem] overflow-hidden shadow-2xl border border-black/10 dark:border-[#C9A14A]/25 backdrop-blur-xl bg-sand/95 dark:bg-[#1A221E]/95">
+            <div className="rounded-[1.5rem] overflow-hidden shadow-2xl border border-black/10 dark:border-[#C9A14A]/25 backdrop-blur-xl bg-sand/95 dark:bg-[#1A221E]/95 flex flex-col min-h-0 max-h-full">
               {/* Header — serves as drag handle */}
               <div
-                className="flex items-center gap-2.5 px-3.5 py-3 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03] cursor-grab active:cursor-grabbing select-none"
+                role="toolbar"
+                aria-label="Assistent-header (træk for at flytte panelet)"
+                aria-grabbed="false"
+                className="flex items-center gap-2.5 px-3.5 py-3 border-b border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/[0.03] cursor-grab active:cursor-grabbing select-none shrink-0"
                 onPointerDown={(e) => dragControls.start(e)}
                 style={{ touchAction: 'none' }}
               >
-                <div className="w-8 h-8 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center shadow-sm">
-                  <BrandMark size={28} />
+                <div className="w-9 h-9 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center shadow-sm ring-1 ring-inset ring-heath-mid/10 dark:ring-[#C9A14A]/20">
+                  <BrandMark size={30} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-forest-mid cm-light-surface-ink-muted dark:text-[#E2C06E] leading-none mb-0.5">
@@ -746,7 +932,7 @@ export function RecipeAssistant({
               <div
                 role="tablist"
                 aria-label="Assistent-faner"
-                className="flex border-b border-black/5 dark:border-white/10 bg-white/20 dark:bg-black/20"
+                className="flex border-b border-black/5 dark:border-white/10 bg-white/20 dark:bg-black/20 shrink-0"
               >
                 <TabButton
                   active={tab === 'chat'}
@@ -768,7 +954,7 @@ export function RecipeAssistant({
                   ref={chatScrollRef}
                   aria-live="polite"
                   aria-relevant="additions text"
-                  className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2.5"
+                  className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2.5"
                 >
                   {aiDisabled && (
                     <div className="rounded-2xl border border-amber-200/70 bg-amber-50/90 dark:bg-amber-950/40 dark:border-amber-700/50 px-3 py-2 text-amber-900 dark:text-amber-200 text-[12px]">
@@ -784,6 +970,16 @@ export function RecipeAssistant({
 
                   {view.kind === 'idle' && section === 'home' && (
                     <div className="pl-8 space-y-1.5">
+                      {lastApplied && (
+                        <button
+                          onClick={handleUndoLastApply}
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-heath-mid/35 dark:border-[#C9A14A]/40 bg-white/60 dark:bg-[#223029]/60 text-forest-dark dark:text-[#F0D997] text-[11.5px] font-bold px-3 py-1.5 hover:bg-white/80 dark:hover:bg-[#223029]/90 transition-colors active:scale-[0.97]"
+                          aria-label="Fortryd seneste AI-ændring"
+                        >
+                          <Undo2 size={12} />
+                          Fortryd seneste AI-ændring
+                        </button>
+                      )}
                       <HomeCard
                         icon={<Wand2 size={16} />}
                         label="Tilpas opskriften"
@@ -850,18 +1046,65 @@ export function RecipeAssistant({
 
                   {view.kind === 'idle' && section === 'variants' && (
                     <>
-                      <BackToHome onClick={() => setSection('home')} />
-                      <div className="flex flex-wrap gap-1.5 pl-8">
-                        {VARIANT_PRESETS.map((v) => (
-                          <StarterChip
-                            key={v.prefix}
-                            label={v.label}
-                            hint={v.hint}
-                            disabled={aiDisabled}
-                            onClick={() => void dispatch('apply_variant', { variantPrefix: v.prefix })}
-                          />
-                        ))}
-                      </div>
+                      <BackToHome
+                        onClick={() => {
+                          setPendingVariant(null);
+                          setSection('home');
+                        }}
+                      />
+                      {pendingVariant ? (
+                        <AssistantBubble>
+                          <div className="font-bold text-[12px] mb-1.5">
+                            {pendingVariant.label} — hvad det typisk ændrer
+                          </div>
+                          <ul className="text-[11.5px] leading-snug opacity-90 space-y-1">
+                            {pendingVariant.previewBullets.map((b, idx) => (
+                              <li key={idx} className="flex gap-1.5">
+                                <span className="text-heath-mid dark:text-[#C9A14A] font-bold mt-0.5 shrink-0">
+                                  •
+                                </span>
+                                <span>{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-2 text-[10.5px] italic opacity-60 leading-snug">
+                            Dette er en hurtig forhåndsvisning. AI’en laver først
+                            det faktiske forslag, du kan beholde eller fortryde.
+                          </div>
+                          <div className="mt-2 flex gap-1.5">
+                            <button
+                              onClick={() => setPendingVariant(null)}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-black/15 dark:border-white/20 px-3 py-1.5 text-[12px] font-bold text-forest-dark dark:text-white/80 hover:bg-white/70 dark:hover:bg-white/10 transition-colors active:scale-[0.97]"
+                            >
+                              Annuller
+                            </button>
+                            <button
+                              onClick={() => {
+                                const prefix = pendingVariant.prefix;
+                                setPendingVariant(null);
+                                void dispatch('apply_variant', { variantPrefix: prefix });
+                              }}
+                              disabled={aiDisabled}
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] text-[12px] font-bold px-3 py-1.5 hover:bg-heath-dark dark:hover:bg-[#D9B564] transition-colors active:scale-[0.97] shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <ChevronRight size={12} />
+                              Fortsæt
+                            </button>
+                          </div>
+                        </AssistantBubble>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 pl-8">
+                          {VARIANT_PRESETS.map((v) => (
+                            <StarterChip
+                              key={v.prefix}
+                              label={v.label}
+                              hint={v.hint}
+                              disabled={aiDisabled}
+                              onClick={() => setPendingVariant(v)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -972,7 +1215,7 @@ export function RecipeAssistant({
                     <>
                       <div className="flex items-start gap-1.5">
                         <div className="w-6 h-6 shrink-0 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 flex items-center justify-center mt-0.5">
-                          <BrandMark size={20} />
+                          <BrandMark size={22} />
                         </div>
                         <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-red-50 dark:bg-red-950/30 border border-red-200/70 dark:border-red-700/40 px-3 py-2 text-[12px] text-red-900 dark:text-red-200">
                           {view.message}
@@ -988,7 +1231,7 @@ export function RecipeAssistant({
                 </div>
               ) : (
                 /* Tips tab */
-                <div className="max-h-[52vh] overflow-y-auto px-3 py-3 space-y-2">
+                <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2">
                   {recipeTips.length === 0 ? (
                     <div className="text-center py-4 text-forest-mid dark:text-white/60 italic text-[12px]">
                       <p className="mb-1">Ingen tips endnu på denne opskrift.</p>
@@ -1001,13 +1244,21 @@ export function RecipeAssistant({
                       {recipeTips.map((tip, idx) => (
                         <li
                           key={idx}
-                          className="rounded-xl bg-white/60 dark:bg-[#223029]/60 border border-black/5 dark:border-[#C9A14A]/20 px-3 py-2 text-[12px] leading-snug text-forest-dark dark:text-white/85 flex gap-2"
+                          className="rounded-xl bg-white/60 dark:bg-[#223029]/60 border border-black/5 dark:border-[#C9A14A]/20 px-3 py-2 text-[12px] leading-snug text-forest-dark dark:text-white/85 flex gap-2 items-start group"
                         >
                           <Lightbulb
                             size={13}
                             className="shrink-0 mt-0.5 text-heath-mid dark:text-[#C9A14A]"
                           />
-                          <span className="italic">{tip}</span>
+                          <span className="italic flex-1">{tip}</span>
+                          <button
+                            onClick={() => handleDeleteTip(idx)}
+                            aria-label={`Slet tip ${idx + 1}`}
+                            title="Slet tip"
+                            className="shrink-0 -my-1 -mr-1 p-1 rounded-full text-forest-mid/60 dark:text-white/40 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors opacity-60 group-hover:opacity-100"
+                          >
+                            <X size={12} />
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -1029,32 +1280,47 @@ export function RecipeAssistant({
 
               {/* Composer — messenger-style (only on chat tab) */}
               {tab === 'chat' && (
-                <div className="px-2.5 py-2 border-t border-black/5 dark:border-white/10 bg-white/30 dark:bg-black/30">
+                <div className="px-2.5 py-2 border-t border-black/5 dark:border-white/10 bg-white/30 dark:bg-black/30 shrink-0">
                   <div className="flex items-end gap-1.5">
                     <textarea
+                      ref={textareaRef}
                       value={freeText}
                       onChange={(e) => setFreeText(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
+                          // Guard re-entry: duplicate Enter during an
+                          // in-flight Q&A should NOT spawn a second call.
+                          if (isAsking && view.kind === 'proposal') return;
                           handleSendFreeText();
                         }
                       }}
                       placeholder={
                         view.kind === 'proposal'
-                          ? 'Spørg om forslaget — fx “hvorfor 900 min?”'
+                          ? isAsking
+                            ? 'Venter på svar…'
+                            : 'Spørg om forslaget — fx "hvorfor 900 min?"'
                           : 'Skriv til assistenten…'
                       }
                       rows={1}
-                      disabled={aiDisabled || isBusy}
+                      disabled={
+                        aiDisabled
+                          || isBusy
+                          || (isAsking && view.kind === 'proposal')
+                      }
                       className="flex-1 resize-none rounded-2xl border border-black/10 dark:border-[#C9A14A]/25 bg-white/80 dark:bg-[#223029]/80 px-3 py-1.5 text-[12px] leading-snug text-forest-dark dark:text-white/90 placeholder-forest-mid/50 dark:placeholder-white/30 focus:outline-none focus:border-heath-mid dark:focus:border-[#C9A14A] disabled:opacity-50"
-                      style={{ maxHeight: '5.5rem' }}
+                      style={{ maxHeight: '9rem' }}
                     />
                     <button
                       onClick={handleSendFreeText}
-                      disabled={!freeText.trim() || aiDisabled || isBusy}
+                      disabled={
+                        !freeText.trim()
+                          || aiDisabled
+                          || isBusy
+                          || (isAsking && view.kind === 'proposal')
+                      }
                       className="shrink-0 w-8 h-8 rounded-full bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] flex items-center justify-center disabled:opacity-35 disabled:cursor-not-allowed hover:bg-heath-dark dark:hover:bg-[#D9B564] transition-colors active:scale-[0.94] shadow-sm"
-                      aria-label="Send"
+                      aria-label={isAsking ? 'Sender…' : 'Send'}
                     >
                       <Send size={13} />
                     </button>
@@ -1202,7 +1468,7 @@ function AssistantBubble({
   return (
     <div className="flex items-start gap-1.5">
       <div className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center mt-0.5 ${avatarCls}`}>
-        <BrandMark size={20} />
+        <BrandMark size={22} />
       </div>
       <div className={`max-w-[85%] rounded-2xl rounded-tl-md border px-3 py-2 text-[12px] leading-snug shadow-sm ${bubbleCls}`}>
         {children}
@@ -1215,7 +1481,7 @@ function TypingIndicator({ label }: { label: string }) {
   return (
     <div className="flex items-start gap-1.5" role="status" aria-live="polite">
       <div className="w-6 h-6 shrink-0 rounded-full bg-heath-mid/15 text-heath-mid dark:bg-[#C9A14A]/20 dark:text-[#E2C06E] flex items-center justify-center mt-0.5">
-        <BrandMark size={20} />
+        <BrandMark size={22} />
       </div>
       <div className="rounded-2xl rounded-tl-md bg-white/85 dark:bg-[#223029]/85 border border-black/5 dark:border-[#C9A14A]/15 px-3 py-2 flex items-center gap-2 shadow-sm">
         <span className="flex items-end gap-[3px] h-3">
