@@ -67,6 +67,23 @@ interface ProposalDiscussionEntry {
   answer?: string;
   pending?: boolean;
   errored?: boolean;
+  // Set when the entry is a refine-request rather than an explain-request.
+  // Visually rendered as a "Rettelse" badge so the user can tell them apart
+  // from pure Q&A.
+  isRefine?: boolean;
+}
+
+// Persistent chat-log that survives section/tab switches + proposal resolve.
+// Only a recipe.id change (or closing-with-close-resets) wipes it, so old
+// exchanges stay visible instead of feeling like a hard reset every time the
+// user applies or discards a proposal.
+interface ChatLogEntry {
+  id: string;
+  role: 'user' | 'assistant' | 'status';
+  text?: string;
+  summary?: string;
+  bullets?: string[];
+  tone?: 'default' | 'error' | 'success';
 }
 
 type ViewState =
@@ -493,6 +510,11 @@ export function RecipeAssistant({
   // window.visualViewport and shift the panel up + cap its height.
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  // Persistent chat-log. Past exchanges (Q&A, applied/discarded proposals,
+  // status markers) stay visible when the user navigates between Tilpas /
+  // Varianter / Tips so the panel doesn't feel like a full reset on every
+  // action. Reset on recipe.id change only — NOT on close, NOT on section.
+  const [chatLog, setChatLog] = useState<ChatLogEntry[]>([]);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
@@ -503,7 +525,8 @@ export function RecipeAssistant({
   const close = useCallback(() => setOpen(false), []);
 
   // Reset when closing OR when recipe changes so we never render a proposal
-  // against a different recipe.
+  // against a different recipe. NOTE: chatLog is intentionally kept across
+  // close/reopen — it only resets when the recipe changes.
   useEffect(() => {
     if (!open) {
       setView({ kind: 'idle' });
@@ -516,7 +539,66 @@ export function RecipeAssistant({
     setTab('chat');
     setSection('home');
     setOpen(false);
+    setChatLog([]);
   }, [recipe.id]);
+
+  const appendLog = useCallback((entry: Omit<ChatLogEntry, 'id'>) => {
+    setChatLog((prev) => {
+      const next: ChatLogEntry[] = [
+        ...prev,
+        {
+          ...entry,
+          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        },
+      ];
+      // Soft cap — keep memory / DOM bounded on long sessions.
+      return next.length > 60 ? next.slice(next.length - 60) : next;
+    });
+  }, []);
+
+  // Flushes an in-flight proposal (summary/bullets + discussion thread)
+  // into the persistent chat-log with a trailing status pill. Called from
+  // both handleApply and handleDiscard so the thread isn't lost.
+  const flushProposalToLog = useCallback(
+    (snapshot: Extract<ViewState, { kind: 'proposal' }>, status: 'applied' | 'discarded') => {
+      setChatLog((prev) => {
+        const additions: ChatLogEntry[] = [];
+        const now = Date.now();
+        let seq = 0;
+        const mkId = () => `log-${now}-${seq++}-${Math.random().toString(36).slice(2, 5)}`;
+        additions.push({
+          id: mkId(),
+          role: 'assistant',
+          summary: snapshot.summary,
+          bullets: snapshot.bullets,
+        });
+        snapshot.discussion.forEach((e) => {
+          additions.push({
+            id: mkId(),
+            role: 'user',
+            text: e.isRefine ? `Ret: ${e.question}` : e.question,
+          });
+          if (e.answer) {
+            additions.push({
+              id: mkId(),
+              role: 'assistant',
+              text: e.answer,
+              tone: e.errored ? 'error' : 'default',
+            });
+          }
+        });
+        additions.push({
+          id: mkId(),
+          role: 'status',
+          text: status === 'applied' ? 'Forslag anvendt' : 'Forslag forkastet',
+          tone: status === 'applied' ? 'success' : 'default',
+        });
+        const next = [...prev, ...additions];
+        return next.length > 60 ? next.slice(next.length - 60) : next;
+      });
+    },
+    [],
+  );
 
   // Click outside panel closes it. We compare against both the panel and the
   // floating bubble so clicking the bubble still just toggles (doesn't
@@ -561,7 +643,7 @@ export function RecipeAssistant({
       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     });
     return () => cancelAnimationFrame(raf);
-  }, [open, view.kind, discussionLen, lastDiscussionPending]);
+  }, [open, view.kind, discussionLen, lastDiscussionPending, chatLog.length]);
 
   // Track the VisualViewport so the panel repositions above the soft
   // keyboard and shrinks to fit the available height on small screens.
@@ -685,6 +767,10 @@ export function RecipeAssistant({
 
   const handleApply = useCallback(() => {
     if (view.kind !== 'proposal') return;
+    // Flush the resolved thread into the persistent chat-log so the user
+    // can still see what was asked/answered and which proposal was kept,
+    // even after the panel has moved on to another section.
+    flushProposalToLog(view, 'applied');
     // Snapshot the pre-apply recipe so the in-panel "Fortryd" can restore it
     // via the same onApply pipe (no new parent wiring required — the global
     // UndoToast in App.tsx still fires too, this is just the in-panel mirror
@@ -696,20 +782,30 @@ export function RecipeAssistant({
       setTab('tips');
     } else {
       setView({ kind: 'idle' });
-      close();
+      // Intentionally NOT closing the panel — keeps the chat-log visible so
+      // the user has continuity after apply. The bubble toggle still closes
+      // it manually. (Previously called close() here.)
     }
-  }, [onApply, close, recipe, view]);
+  }, [onApply, flushProposalToLog, recipe, view]);
 
   const handleUndoLastApply = useCallback(() => {
     if (!lastApplied) return;
     const snap = lastApplied;
     setLastApplied(null);
     onApply(snap);
-  }, [lastApplied, onApply]);
+    appendLog({
+      role: 'status',
+      text: 'Seneste AI-ændring fortrudt',
+      tone: 'default',
+    });
+  }, [lastApplied, onApply, appendLog]);
 
   const handleDiscard = useCallback(() => {
+    if (view.kind === 'proposal') {
+      flushProposalToLog(view, 'discarded');
+    }
     setView({ kind: 'idle' });
-  }, []);
+  }, [flushProposalToLog, view]);
 
   // When a proposal is on screen, the composer instead threads a short
   // clarifying Q&A via /api/ai/explain-proposal — cheaper than re-running
@@ -776,6 +872,96 @@ export function RecipeAssistant({
     [isAsking, recipe, view],
   );
 
+  // Refine the current proposal in-place using the user's instruction
+  // (typically a follow-up from a Q&A like "ret timer til 60 min"). Uses
+  // aiAdjustRecipe against the CURRENT PROPOSED recipe so iterative edits
+  // converge — delta bullets are still computed against the ORIGINAL recipe
+  // so Behold/Fortryd still refer to the correct baseline.
+  const refineProposal = useCallback(
+    async (instruction: string) => {
+      const text = instruction.trim();
+      if (!text) return;
+      if (aiDisabled) {
+        setView({
+          kind: 'error',
+          message: aiDisabledReason || 'AI er ikke tilgængelig lige nu.',
+        });
+        return;
+      }
+      // If called outside proposal view (e.g. via composer when idle), fall
+      // through to the normal adjust_all flow so nothing is lost.
+      if (view.kind !== 'proposal') {
+        await dispatch('adjust_all', { instruction: text });
+        return;
+      }
+      if (isAsking) return;
+      setIsAsking(true);
+      const entryId = `refine-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setView((prev) => {
+        if (prev.kind !== 'proposal') return prev;
+        return {
+          ...prev,
+          discussion: [
+            ...prev.discussion,
+            { id: entryId, question: text, pending: true, isRefine: true },
+          ],
+        };
+      });
+      try {
+        const baseline = view.proposed;
+        const action = view.action;
+        const refined = (await aiAdjustRecipe(baseline, text)) as Recipe;
+        const { bullets, summary } = describeRecipeDelta(recipe, refined, action);
+        setView((prev) => {
+          if (prev.kind !== 'proposal') return prev;
+          const effectiveSummary = bullets.length > 0 ? summary : prev.summary;
+          const effectiveBullets = bullets.length > 0 ? bullets : prev.bullets;
+          return {
+            ...prev,
+            proposed: refined,
+            summary: effectiveSummary,
+            bullets: effectiveBullets,
+            discussion: prev.discussion.map((e) =>
+              e.id === entryId
+                ? {
+                    ...e,
+                    pending: false,
+                    answer:
+                      bullets.length > 0
+                        ? 'Forslaget er rettet — se opdaterede ændringer ovenfor.'
+                        : 'Jeg kunne ikke ændre noget ud fra den rettelse. Prøv en mere konkret instruktion.',
+                  }
+                : e,
+            ),
+          };
+        });
+      } catch (error) {
+        const normalized = normalizeAiActionError(
+          error instanceof AiRequestError ? error : error,
+        );
+        setView((prev) => {
+          if (prev.kind !== 'proposal') return prev;
+          return {
+            ...prev,
+            discussion: prev.discussion.map((e) =>
+              e.id === entryId
+                ? {
+                    ...e,
+                    pending: false,
+                    errored: true,
+                    answer: normalized.message || 'Kunne ikke rette forslaget.',
+                  }
+                : e,
+            ),
+          };
+        });
+      } finally {
+        setIsAsking(false);
+      }
+    },
+    [aiDisabled, aiDisabledReason, dispatch, isAsking, recipe, view],
+  );
+
   const handleSendFreeText = useCallback(() => {
     const text = freeText.trim();
     if (!text) return;
@@ -791,6 +977,18 @@ export function RecipeAssistant({
     void dispatch('adjust_all', { instruction: text });
     setFreeText('');
   }, [askAboutProposal, dispatch, freeText, isAsking, view]);
+
+  // Alternative send from the proposal composer: interpret the text as a
+  // direct correction instead of a clarifying question. Keeps the chat
+  // in-flow so the user doesn't have to Fortryd + start a fresh adjust_all
+  // prompt (which previously timed out on large recipes).
+  const handleSendAsRefine = useCallback(() => {
+    const text = freeText.trim();
+    if (!text) return;
+    if (isAsking) return;
+    void refineProposal(text);
+    setFreeText('');
+  }, [freeText, isAsking, refineProposal]);
 
   // Per-tip delete: pushes the filtered list through the same onApply channel
   // so history/undo stays coherent with every other AI-applied change.
@@ -968,6 +1166,62 @@ export function RecipeAssistant({
                     <span className="italic">{recipe.title || 'denne opskrift'}</span>?
                   </AssistantBubble>
 
+                  {/* Persistent chat-log — past Q&A, applied/discarded proposals,
+                       status markers. Survives section/tab switches and apply/
+                       discard so the conversation doesn't feel like a reset. */}
+                  {chatLog.map((entry) => {
+                    if (entry.role === 'user') {
+                      return (
+                        <div key={entry.id} className="flex justify-end pr-0.5">
+                          <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-heath-mid/70 text-white dark:bg-[#C9A14A]/70 dark:text-[#1A221E] px-3 py-1.5 text-[12px] leading-snug shadow-sm opacity-90">
+                            {entry.text}
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (entry.role === 'status') {
+                      const statusCls =
+                        entry.tone === 'success'
+                          ? 'border-heath-mid/40 bg-heath-mid/10 text-heath-dark dark:border-[#C9A14A]/40 dark:bg-[#C9A14A]/10 dark:text-[#E2C06E]'
+                          : 'border-black/10 bg-white/50 text-forest-mid dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60';
+                      return (
+                        <div key={entry.id} className="flex justify-center py-0.5">
+                          <div
+                            className={`rounded-full border px-3 py-0.5 text-[10.5px] uppercase tracking-[0.14em] font-bold ${statusCls}`}
+                          >
+                            {entry.text}
+                          </div>
+                        </div>
+                      );
+                    }
+                    // assistant
+                    return (
+                      <AssistantBubble key={entry.id} tone={entry.tone === 'error' ? 'error' : 'default'}>
+                        {entry.summary ? (
+                          <>
+                            <div className="font-bold text-[12px] mb-1 opacity-80">
+                              {entry.summary}
+                            </div>
+                            {entry.bullets && entry.bullets.length > 0 && (
+                              <ul className="text-[11.5px] leading-snug opacity-75 space-y-0.5">
+                                {entry.bullets.map((b, idx) => (
+                                  <li key={idx} className="flex gap-1.5">
+                                    <span className="text-heath-mid dark:text-[#C9A14A] font-bold mt-0.5 shrink-0">•</span>
+                                    <span>{b}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-[12px] leading-snug opacity-85">
+                            {entry.text}
+                          </div>
+                        )}
+                      </AssistantBubble>
+                    );
+                  })}
+
                   {view.kind === 'idle' && section === 'home' && (
                     <div className="pl-8 space-y-1.5">
                       {lastApplied && (
@@ -978,6 +1232,15 @@ export function RecipeAssistant({
                         >
                           <Undo2 size={12} />
                           Fortryd seneste AI-ændring
+                        </button>
+                      )}
+                      {chatLog.length > 0 && (
+                        <button
+                          onClick={() => setChatLog([])}
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-black/10 dark:border-white/10 bg-transparent text-forest-mid/80 dark:text-white/50 text-[11px] font-bold px-3 py-1 hover:bg-white/60 dark:hover:bg-white/[0.04] transition-colors active:scale-[0.97]"
+                          aria-label="Ryd chat-log"
+                        >
+                          Ryd chat-log
                         </button>
                       )}
                       <HomeCard
@@ -1141,9 +1404,9 @@ export function RecipeAssistant({
                           ))}
                         </ul>
                         <div className="mt-2 text-[10.5px] italic opacity-60 leading-snug">
-                          Spørg mig hvis noget ser forkert ud — “hvorfor 900 min
-                          i stedet for 60?”. Forslaget ændres først når du
-                          trykker Behold.
+                          Spørg “hvorfor 900 min?” — eller skriv en rettelse
+                          (“ret timer til 60 min”) og tryk <b>Ret</b>. Forslaget
+                          ændres først permanent når du trykker <b>Behold</b>.
                         </div>
                       </AssistantBubble>
 
@@ -1151,19 +1414,53 @@ export function RecipeAssistant({
                         <div key={entry.id} className="space-y-1">
                           {/* user question bubble (right-aligned) */}
                           <div className="flex justify-end pr-0.5">
-                            <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] px-3 py-1.5 text-[12px] leading-snug shadow-sm">
+                            <div
+                              className={[
+                                'max-w-[85%] rounded-2xl rounded-tr-md px-3 py-1.5 text-[12px] leading-snug shadow-sm',
+                                entry.isRefine
+                                  ? 'bg-heath-dark text-white dark:bg-[#D9B564] dark:text-[#1A221E] ring-1 ring-inset ring-white/30 dark:ring-black/20'
+                                  : 'bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E]',
+                              ].join(' ')}
+                            >
+                              {entry.isRefine && (
+                                <span className="mr-1.5 text-[9.5px] font-bold uppercase tracking-wider opacity-85">
+                                  Rettelse
+                                </span>
+                              )}
                               {entry.question}
                             </div>
                           </div>
                           {/* assistant answer bubble */}
                           {entry.pending ? (
-                            <TypingIndicator label="Tænker…" />
+                            <TypingIndicator
+                              label={entry.isRefine ? 'Retter forslaget…' : 'Tænker…'}
+                            />
                           ) : (
-                            <AssistantBubble tone={entry.errored ? 'error' : 'default'}>
-                              <div className="whitespace-pre-wrap text-[12px] leading-snug">
-                                {entry.answer}
-                              </div>
-                            </AssistantBubble>
+                            <>
+                              <AssistantBubble tone={entry.errored ? 'error' : 'default'}>
+                                <div className="whitespace-pre-wrap text-[12px] leading-snug">
+                                  {entry.answer}
+                                </div>
+                              </AssistantBubble>
+                              {/* Inline "apply this as a correction" action —
+                                   only on explain-answers, not on refine-answers
+                                   (which are already the correction). Lets the
+                                   user commit "yes, fix it based on what we just
+                                   discussed" without retyping. */}
+                              {!entry.errored && !entry.isRefine && (
+                                <div className="pl-8">
+                                  <button
+                                    onClick={() => void refineProposal(entry.question)}
+                                    disabled={aiDisabled || isAsking}
+                                    className="inline-flex items-center gap-1 rounded-full border border-heath-mid/40 dark:border-[#C9A14A]/40 bg-white/70 dark:bg-[#223029]/70 text-forest-dark dark:text-[#F0D997] text-[11px] font-bold px-2.5 py-1 hover:bg-heath-mid hover:text-white dark:hover:bg-[#C9A14A] dark:hover:text-[#1A221E] transition-colors active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
+                                    title="Brug dette spørgsmål som en rettelse til forslaget"
+                                  >
+                                    <Wand2 size={11} />
+                                    Ret ud fra dette
+                                  </button>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       ))}
@@ -1299,7 +1596,7 @@ export function RecipeAssistant({
                         view.kind === 'proposal'
                           ? isAsking
                             ? 'Venter på svar…'
-                            : 'Spørg om forslaget — fx "hvorfor 900 min?"'
+                            : 'Spørg — eller tryk Ret for at ændre forslaget'
                           : 'Skriv til assistenten…'
                       }
                       rows={1}
@@ -1311,6 +1608,28 @@ export function RecipeAssistant({
                       className="flex-1 resize-none rounded-2xl border border-black/10 dark:border-[#C9A14A]/25 bg-white/80 dark:bg-[#223029]/80 px-3 py-1.5 text-[12px] leading-snug text-forest-dark dark:text-white/90 placeholder-forest-mid/50 dark:placeholder-white/30 focus:outline-none focus:border-heath-mid dark:focus:border-[#C9A14A] disabled:opacity-50"
                       style={{ maxHeight: '9rem' }}
                     />
+                    {/* Secondary action (proposal view only): treat the
+                        textarea text as a direct correction instead of a
+                        Q&A. Lets the user say "ret timer til 60 min" in the
+                        chat without having to Fortryd + restart a fresh
+                        adjust_all prompt. */}
+                    {view.kind === 'proposal' && (
+                      <button
+                        onClick={handleSendAsRefine}
+                        disabled={
+                          !freeText.trim()
+                            || aiDisabled
+                            || isBusy
+                            || isAsking
+                        }
+                        className="shrink-0 h-8 px-2.5 rounded-full border border-heath-mid/40 dark:border-[#C9A14A]/40 bg-white/70 dark:bg-[#223029]/70 text-forest-dark dark:text-[#F0D997] text-[11px] font-bold flex items-center gap-1 disabled:opacity-35 disabled:cursor-not-allowed hover:bg-heath-dark hover:text-white hover:border-heath-dark dark:hover:bg-[#D9B564] dark:hover:text-[#1A221E] dark:hover:border-[#D9B564] transition-colors active:scale-[0.94]"
+                        aria-label="Ret forslaget ud fra teksten"
+                        title="Brug teksten som rettelse til forslaget"
+                      >
+                        <Wand2 size={12} />
+                        Ret
+                      </button>
+                    )}
                     <button
                       onClick={handleSendFreeText}
                       disabled={
@@ -1320,7 +1639,12 @@ export function RecipeAssistant({
                           || (isAsking && view.kind === 'proposal')
                       }
                       className="shrink-0 w-8 h-8 rounded-full bg-heath-mid text-white dark:bg-[#C9A14A] dark:text-[#1A221E] flex items-center justify-center disabled:opacity-35 disabled:cursor-not-allowed hover:bg-heath-dark dark:hover:bg-[#D9B564] transition-colors active:scale-[0.94] shadow-sm"
-                      aria-label={isAsking ? 'Sender…' : 'Send'}
+                      aria-label={
+                        view.kind === 'proposal'
+                          ? (isAsking ? 'Sender spørgsmål…' : 'Send som spørgsmål')
+                          : (isAsking ? 'Sender…' : 'Send')
+                      }
+                      title={view.kind === 'proposal' ? 'Send som spørgsmål' : 'Send'}
                     >
                       <Send size={13} />
                     </button>
@@ -1454,6 +1778,10 @@ function AssistantBubble({
   children,
   tone = 'default',
 }: {
+  // `key` is intentionally declared optional so map() call-sites can pass it.
+  // The project runs without `@types/react`, so TS's built-in JSX fallback
+  // treats `key` as a regular prop rather than a React-special attribute.
+  key?: string | number;
   children: ReactNode;
   tone?: 'default' | 'error';
 }) {
