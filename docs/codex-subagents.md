@@ -30,8 +30,9 @@ If native subagents are not available or not confirmed, run this protocol as **s
 Pass 1: Repo Scout
 Pass 2: Runtime Skeptic
 Pass 3: Product Rule Auditor
-Pass 4: Test Gap Finder if needed
-Pass 5: Main Codex synthesis
+Pass 4: AI Output Fidelity Auditor if source-to-output truth is in scope
+Pass 5: Test Gap Finder if needed
+Pass 6: Main Codex synthesis
 ```
 
 Do not create `.codex/agents/*`, TOML files, YAML config, custom tools, or new dependencies unless the current Codex environment explicitly documents that format and the user asks for native agent configuration.
@@ -99,6 +100,8 @@ Do not mark aesthetic-only polish above P2 unless it directly harms usability, r
 
 - Cook Mode changes
 - AI/import/server behavior
+- AI/API output fidelity
+- recipe transformation, timers, quantities, units, ingredient extraction, source-to-output drift, or cook-mode metadata
 - cache, service worker, local storage, stale state
 - Firestore, auth, permissions
 - observer-log mysteries
@@ -430,6 +433,75 @@ reject
 
 ---
 
+# Agent 7 — AI Output Fidelity Auditor
+
+## Name
+
+`cookmoxs-ai-output-fidelity-auditor`
+
+## Mode
+
+Read-only.
+
+## Mission
+
+Check whether AI/API output preserves source truth and CookMoxs recipe semantics.
+
+## Use when a task touches
+
+- AI/API output fidelity
+- recipe transformation
+- timers
+- quantities
+- units
+- ingredient extraction
+- source-to-output drift
+- cook-mode metadata
+
+## Focus
+
+- time corruption
+- quantity corruption
+- unit conversion errors
+- hallucinated ingredients
+- removed source ingredients
+- invented steps
+- changed cooking method
+- changed recipe identity
+- serving-count drift
+- oven/stovetop confusion
+- timer inference beyond source evidence
+- valid JSON that is semantically wrong
+
+## Must return max 8 findings
+
+For each finding:
+
+1. Source evidence or missing evidence
+2. Output field at risk
+3. Semantic drift
+4. User-facing consequence
+5. Likely files involved
+6. Minimal correction
+7. Verification method
+8. Severity: `P0` / `P1` / `P2` / `Nice-to-have`
+9. Could-not-verify items
+
+## Rules
+
+- Do not edit files.
+- Do not judge JSON validity only; judge whether valid JSON is truthful.
+- Do not invent missing source context.
+- Prefer omission over hallucinated recipe data.
+- Flag cooking-method changes unless clearly supported by source evidence.
+- Flag timer inference when the source only implies waiting, resting, or cooking state without a duration.
+- Flag units and quantities that are internally valid but source-inconsistent.
+- Do not propose broad parser, model, or prompt rewrites unless the current task explicitly asks for them.
+
+---
+
+---
+
 # Standard protocols
 
 ## Standard complex-task protocol
@@ -441,6 +513,9 @@ Run read-only:
 - cookmoxs-repo-scout
 - cookmoxs-runtime-skeptic
 - cookmoxs-product-rule-auditor
+
+If the task touches AI/API output fidelity, recipe transformation, timers, quantities, units, ingredient extraction, source-to-output drift, or cook-mode metadata, also run:
+- cookmoxs-ai-output-fidelity-auditor
 
 Main Codex must synthesize:
 - top risks

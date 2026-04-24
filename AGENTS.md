@@ -207,6 +207,8 @@ Do not use subagents for small, obvious fixes.
 
 - Cook Mode
 - AI/import/server behavior
+- AI/API output fidelity
+- recipe transformation, timers, quantities, units, ingredient extraction, source-to-output drift, or cook-mode metadata
 - cache, service worker, local storage, stale state
 - Firestore, auth, permissions
 - observer-log mysteries
@@ -232,17 +234,21 @@ For complex tasks, run read-only:
 2. `cookmoxs-runtime-skeptic`
 3. `cookmoxs-product-rule-auditor`
 
+For AI/API output fidelity, recipe transformation, timers, quantities, units, ingredient extraction, source-to-output drift, or cook-mode metadata, add:
+
+4. `cookmoxs-ai-output-fidelity-auditor`
+
 For UI/QoL review, add:
 
-4. `cookmoxs-qol-ui-product-auditor`
+5. `cookmoxs-qol-ui-product-auditor`
 
 For verification planning, add:
 
-5. `cookmoxs-test-gap-finder`
+6. `cookmoxs-test-gap-finder`
 
 Before commit or handoff, use:
 
-6. `cookmoxs-diff-reviewer`
+7. `cookmoxs-diff-reviewer`
 
 ### Implementation rule
 
